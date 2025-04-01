@@ -1,0 +1,33 @@
+{
+  "UK": [
+    {
+      "Weight_slab(UK)": "1 Kg FLAT",
+      "Economy": "₹2800",
+      "Express": "₹3200",
+      "EcoDutyFree": "-",
+      "ZONES": "Isle of Man",
+      "INSTRUCTIONS": "Remote area of the UK. Remote charges £47",
+      "DAYSTODELIVER": "5 Days"
+    }
+  ],
+  "CANADA": [
+    {
+      "Weight_slab(UK)": "1 Kg FLAT",
+      "Economy": "₹2800",
+      "Express": "₹3200",
+      "EcoDutyFree": "-",
+      "ZONES": "Isle of Man",
+      "INSTRUCTIONS": "Remote area of the UK. Remote charges £47",
+      "DAYSTODELIVER": "5 Days"
+    },
+    {
+      "Weight_slab(UK)": "1 Kg FLAT",
+      "Economy": "₹2800",
+      "Express": "₹3200",
+      "EcoDutyFree": "-",
+      "ZONES": "Isle of Man",
+      "INSTRUCTIONS": "Remote area of the UK. Remote charges £47",
+      "DAYSTODELIVER": "5 Days"
+    }
+  ]
+}

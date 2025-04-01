@@ -1,0 +1,240 @@
+[{
+    "EventDate": "11/11/2024",
+    "EventTime": "1056",
+    "EventDate1": "11th November 2024",
+    "EventTime1": "10:56 AM",
+    "Location": "MCKINNEY",
+    "Status": "DELIVERED",
+    "FlightCode": "",
+    "FlightName": ""
+},
+{
+    "EventDate": "11/11/2024",
+    "EventTime": "0906",
+    "EventDate1": "11th November 2024",
+    "EventTime1": "9:06 AM",
+    "Location": "Mckinney",
+    "Status": "Out For Delivery Today",
+    "FlightCode": "",
+    "FlightName": ""
+}, 
+{
+    "EventDate": "11/11/2024",
+    "EventTime": "0631",
+    "EventDate1": "11th November 2024",
+    "EventTime1": "6:31 AM",
+    "Location": "Mckinney",
+    "Status": "Loaded on Delivery Vehicle",
+    "FlightCode": "",
+    "FlightName": ""
+},
+{
+    "EventDate": "11/11/2024",
+    "EventTime": "0548",
+    "EventDate1": "11th November 2024",
+    "EventTime1": "5:48 AM",
+    "Location": "Mckinney",
+    "Status": "Processing at UPS Facility",
+    "FlightCode": "",
+    "FlightName": ""
+},
+{
+    "EventDate": "11/11/2024",
+    "EventTime": "0401",
+    "EventDate1": "11th November 2024",
+    "EventTime1": "4:01 AM",
+    "Location": "Mckinney",
+    "Status": "Arrived at Facility",
+    "FlightCode": "",
+    "FlightName": ""
+},
+{
+    "EventDate": "11/11/2024",
+    "EventTime": "0251",
+    "EventDate1": "11th November 2024",
+    "EventTime1": "2:51 AM",
+    "Location": "Haslet",
+    "Status": "Departed from Facility",
+    "FlightCode": "",
+    "FlightName": ""
+},
+{
+    "EventDate": "10/11/2024",
+    "EventTime": "1746",
+    "EventDate1": "10th November 2024",
+    "EventTime1": "5:46 PM",
+    "Location": "Haslet",
+    "Status": "Arrived at Facility",
+    "FlightCode": "",
+    "FlightName": ""
+},
+{
+    "EventDate": "10/11/2024",
+    "EventTime": "0439",
+    "EventDate1": "10th November 2024",
+    "EventTime1": "4:39 AM",
+    "Location": "Louisville",
+    "Status": "Departed from Facility",
+    "FlightCode": "",
+    "FlightName": ""
+},
+{
+    "EventDate": "08/11/2024",
+    "EventTime": "2308",
+    "EventDate1": "8th November 2024",
+    "EventTime1": "11:08 PM",
+    "Location": "Louisville",
+    "Status": "Import Scan",
+    "FlightCode": "",
+    "FlightName": ""
+},
+{
+    "EventDate": "08/11/2024",
+    "EventTime": "1113",
+    "EventDate1": "8th November 2024",
+    "EventTime1": "11:13 AM",
+    "Location": "Louisville",
+    "Status": "Arrived at Facility",
+    "FlightCode": "",
+    "FlightName": ""
+},
+{
+    "EventDate": "08/11/2024",
+    "EventTime": "0831",
+    "EventDate1": "8th November 2024",
+    "EventTime1": "8:31 AM",
+    "Location": "Koeln",
+    "Status": "Departed from Facility",
+    "FlightCode": "",
+    "FlightName": ""
+},
+{
+    "EventDate": "07/11/2024",
+    "EventTime": "2106",
+    "EventDate1": "7th November 2024",
+    "EventTime1": "9:06 PM",
+    "Location": "Bengaluru Airport",
+    "Status": "Departed from Facility",
+    "FlightCode": "",
+    "FlightName": ""
+},
+{
+    "EventDate": "07/11/2024",
+    "EventTime": "1022",
+    "EventDate1": "7th November 2024",
+    "EventTime1": "10:22 AM",
+    "Location": "",
+    "Status": "We are experiencing transit delays. We will deliver your package as soon as possible. / Your package",
+    "FlightCode": "",
+    "FlightName": ""
+},
+{
+    "EventDate": "06/11/2024",
+    "EventTime": "1610",
+    "EventDate1": "6th November 2024",
+    "EventTime1": "4:10 PM",
+    "Location": "Bengaluru Airport",
+    "Status": "We are experiencing transit delays. We will deliver your package as soon as possible.",
+    "FlightCode": "",
+    "FlightName": ""
+},
+{
+    "EventDate": "06/11/2024",
+    "EventTime": "0824",
+    "EventDate1": "6th November 2024",
+    "EventTime1": "8:24 AM",
+    "Location": "",
+    "Status": "We are experiencing transit delays. We will deliver your package as soon as possible. / Your package",
+    "FlightCode": "",
+    "FlightName": ""
+},
+{
+    "EventDate": "05/11/2024",
+    "EventTime": "1627",
+    "EventDate1": "5th November 2024",
+    "EventTime1": "4:27 PM",
+    "Location": "Bengaluru Airport",
+    "Status": "We are experiencing transit delays. We will deliver your package as soon as possible.",
+    "FlightCode": "",
+    "FlightName": ""
+},
+{
+    "EventDate": "05/11/2024",
+    "EventTime": "1214",
+    "EventDate1": "5th November 2024",
+    "EventTime1": "12:14 PM",
+    "Location": "Bengaluru Airport",
+    "Status": "Export Scan",
+    "FlightCode": "",
+    "FlightName": ""
+},
+{
+    "EventDate": "05/11/2024",
+    "EventTime": "0700",
+    "EventDate1": "5th November 2024",
+    "EventTime1": "7:00 AM",
+    "Location": "Bengaluru Airport",
+    "Status": "Arrived at Facility",
+    "FlightCode": "",
+    "FlightName": ""
+},
+{
+    "EventDate": "05/11/2024",
+    "EventTime": "0600",
+    "EventDate1": "5th November 2024",
+    "EventTime1": "6:00 AM",
+    "Location": "Chennai",
+    "Status": "Departed from Facility",
+    "FlightCode": "",
+    "FlightName": ""
+},
+{
+    "EventDate": "04/11/2024",
+    "EventTime": "2247",
+    "EventDate1": "4th November 2024",
+    "EventTime1": "10:47 PM",
+    "Location": "Chennai",
+    "Status": "Arrived at Facility",
+    "FlightCode": "",
+    "FlightName": ""
+},
+{
+    "EventDate": "04/11/2024",
+    "EventTime": "1954",
+    "EventDate1": "4th November 2024",
+    "EventTime1": "7:54 PM",
+    "Location": "CHENNAI",
+    "Status": "SHIPMENT RECEIVED",
+    "FlightCode": "",
+    "FlightName": ""
+},
+{
+    "EventDate": "04/11/2024",
+    "EventTime": "1950",
+    "EventDate1": "4th November 2024",
+    "EventTime1": "7:50 PM",
+    "Location": "CHENNAI",
+    "Status": "SHIPMENT SENT TO CHENNAI",
+    "FlightCode": "",
+    "FlightName": ""
+},
+{
+    "EventDate": "04/11/2024",
+    "EventTime": "1945",
+    "EventDate1": "4th November 2024",
+    "EventTime1": "7:45 PM",
+    "Location": "",
+    "Status": "Shipment Manifested Day End Process",
+    "FlightCode": "",
+    "FlightName": ""
+},
+{
+    "EventDate": "04/11/2024",
+    "EventTime": "1822",
+    "EventDate1": "4th November 2024",
+    "EventTime1": "6:22 PM",
+    "Location": "",
+    "Status": "Shipper created a label, UPS has not received the package yet.",
+    "FlightCode": "",
+    "FlightName": ""
+}]

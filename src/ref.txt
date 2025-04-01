@@ -1,0 +1,54 @@
+
+  const API_ENDPOINT =
+    "https://script.google.com/macros/s/AKfycbzQTpIruNyz_uVoqbn221cdnhGWc7nRE7Q0JzUJiaCKZeYVxrlGTsVeFGWBdVJfDOgfNA/exec";
+  // const fetchData = async () => {
+  //   const uploadDataToFirestore = async (data) => {
+  //     try {
+  //       for (const [key, value] of Object.entries(data)) {
+  //         // Push each key as a document in Firestore
+  //         await setDoc(doc(db, "rateCards", key), { entries: value });
+
+  //         console.log(`Data for ${key} uploaded successfully!`);
+  //       }
+  //       console.log("All data uploaded to Firestore!");
+  //     } catch (error) {
+  //       console.error("Error uploading data to Firestore:", error);
+  //     }
+  //   };
+  //   await axios.get(API_ENDPOINT).then((d) => {
+  //     uploadDataToFirestore(d.data.data);
+  //   });
+  // };
+
+  // const promises = sheets.map((sheet) =>
+  //   axios.get(`${AP console.log("allData", d);I_ENDPOINT}?sheet=${sheet.name}`)
+  // );
+  // const responses = await Promise.all(promises);
+  // const newRateData = {};
+  // responses.forEach((response, index) => {
+  //   const sheetName = sheets[index].name;
+  //   const data = response.data.data;
+  //   console.log(data);
+  //   newRateData[sheetName] = data.map((item) => ({
+  //     Weight_slab: item["Weight_slab(" + sheetName + ")"],
+  //     Economy: item.Economy,
+  //     Express: item.Express,
+  //     EcoDutyFree: item.EcoDutyFree,
+  //     ZONES: item.ZONES,
+  //     INSTRUCTIONS: item.INSTRUCTIONS,
+  //     DAYSTODELIVER: item.DAYSTODELIVER,
+  //     EcoSelf: item.EcoSelf,
+  //   }));
+  // });
+  // setRateData(newRateData);
+  //   } catch (error) {
+  //     console.log(error);
+  //     // utilityFunctions.ErrorNotify("Failed to fetch data from Google Sheets.");
+  //   } finally {
+  //     console.log("completed!........");
+  //   }
+  // };
+
+  // useEffect(() => {
+  //   fetchData();
+  // }, []);
