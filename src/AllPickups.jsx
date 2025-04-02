@@ -270,7 +270,6 @@ function Pickups() {
                 <th className="py-3 px-4  border">Pickup Date & Time</th>
                 <th className="py-3 px-4 border"> Pickup Booked by</th>
                 <th className="py-3 px-4 border">PickUp Person</th>
-                <th className="py-3 px-4 border">PickUp Person</th>
               </tr>
             </thead>
             <tbody>
