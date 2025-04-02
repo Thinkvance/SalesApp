@@ -34,6 +34,7 @@ function PickupBooking() {
     "Customer Refer",
     "Employee Refer",
     "Offline Ad",
+    "GMB",
   ]);
   const [source, setsource] = useState("");
   function splitLati_Logi(value) {
@@ -317,7 +318,7 @@ function PickupBooking() {
                 to: `+91${data.Consignornumber}`,
                 content: {
                   language: "en",
-                  templateName: "repeatedpickupbookingtemplate",
+                  templateName: "repeatedbookingtemplate",
                   templateData: {
                     body: {
                       placeholders: [data.Consignorname],
@@ -336,16 +337,17 @@ function PickupBooking() {
             headers: options.headers,
           }
         );
-
-        return;
+        console.log(response.data);
       }
 
       // await utility.sendNotification();
       // utility.SuccessNotify("Pickup request submitted successfully.");
       setFiles([]);
+      setIsSourceFixed(false);
       reset();
     } catch (error) {
       utility.ErrorNotify("Failed to book the pickup. Please try again.");
+      console.log(error);
     } finally {
       setLoading(false);
     }

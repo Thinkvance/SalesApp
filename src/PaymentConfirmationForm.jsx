@@ -396,7 +396,7 @@ function PaymentConfirmationForm() {
       ); // db is your Firestore instance
       const updatedFields = {
         status: "PAYMENT REQUESTED",
-        logisticCost: data.logisticsCost,
+        logisticCost: parseInt(details?.actualWeight) * parseInt(costKg),
         discountCost: data.discountCost,
         // paymentProof: await uploadFileToFirebase(paymentProof, "PAYMENT PROOF"),
         KycImage: await uploadFileToFirebase(KycImage, "KYC"),
@@ -410,7 +410,7 @@ function PaymentConfirmationForm() {
         consigneelocation: !data.consigneelocation1
           ? details.consigneelocation
           : data.consigneelocation1,
-        costKg: data.costKg,
+        costKg: costKg,
         payment_Receipt_URL: Payment_URL,
       };
       updateDoc(docRef, updatedFields);
@@ -813,7 +813,7 @@ function PaymentConfirmationForm() {
               type="text"
               className="p-2 border rounded bg-gray-100"
               placeholder="Enter Logistic Cost"
-              readOnly={!!details.costKg} // Makes input readonly if discountCost exists
+              readOnly={!!details.logisticCost} // Makes input readonly if discountCost exists
               {...register("logisticsCost", {
                 required: "Logistics cost is required",
                 pattern: {
@@ -851,7 +851,12 @@ function PaymentConfirmationForm() {
                   Number.isInteger(Number(value)) ||
                   "Please enter a valid integer",
               })}
-              onChange={(e) => setcostKg(Number(e.target.value))} // Convert to number
+              onChange={(e) => {
+                const value = e.target.value;
+                if (/^\d*\.?\d*$/.test(value)) {
+                  setcostKg(Number(value));
+                }
+              }}
             />
           </div>
           {errors.costKg && (

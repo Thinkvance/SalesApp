@@ -386,7 +386,7 @@ function PaymentConfirmCard({ item, index }) {
             onClick={handleAcceptClick}
             className="bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 active:bg-purple-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 transition-colors text-sm"
           >
-            Accepts
+            Accept
           </button>
           {/* )} */}
         </div>
