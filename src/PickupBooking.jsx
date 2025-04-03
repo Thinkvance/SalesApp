@@ -337,13 +337,13 @@ function PickupBooking() {
             headers: options.headers,
           }
         );
-        console.log(response.data);
       }
 
       // await utility.sendNotification();
       // utility.SuccessNotify("Pickup request submitted successfully.");
       setFiles([]);
       setIsSourceFixed(false);
+      setsource("");
       reset();
     } catch (error) {
       utility.ErrorNotify("Failed to book the pickup. Please try again.");
