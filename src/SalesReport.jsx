@@ -22,7 +22,8 @@ function SalesReport() {
   const [role, setRole] = useState("");
   const [pickups, setPickups] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  const [showModal, setShowModal] = useState(true);
+  const [ImageUrl, setImageUrl] = useState("");
   const [awbSearchTerm, setAwbSearchTerm] = useState("");
   const [consignorPhoneSearchTerm, setConsignorPhoneSearchTerm] = useState("");
   const [pickupPersonName, setPickupPersonName] = useState("");
@@ -319,6 +320,7 @@ function SalesReport() {
                   "Sales Close",
                   "Vendor Payment",
                   "Margin",
+                  "Payment Proof",
                 ].map((head, i) => (
                   <th key={i} className="py-3 px-4 border">
                     {head}
@@ -398,6 +400,21 @@ function SalesReport() {
                       <td className="py-3 px-4 border">
                         {pickup.margin || "--"}
                       </td>
+                      <td className="py-3 px-4 border">
+                        {pickup.paymentProof ? (
+                          <img
+                            onClick={() => {
+                              setShowModal(true);
+                              setImageUrl(pickup.paymentProof);
+                            }}
+                            src="Vector.svg"
+                            className="cursor-pointer w-5 ml-auto mr-auto"
+                            alt=""
+                          />
+                        ) : (
+                          <p className="w-5 ml-auto mr-auto">--</p>
+                        )}
+                      </td>
                     </tr>
                   ))
               ) : (
@@ -411,6 +428,43 @@ function SalesReport() {
           </table>
         </div>
       </div>
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 transition-opacity duration-300">
+          <div className="relative bg-white rounded-2xl shadow-2xl p-6 max-w-lg w-full animate-fade-in">
+            <button
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition"
+              onClick={() => setShowModal(false)}
+              aria-label="Close"
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+
+            <h2 className="text-2xl font-semibold text-center text-purple-700 mb-4">
+              Payment Proof
+            </h2>
+
+            <div className="flex justify-center">
+              <img
+                src={ImageUrl}
+                alt="Payment Proof"
+                className="rounded-xl max-h-[400px] object-contain border border-gray-200 shadow-sm"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
