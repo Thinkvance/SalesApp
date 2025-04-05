@@ -448,6 +448,10 @@ function PickupBooking() {
                       value: /^[0-9]+$/,
                       message: "Please enter a valid phone number",
                     },
+                    maxLength: {
+                      value: 10,
+                      message: "Phone number cannot exceed 10 digits",
+                    },
                     onChange: (e) => {
                       // Remove non-numeric characters
                       e.target.value = e.target.value.replace(/[^0-9]/g, "");

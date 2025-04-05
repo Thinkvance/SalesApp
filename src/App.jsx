@@ -24,6 +24,7 @@ import { getToken, onMessage } from "firebase/messaging";
 import utilityFunctions from "./Utility/utilityFunctions";
 import PickupPersonIncentive from "./PickupPersonIncentive";
 import SalesIncentive from "./SalesIncentive";
+import SalesReport from "./SalesReport";
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -100,7 +101,11 @@ function App() {
             element={user ? <PickupBooking /> : <Navigate to="/signin" />}
           />
           <Route
-            path="/Cancel-reschedule"
+            path="/Sales-Report"
+            element={user ? <SalesReport /> : <Navigate to="/signin" />}
+          />
+          <Route
+            path="/Cancel-or-reschedule"
             element={user ? <CancelOrReshedule /> : <Navigate to="/signin" />}
           />
           <Route

@@ -1,0 +1,400 @@
+import { useEffect, useState } from "react";
+import Nav from "./Nav";
+import {
+  collection,
+  query,
+  onSnapshot,
+  where,
+  getDocs,
+  updateDoc,
+  doc,
+} from "firebase/firestore";
+import { db } from "./firebase";
+import collectionName_BaseAwb from "./functions/collectionName";
+import utilityFunctions from "./Utility/utilityFunctions";
+import dayjs from "dayjs";
+import isBetween from "dayjs/plugin/isBetween";
+
+dayjs.extend(isBetween);
+
+function SalesReport() {
+  const [username, setUsername] = useState(null);
+  const [role, setRole] = useState("");
+  const [pickups, setPickups] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const [awbSearchTerm, setAwbSearchTerm] = useState("");
+  const [consignorPhoneSearchTerm, setConsignorPhoneSearchTerm] = useState("");
+  const [pickupPersonName, setPickupPersonName] = useState("");
+  const [location, setLocation] = useState("ALL");
+
+  const [filterOption, setFilterOption] = useState("this_month");
+  const [customRange, setCustomRange] = useState({ from: "", to: "" });
+
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem("LoginCredentials"));
+    setUsername(storedUser?.name || "");
+    setRole(storedUser?.role || "");
+  }, []);
+
+  const handleBlur = async (pickupId, awbNumber, newVendorPayment) => {
+    if (newVendorPayment > 0) {
+      try {
+        const q = query(
+          collection(db, "pickup"),
+          where("awbNumber", "==", awbNumber)
+        );
+        const querySnapshot = await getDocs(q);
+        const updates = [];
+
+        querySnapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          const docRef = doc(db, "pickup", docSnap.id);
+
+          if (data.vendorpayment !== newVendorPayment) {
+            const logisticCost = parseFloat(data.logisticCost) || 0;
+            const margin = Math.round(logisticCost - newVendorPayment);
+
+            updates.push(
+              updateDoc(docRef, {
+                vendorpayment: newVendorPayment,
+                margin: margin,
+              })
+            );
+
+            setPickups((prevPickups) =>
+              prevPickups.map((pickup) =>
+                pickup.id === pickupId
+                  ? {
+                      ...pickup,
+                      vendorpayment: newVendorPayment,
+                      margin: margin,
+                    }
+                  : pickup
+              )
+            );
+          }
+        });
+
+        await Promise.all(updates);
+      } catch (error) {
+        console.error("Error updating Firestore:", error);
+      }
+    }
+  };
+
+  const parseDate = (datetime) => {
+    if (!datetime) return 0;
+    const [datePart, timePart] = datetime.split(" &");
+    const [day, month, year] = datePart.split("-").map(Number);
+
+    let hour = 0;
+    if (timePart) {
+      const [hourRaw, period] = timePart.trim().split(" ");
+      hour = parseInt(hourRaw);
+      if (period === "PM" && hour !== 12) hour += 12;
+      if (period === "AM" && hour === 12) hour = 0;
+    }
+
+    return new Date(year, month - 1, day, hour).getTime();
+  };
+
+  const fetchPickups = () => {
+    setLoading(true);
+    try {
+      const collectionNames =
+        location === "ALL"
+          ? ["pickup", "franchise_pondy", "franchise_coimbatore"]
+          : [
+              collectionName_BaseAwb.getCollection(
+                location === "HQ CHENNAI" ? "CHENNAI" : location
+              ),
+            ];
+
+      const unsubscribes = [];
+
+      Promise.all(
+        collectionNames.map((name) => {
+          const q = query(collection(db, name));
+          return new Promise((resolve) => {
+            const unsubscribe = onSnapshot(q, (snapshot) => {
+              const data = snapshot.docs.map((doc) => ({
+                ...doc.data(),
+                id: doc.id,
+              }));
+              resolve(data);
+            });
+            unsubscribes.push(unsubscribe);
+          });
+        })
+      )
+        .then((results) => {
+          const combinedData = results.flat();
+          setPickups(combinedData);
+          setLoading(false);
+        })
+        .catch(() => {
+          utilityFunctions.ErrorNotify("Unable to retrieve data.");
+          setLoading(false);
+        });
+
+      return () => unsubscribes.forEach((u) => u());
+    } catch {
+      utilityFunctions.ErrorNotify("Error fetching pickups.");
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (username) fetchPickups();
+  }, [username, location]);
+
+  const getFilterRange = () => {
+    const today = dayjs();
+    switch (filterOption) {
+      case "this_week":
+        return {
+          from: today.startOf("week"),
+          to: today.endOf("week"),
+        };
+      case "last_week":
+        return {
+          from: today.subtract(1, "week").startOf("week"),
+          to: today.subtract(1, "week").endOf("week"),
+        };
+      case "last_month":
+        return {
+          from: today.subtract(1, "month").startOf("month"),
+          to: today.subtract(1, "month").endOf("month"),
+        };
+      case "select_range":
+        return {
+          from: dayjs(customRange.from),
+          to: dayjs(customRange.to),
+        };
+      case "this_month":
+      default:
+        return {
+          from: today.startOf("month"),
+          to: today.endOf("month"),
+        };
+    }
+  };
+
+  const { from, to } = getFilterRange();
+
+  const filteredPickups = pickups.filter((pickup) => {
+    const date = parseDate(pickup.pickupDatetime); // timestamp (number)
+    const dayjsDate = dayjs(date); // convert to dayjs object
+
+    return (
+      date &&
+      dayjsDate.isBetween(from, to, "day", "[]") && // inclusive
+      String(pickup.awbNumber || "")
+        .toLowerCase()
+        .includes(awbSearchTerm.toLowerCase()) &&
+      (pickup.consignorphonenumber || "")
+        .toLowerCase()
+        .includes(consignorPhoneSearchTerm.toLowerCase()) &&
+      (pickup.pickUpPersonName || "")
+        .toLowerCase()
+        .includes(pickupPersonName.toLowerCase())
+    );
+  });
+
+  useEffect(() => {
+    let totalRevenue = 0;
+    filteredPickups.map((d) => {
+      totalRevenue += d.logisticCost;
+    });
+    console.log(totalRevenue);
+  }, []);
+
+  return (
+    <>
+      <Nav />
+      <div className="container mx-auto p-6 rounded-lg">
+        <h1 className="text-3xl font-bold mb-6 text-purple-700">
+          Sales Report
+        </h1>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 items-end">
+          <div className="col-span-1 md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Filter By
+            </label>
+            <select
+              className="input-style w-full"
+              value={filterOption}
+              onChange={(e) => setFilterOption(e.target.value)}
+            >
+              <option value="this_month">This Month</option>
+              <option value="this_week">This Week</option>
+              <option value="last_week">Last Week</option>
+              <option value="last_month">Last Month</option>
+              <option value="select_range">Select Range</option>
+            </select>
+          </div>
+
+          {filterOption === "select_range" && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  From
+                </label>
+                <input
+                  type="date"
+                  className="input-style w-full"
+                  value={customRange.from}
+                  onChange={(e) =>
+                    setCustomRange((prev) => ({
+                      ...prev,
+                      from: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  To
+                </label>
+                <input
+                  type="date"
+                  className="input-style w-full"
+                  value={customRange.to}
+                  onChange={(e) =>
+                    setCustomRange((prev) => ({ ...prev, to: e.target.value }))
+                  }
+                />
+              </div>
+            </>
+          )}
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              AWB Search
+            </label>
+            <input
+              type="text"
+              placeholder="Enter AWB Number"
+              value={awbSearchTerm}
+              onChange={(e) => setAwbSearchTerm(e.target.value)}
+              className="input-style w-full"
+            />
+          </div>
+        </div>
+
+        <div className="overflow-auto border scrollbar-hide">
+          <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow overflow-hidden">
+            <thead className="bg-purple-600 text-white sticky top-0">
+              <tr>
+                {[
+                  "AWB Number",
+                  "Consignor Name",
+                  "Phone",
+                  "Destination",
+                  "Weight",
+                  "Vendor",
+                  "Pickup Area",
+                  "Pickup Status",
+                  "Pickup Date",
+                  "Booked By",
+                  "Pickup Person",
+                  "Status",
+                  "Sales Close",
+                  "Vendor Payment",
+                  "Margin",
+                ].map((head, i) => (
+                  <th key={i} className="py-3 px-4 border">
+                    {head}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredPickups.length > 0 ? (
+                [...filteredPickups]
+                  .sort(
+                    (a, b) =>
+                      parseDate(b.pickupDatetime) - parseDate(a.pickupDatetime)
+                  )
+                  .map((pickup, idx) => (
+                    <tr
+                      key={pickup.id}
+                      className={idx % 2 === 0 ? "bg-gray-50" : ""}
+                    >
+                      <td className="py-3 px-4 border">{pickup.awbNumber}</td>
+                      <td className="py-3 px-4 border">
+                        {pickup.consignorname}
+                      </td>
+                      <td className="py-3 px-4 border">
+                        {pickup.consignorphonenumber}
+                      </td>
+                      <td className="py-3 px-4 border">{pickup.destination}</td>
+                      <td className="py-3 px-4 border">{pickup.weightapx}</td>
+                      <td className="py-3 px-4 border">{pickup.vendorName}</td>
+                      <td className="py-3 px-4 border">{pickup.pickuparea}</td>
+                      <td className="py-3 px-4 border">
+                        {pickup.pickUpPersonNameStatus || "NOT COMPLETED"}
+                      </td>
+                      <td className="py-3 px-4 border">
+                        {pickup.pickupDatetime}
+                      </td>
+                      <td className="py-3 px-4 border">
+                        {pickup.pickupBookedBy}
+                      </td>
+                      <td className="py-3 px-4 border">
+                        {pickup.pickUpPersonName}
+                      </td>
+                      <td className="py-3 px-4 border">{pickup.status}</td>
+                      <td className="py-3 px-4 border">
+                        {pickup.logisticCost || "--"}
+                      </td>
+                      <td className="border w-[120px] h-full relative">
+                        <textarea
+                          readOnly={!pickup.logisticCost}
+                          value={pickup.vendorpayment || ""}
+                          placeholder="₹"
+                          title="Enter vendor payment"
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (/^\d*$/.test(value)) {
+                              setPickups((prev) =>
+                                prev.map((p) =>
+                                  p.id === pickup.id
+                                    ? { ...p, vendorpayment: value }
+                                    : p
+                                )
+                              );
+                            }
+                          }}
+                          onBlur={() =>
+                            handleBlur(
+                              pickup.id,
+                              pickup.awbNumber,
+                              parseInt(pickup.vendorpayment || "0")
+                            )
+                          }
+                          className="w-full h-full text-center resize-none bg-transparent p-2 focus:ring-1 focus:ring-purple-500 rounded-md"
+                        />
+                      </td>
+                      <td className="py-3 px-4 border">
+                        {pickup.margin || "--"}
+                      </td>
+                    </tr>
+                  ))
+              ) : (
+                <tr>
+                  <td colSpan="15" className="text-center py-4 text-gray-600">
+                    No pickups found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
+}
+
+export default SalesReport;

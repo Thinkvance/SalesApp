@@ -14,7 +14,6 @@ function Nav() {
   const [pickupAnchorEl, setPickupAnchorEl] = useState(null); // Pickup dropdown state
   const [rateAnchorEl, setRateAnchorEl] = useState(null); // Rate dropdown state
   const [RoleBasedScreens, setRoleBasedScreens] = useState({});
-
   function roleFormate(role) {
     const formattedRole = role
       ?.split(" ") // Split the string into words
@@ -22,7 +21,6 @@ function Nav() {
         (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
       ) // Capitalize the first letter of each word
       ?.join(" "); // Join the words back into a single string
-
     return formattedRole; // Output: "Sales Admin"
   }
   useEffect(() => {
@@ -111,30 +109,39 @@ function Nav() {
                 ))}
               </Menu>
             </li>
-            <li>
-              <Link
-                to="/Payment-confirm"
-                className={`text-white ${
-                  location.pathname === "/Payment-confirm"
-                    ? "font-semibold"
-                    : ""
-                }`}
-              >
-                Payment Confirm
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/Cancel-reschedule"
-                className={`text-white ${
-                  location.pathname === "/Cancel-reschedule"
-                    ? "font-semibold"
-                    : ""
-                }`}
-              >
-                Cancel - Reschedule
-              </Link>
-            </li>
+            {user?.role == "Manager" ? (
+              <li>
+                <button
+                  onClick={handleRateMenuOpen}
+                  className="text-white flex items-center gap-1"
+                >
+                  Reports
+                  <ArrowDropDownIcon />
+                </button>
+                <Menu
+                  anchorEl={rateAnchorEl}
+                  open={Boolean(rateAnchorEl)}
+                  onClose={handleRateMenuClose}
+                >
+                  {RoleBasedScreens?.Reports?.map((d) => (
+                    <MenuItem
+                      onClick={handlePickupMenuClose}
+                      component={Link}
+                      to={`/${d}`}
+                      className={`${
+                        location.pathname === `/${d}`
+                          ? "text-purple-900"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      {utility.formatRouteName(d)}
+                    </MenuItem>
+                  ))}
+                </Menu>
+              </li>
+            ) : (
+              ""
+            )}
           </ul>
         </div>
         {/* Right Section */}
@@ -214,33 +221,6 @@ function Nav() {
                 </Link>
               </li>
             ))}
-
-            <li>
-              <Link
-                to="/Payment-confirm"
-                className={`py-2 px-4 text-gray-700 rounded-lg transition-colors duration-200 block ${
-                  location.pathname === "/Payment-confirm"
-                    ? "bg-purple-100 text-purple-800"
-                    : ""
-                } hover:bg-purple-200`}
-                onClick={() => setSidebarOpen(false)}
-              >
-                Payment Confirm
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/Cancel-reschedule"
-                className={`py-2 px-4 text-gray-700 rounded-lg transition-colors duration-200 block ${
-                  location.pathname === "/Cancel-reschedule"
-                    ? "bg-purple-100 text-purple-800"
-                    : ""
-                } hover:bg-purple-200`}
-                onClick={() => setSidebarOpen(false)}
-              >
-                Cancel - Reschedule
-              </Link>
-            </li>
           </ul>
         </div>
         {/* Overlay */}

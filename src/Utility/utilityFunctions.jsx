@@ -428,16 +428,22 @@ function rolesPermissions() {
       PickupManagement: [
         "Pickup-Booking",
         "all-pickups",
-        "logistics-Dashboard",
-        "Sales-Incentive",
-        "Pickup-Incentive",
+        // "logistics-Dashboard",
+        "Cancel-or-reschedule",
+        "Payment-confirm",
       ],
       RateManagement: ["Sale-rates", "vendor-rates"],
+      Reports: ["Sales-Report", "Sales-Incentive", "Pickup-Incentive"],
     };
   }
   if (role == "sales associate") {
     return {
-      PickupManagement: ["Pickup-Booking", "Pickups"],
+      PickupManagement: [
+        "Pickup-Booking",
+        "Pickups",
+        "Cancel-or-reschedule",
+        "Payment-confirm",
+      ],
       RateManagement: ["Sale-rates"],
     };
   }
@@ -448,6 +454,8 @@ function rolesPermissions() {
         "Pickups",
         "Sales-Incentive",
         "Pickup-Incentive",
+        "Cancel-or-reschedule",
+        "Payment-confirm",
       ],
       RateManagement: ["Sale-rates"],
     };
