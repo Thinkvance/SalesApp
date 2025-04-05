@@ -78,7 +78,7 @@ function SalesReport() {
 
         await Promise.all(updates);
       } catch (error) {
-        console.error("Error updating Firestore:", error);
+        utilityFunctions.ErrorNotify("Error updating Firestore");
       }
     }
   };
@@ -202,13 +202,17 @@ function SalesReport() {
     );
   });
 
-  useEffect(() => {
-    let totalRevenue = 0;
-    filteredPickups.map((d) => {
-      totalRevenue += d.logisticCost;
-    });
-    console.log(totalRevenue);
-  }, []);
+  const totalSales = filteredPickups.length;
+
+  const totalLogisticsCost = filteredPickups.reduce(
+    (sum, pickup) => sum + (pickup.logisticCost || 0),
+    0
+  );
+
+  const totalMargin = filteredPickups.reduce(
+    (sum, pickup) => sum + (pickup.margin || 0),
+    0
+  );
 
   return (
     <>
@@ -268,18 +272,30 @@ function SalesReport() {
               </div>
             </>
           )}
+        </div>
 
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              AWB Search
-            </label>
-            <input
-              type="text"
-              placeholder="Enter AWB Number"
-              value={awbSearchTerm}
-              onChange={(e) => setAwbSearchTerm(e.target.value)}
-              className="input-style w-full"
-            />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div className="bg-purple-100 border border-purple-300 rounded-xl p-4 shadow">
+            <h2 className="text-lg font-semibold text-purple-700 mb-1">
+              Total Sales
+            </h2>
+            <p className="text-2xl font-bold text-purple-900">{totalSales}</p>
+          </div>
+          <div className="bg-green-100 border border-green-300 rounded-xl p-4 shadow">
+            <h2 className="text-lg font-semibold text-green-700 mb-1">
+              Total Logistic Cost
+            </h2>
+            <p className="text-2xl font-bold text-green-900">
+              {totalLogisticsCost}
+            </p>
+          </div>
+          <div className="bg-yellow-100 border border-yellow-300 rounded-xl p-4 shadow">
+            <h2 className="text-lg font-semibold text-yellow-700 mb-1">
+              Total Margin
+            </h2>
+            <p className="text-2xl font-bold text-yellow-900">
+              ₹ {totalMargin}
+            </p>
           </div>
         </div>
 
@@ -336,7 +352,7 @@ function SalesReport() {
                       <td className="py-3 px-4 border">
                         {pickup.pickUpPersonNameStatus || "NOT COMPLETED"}
                       </td>
-                      <td className="py-3 px-4 border">
+                      <td className="py-3 px-4 border text-nowrap">
                         {pickup.pickupDatetime}
                       </td>
                       <td className="py-3 px-4 border">
@@ -345,7 +361,9 @@ function SalesReport() {
                       <td className="py-3 px-4 border">
                         {pickup.pickUpPersonName}
                       </td>
-                      <td className="py-3 px-4 border">{pickup.status}</td>
+                      <td className="py-3 px-4 border text-center">
+                        {pickup.status}
+                      </td>
                       <td className="py-3 px-4 border">
                         {pickup.logisticCost || "--"}
                       </td>

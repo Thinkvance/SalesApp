@@ -85,6 +85,7 @@ function Pickups() {
               .then((results) => {
                 const combinedData = results.flat();
                 const sortedData = combinedData.sort((a, b) => {
+                  console.log(a);
                   const parseDate = (datetime) => {
                     const [datePart, timePart] = datetime.split(" &");
                     const [day, month, year] = datePart.split("-").map(Number);
@@ -104,6 +105,7 @@ function Pickups() {
                 setLoading(false);
               })
               .catch((error) => {
+                console.log(error);
                 utilityFunctions.ErrorNotify(
                   "Unable to retrieve data. Please try again later."
                 );
@@ -112,6 +114,7 @@ function Pickups() {
             // Cleanup subscription on unmount
             return () => unsubscribes.forEach((unsubscribe) => unsubscribe());
           } catch (error) {
+            console.log(error);
             utilityFunctions.ErrorNotify(
               "Unable to retrieve data. Please try again later."
             );
@@ -158,6 +161,7 @@ function Pickups() {
           });
           return () => unsubscribe();
         } catch (error) {
+          console.log(error);
           utilityFunctions.ErrorNotify(
             "Unable to retrieve data. Please try again later."
           );
