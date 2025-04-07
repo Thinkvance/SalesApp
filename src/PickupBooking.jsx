@@ -36,6 +36,7 @@ function PickupBooking() {
     "Offline Ad",
     "GMB",
   ]);
+  const [city, setcity] = useState("Chennai");
   const [source, setsource] = useState("");
   function splitLati_Logi(value) {
     const [lat, long] = value.split(",").map(Number);
@@ -282,11 +283,11 @@ function PickupBooking() {
                 from: "+919600690881",
                 to: `+91${data.Consignornumber}`,
                 content: {
-                  language: "en_US",
-                  templateName: "shipmentbooked_dynamic",
+                  language: "en",
+                  templateName: "shipmentbookedfinal",
                   templateData: {
                     body: {
-                      placeholders: [data.Consignorname],
+                      placeholders: [data.Consignorname, data.destination],
                     },
                   },
                 },
@@ -608,6 +609,33 @@ function PickupBooking() {
                 </p>
               )}
             </div>
+
+            <div>
+              <p className="text-gray-700 font-semibold mb-2">City</p>
+              <select
+                {...register("city", { required: "City is required" })}
+                value={city} // Ensure correct value
+                className={`w-1/2 px-3 py-2 border rounded-md focus:outline-none ${
+                  isSourceFixed
+                    ? "bg-gray-200 cursor-not-allowed"
+                    : "focus:border-[#8847D9]"
+                }`}
+                onChange={(e) => setcity(e.target.value)}
+              >
+                <option value="Select">Select</option>
+                {["Chennai", "Pondy", "Coimbatore"]?.map((option, index) => (
+                  <option key={index} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+              {errors.source && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.source.message}
+                </p>
+              )}
+            </div>
+
             <div className="mb-4">
               <label className="block text-gray-700 font-semibold mb-2">
                 Pickup Area:

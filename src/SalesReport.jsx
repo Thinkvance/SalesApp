@@ -22,7 +22,7 @@ function SalesReport() {
   const [role, setRole] = useState("");
   const [pickups, setPickups] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(true);
+  const [showModal, setShowModal] = useState(false);
   const [ImageUrl, setImageUrl] = useState("");
   const [awbSearchTerm, setAwbSearchTerm] = useState("");
   const [consignorPhoneSearchTerm, setConsignorPhoneSearchTerm] = useState("");
