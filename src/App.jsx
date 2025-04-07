@@ -14,7 +14,7 @@ import { auth, db, messaging } from "./firebase";
 import CancelOrReshedule from "./CancelOrReshedule";
 import Pickups from "./Pickups";
 import LogisticsDashboard from "./LogisticsDashboard";
-import { collection, getDocs, query } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
 import AllPickups from "./AllPickups";
 import PickupIncentive from "./PickupIncentive";
 import VendorRates from "./VendorRates";
@@ -24,9 +24,11 @@ import { getToken, onMessage } from "firebase/messaging";
 import utilityFunctions from "./Utility/utilityFunctions";
 import PickupPersonIncentive from "./PickupPersonIncentive";
 import SalesIncentive from "./SalesIncentive";
+import SalesReport from "./SalesReport";
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+
   useEffect(async () => {
     const getPermission = async () => {
       try {
@@ -99,7 +101,11 @@ function App() {
             element={user ? <PickupBooking /> : <Navigate to="/signin" />}
           />
           <Route
-            path="/Cancel-reschedule"
+            path="/Sales-Report"
+            element={user ? <SalesReport /> : <Navigate to="/signin" />}
+          />
+          <Route
+            path="/Cancel-or-reschedule"
             element={user ? <CancelOrReshedule /> : <Navigate to="/signin" />}
           />
           <Route
