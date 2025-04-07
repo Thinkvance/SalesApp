@@ -267,6 +267,7 @@ function PickupBooking() {
         logisticCost: null,
         KycImage: uploadedImageURLs.length == 0 ? "" : uploadedImageURLs[0],
         Source: source,
+        City: city,
       });
 
       if (!(await checkRepeatedCustomer(data.Consignornumber))) {
@@ -566,6 +567,26 @@ function PickupBooking() {
                 )}
               </div>
             </div>
+
+            <div className="mb-4">
+              <label className="block text-gray-700 font-semibold mb-2">
+                Pickup Pincode:
+              </label>
+              <input
+                type="text"
+                placeholder="Enter your pincode"
+                {...register("pincode", { required: "Pincode is required" })}
+                className={`w-full px-3 py-2 border ${
+                  errors.pincode ? "border-red-500" : "border-gray-300"
+                } rounded-md focus:outline-none focus:border-[#8847D9]`}
+              />
+              {errors.pincode && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.pincode.message}
+                </p>
+              )}
+            </div>
+
             <div className="mb-4">
               <label className="block text-gray-700 font-semibold mb-2">
                 Country (Destination):
@@ -591,35 +612,13 @@ function PickupBooking() {
                 </p>
               )}
             </div>
-            <div className="mb-4">
-              <label className="block text-gray-700 font-semibold mb-2">
-                Pickup Pincode:
-              </label>
-              <input
-                type="text"
-                placeholder="Enter your pincode"
-                {...register("pincode", { required: "Pincode is required" })}
-                className={`w-full px-3 py-2 border ${
-                  errors.pincode ? "border-red-500" : "border-gray-300"
-                } rounded-md focus:outline-none focus:border-[#8847D9]`}
-              />
-              {errors.pincode && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.pincode.message}
-                </p>
-              )}
-            </div>
 
             <div>
               <p className="text-gray-700 font-semibold mb-2">City</p>
               <select
                 {...register("city", { required: "City is required" })}
                 value={city} // Ensure correct value
-                className={`w-1/2 px-3 py-2 border rounded-md focus:outline-none ${
-                  isSourceFixed
-                    ? "bg-gray-200 cursor-not-allowed"
-                    : "focus:border-[#8847D9]"
-                }`}
+                className="w-1/2 px-3 py-2 border rounded-md focus:outline-none focus:border-[#8847D9]"
                 onChange={(e) => setcity(e.target.value)}
               >
                 <option value="Select">Select</option>
