@@ -14,6 +14,10 @@ function PaymentConfirmCard({ item, index }) {
   const barcodeRef = useRef(null); // Ref for barcode generation
   const [loading, setloading] = useState(false);
   const [animationData, setAnimationData] = useState(null);
+  const [User, setUser] = useState({});
+  useEffect(() => {
+    setUser(JSON.parse(localStorage.getItem("LoginCredentials")));
+  }, []);
 
   const handleAcceptClick = () => {
     const url = `/payment-confirmation-form/${item.awbNumber}`; // Use item.vendorAwbnumber if that's the correct field
@@ -296,13 +300,24 @@ function PaymentConfirmCard({ item, index }) {
       key={index}
       className="flex  relative flex-col border border-gray-300 rounded-lg p-6 bg-white shadow-lg hover:shadow-2xl transition-shadow duration-300"
     >
-      {item.makePaymentNotified ? (
-        <div className="absolute top-3 right-3 text-sm  text-green-700 font-semibold bg-green-100 px-3 py-1 rounded-md shadow-sm">
-          Payment request sent
+      <div className="flex justify-between mb-2">
+        <div>
+          {User.role == "Manager" ? (
+            <div className=" text-sm  text-purple-700 font-semibold bg-white-100 border-[1px] border-gray-200 px-3 py-1 rounded-md ">
+              {item.pickupBookedBy}
+            </div>
+          ) : (
+            ""
+          )}
         </div>
-      ) : (
-        ""
-      )}
+        {item.makePaymentNotified ? (
+          <div className=" text-sm  text-green-700 font-semibold bg-green-100 px-3 py-1 rounded-md shadow-sm">
+            Payment request sent
+          </div>
+        ) : (
+          ""
+        )}
+      </div>
       <div className="flex flex-col mb-4 gap-2">
         {item.consignorname && (
           <p className="text-base font-medium text-gray-800">
@@ -315,7 +330,6 @@ function PaymentConfirmCard({ item, index }) {
           {item.awbNumber || "-"}
         </p>
       </div>
-
       <div className="flex flex-col mb-4 gap-2">
         {item.consignorphonenumber && (
           <p className="text-base font-medium text-gray-800">
@@ -323,7 +337,6 @@ function PaymentConfirmCard({ item, index }) {
             {item.consignorphonenumber}
           </p>
         )}
-
         {item.destination && (
           <p className="text-base font-medium text-gray-800">
             <strong className="text-gray-900">Destination:</strong>{" "}
@@ -331,12 +344,7 @@ function PaymentConfirmCard({ item, index }) {
           </p>
         )}
       </div>
-
       <div className="flex flex-col mb-4 gap-2">
-        {/* <p className="text-base font-medium text-gray-800">
-          <strong className="text-gray-900">Package Connected:</strong>{" "}
-          {item.packageConnectedDataTime || "-"}
-        </p> */}
         <p className="text-base font-medium text-gray-800">
           <strong className="text-gray-900">Final Weight:</strong>{" "}
           {item.actualWeight + " " + "KG" || "-"}
@@ -363,22 +371,6 @@ function PaymentConfirmCard({ item, index }) {
           </p>
         )}
       </div>
-      {item.status && (
-        <div className="flex items-center gap-2 mb-4">
-          <p className="text-base font-medium text-gray-800">
-            <strong className="text-gray-900">Status:</strong>
-          </p>
-          <p
-            className={`rounded-full py-1 px-3 text-sm font-semibold text-center ${
-              allowedStatuses.includes(item.status)
-                ? "bg-green-500"
-                : "bg-red-500"
-            } text-white`}
-          >
-            {item.status}
-          </p>
-        </div>
-      )}
       {item.status == "PAYMENT PENDING" ||
       item.status == "PAYMENT REQUESTED" ? (
         <div className="flex justify-end mt-auto">
