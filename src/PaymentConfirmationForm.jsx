@@ -330,12 +330,18 @@ function PaymentConfirmationForm() {
                 body: {
                   placeholders: ["nithish", "20000", "90234241232"],
                 },
+                buttons: [
+                  {
+                    type: "URL",
+                    parameter: getTruncatedURL(Payment_URL),
+                  },
+                  { type: "URL", parameter: String(details.awbNumber) },
+                ],
               },
             },
           },
         ],
       };
-
       // API request headers
       const headers = {
         accept: "application/json",

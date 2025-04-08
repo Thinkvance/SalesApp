@@ -37,7 +37,7 @@ function PickupBooking() {
     "GMB",
   ]);
   const [city, setcity] = useState("Chennai");
-  const [source, setsource] = useState("");
+  const [source, setsource] = useState("Select");
   function splitLati_Logi(value) {
     const [lat, long] = value.split(",").map(Number);
     // Format the latitude and longitude to match the output precision
@@ -169,17 +169,21 @@ function PickupBooking() {
       where("consignorphonenumber", "==", phoneNumber)
     );
     const querySnapshot = await getDocs(q);
-
+    console.log(querySnapshot);
     if (!querySnapshot.empty) {
       const data = querySnapshot.docs[0].data();
       const dynamicSource = "REP"; // Get source from DB
+      console.log(dynamicSource);
       return dynamicSource;
     }
-    return false;
+    return "Not REP";
   }
 
+  useEffect(async () => {
+    console.log(await checkRepeatedCustomer(String(9042489690)));
+  }, []);
+
   const onSubmit = async (data) => {
-    console.log(data.Consignornumber);
     try {
       if (latitudelongitude == "") {
         seterror("Latitude & Longitude  Is Required!");
@@ -222,6 +226,9 @@ function PickupBooking() {
       const newAwbNumber = maxAwbNumber + 1;
       const uploadedImageURLs = await uploadImages(files, newAwbNumber);
       // Step 3: Store new document
+
+      const isRepeated = await checkRepeatedCustomer(data.Consignornumber);
+
       await addDoc(pickupsRef, {
         // Consignor Data
         consignorname: data.Consignorname,
@@ -270,7 +277,7 @@ function PickupBooking() {
         City: city,
       });
 
-      if (!(await checkRepeatedCustomer(data.Consignornumber))) {
+      if (isRepeated == "Not REP") {
         const options = {
           method: "POST",
           headers: {
@@ -288,7 +295,10 @@ function PickupBooking() {
                   templateName: "shipmentbookedfinal",
                   templateData: {
                     body: {
-                      placeholders: [data.Consignorname, data.destination],
+                      placeholders: [
+                        data.Consignorname,
+                        destinationCountryName,
+                      ],
                     },
                   },
                 },
@@ -304,8 +314,32 @@ function PickupBooking() {
             headers: options.headers,
           }
         );
-        return;
       } else {
+        function truncateDate(dateStr) {
+          const months = [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
+          ];
+
+          const [year, month, day] = dateStr.split("-");
+          const shortMonth = months[parseInt(month, 10) - 1];
+
+          return `${day}-${shortMonth}-${year}`;
+        }
+
+        // Example:
+        const sinceDate = truncateDate(data.pickupDate); // Output: 08-Apr-2025
+
         const options = {
           method: "POST",
           headers: {
@@ -320,10 +354,14 @@ function PickupBooking() {
                 to: `+91${data.Consignornumber}`,
                 content: {
                   language: "en",
-                  templateName: "repeatedbookingtemplate",
+                  templateName: "repeatedcustomer",
                   templateData: {
                     body: {
-                      placeholders: [data.Consignorname],
+                      placeholders: [
+                        data.Consignorname,
+                        sinceDate,
+                        destinationCountryName,
+                      ],
                     },
                   },
                 },
@@ -340,13 +378,18 @@ function PickupBooking() {
           }
         );
       }
-
-      // await utility.sendNotification();
-      // utility.SuccessNotify("Pickup request submitted successfully.");
+      console.log("testing");
       setFiles([]);
       setIsSourceFixed(false);
       setsource("");
       reset();
+      setShowModal(true);
+
+      setTimeout(() => {
+        setShowModal(false);
+      }, 2000);
+      // await utility.sendNotification();
+      // utility.SuccessNotify("Pickup request submitted successfully.");
     } catch (error) {
       utility.ErrorNotify("Failed to book the pickup. Please try again.");
       console.log(error);
@@ -505,8 +548,7 @@ function PickupBooking() {
                   type="text"
                   placeholder="Enter consignee name"
                   {...register("consigneename", {
-                    // testing....
-                    required: "Consignee name is required",
+                    // required: "Consignee name is required",
                   })}
                   className={`w-full px-3 py-2 border ${
                     errors.consigneename ? "border-red-500" : "border-gray-300"
@@ -526,7 +568,7 @@ function PickupBooking() {
                   type="text"
                   placeholder="Enter consignee phone number"
                   {...register("consigneenumber", {
-                    required: "consignee phone number is required",
+                    // required: "consignee phone number is required",
                     pattern: {
                       value: /^[0-9]+$/,
                       message: "Please enter a valid phone number",
@@ -552,7 +594,7 @@ function PickupBooking() {
                   type="text"
                   placeholder="Enter consignee location"
                   {...register("consigneelocation", {
-                    required: "Enter consignee location",
+                    // required: "Enter consignee location",
                   })}
                   className={`w-full px-3 py-2 border ${
                     errors.consigneelocation
@@ -622,11 +664,13 @@ function PickupBooking() {
                 onChange={(e) => setcity(e.target.value)}
               >
                 <option value="Select">Select</option>
-                {["Chennai", "Pondy", "Coimbatore"]?.map((option, index) => (
-                  <option key={index} value={option}>
-                    {option}
-                  </option>
-                ))}
+                {["Chennai", "Pondy", "Coimbatore", "Others"]?.map(
+                  (option, index) => (
+                    <option key={index} value={option}>
+                      {option}
+                    </option>
+                  )
+                )}
               </select>
               {errors.source && (
                 <p className="text-red-500 text-sm mt-1">
