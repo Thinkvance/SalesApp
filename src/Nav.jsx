@@ -69,20 +69,18 @@ function Nav() {
                 open={Boolean(pickupAnchorEl)}
                 onClose={handlePickupMenuClose}
               >
-                {RoleBasedScreens?.PickupManagement?.map((d) => (
-                  <MenuItem
-                    onClick={handlePickupMenuClose}
-                    component={Link}
-                    to={`/${d}`}
-                    className={`${
-                      location.pathname === `/${d}`
-                        ? "text-purple-900"
-                        : "text-gray-700"
-                    }`}
-                  >
-                    {utility.formatRouteName(d)}
-                  </MenuItem>
-                ))}
+                {RoleBasedScreens?.PickupManagement?.map((d) => {
+                  return (
+                    <MenuItem
+                      key={d}
+                      onClick={handlePickupMenuClose}
+                      component={Link}
+                      to={`/${d}`}
+                    >
+                      {utility.formatRouteName(d)}
+                    </MenuItem>
+                  );
+                })}
               </Menu>
             </li>
             <li>
