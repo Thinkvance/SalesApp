@@ -13,7 +13,6 @@ function Nav() {
   const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile sidebar state
   const [pickupAnchorEl, setPickupAnchorEl] = useState(null); // Pickup dropdown state
   const [rateAnchorEl, setRateAnchorEl] = useState(null); // Rate dropdown state
-  const [reportsAnchorEl, setReportsAnchorEl] = useState(null); // Rate dropdown state
   const [RoleBasedScreens, setRoleBasedScreens] = useState({});
   function roleFormate(role) {
     const formattedRole = role
@@ -35,10 +34,6 @@ function Nav() {
 
   const handleRateMenuOpen = (event) => setRateAnchorEl(event.currentTarget);
   const handleRateMenuClose = () => setRateAnchorEl(null);
-
-  const handleReportsMenuOpen = (event) =>
-    setReportsAnchorEl(event.currentTarget);
-  const handleReportsMenuClose = () => setReportsAnchorEl(null);
 
   return (
     <nav className="sticky top-0 z-40 flex items-center justify-between bg-purple-400 p-4 shadow-md">
@@ -69,18 +64,20 @@ function Nav() {
                 open={Boolean(pickupAnchorEl)}
                 onClose={handlePickupMenuClose}
               >
-                {RoleBasedScreens?.PickupManagement?.map((d) => {
-                  return (
-                    <MenuItem
-                      key={d}
-                      onClick={handlePickupMenuClose}
-                      component={Link}
-                      to={`/${d}`}
-                    >
-                      {utility.formatRouteName(d)}
-                    </MenuItem>
-                  );
-                })}
+                {RoleBasedScreens?.PickupManagement?.map((d) => (
+                  <MenuItem
+                    onClick={handlePickupMenuClose}
+                    component={Link}
+                    to={`/${d}`}
+                    className={`${
+                      location.pathname === `/${d}`
+                        ? "text-purple-900"
+                        : "text-gray-700"
+                    }`}
+                  >
+                    {utility.formatRouteName(d)}
+                  </MenuItem>
+                ))}
               </Menu>
             </li>
             <li>
@@ -115,16 +112,16 @@ function Nav() {
             {user?.role == "Manager" ? (
               <li>
                 <button
-                  onClick={handleReportsMenuOpen}
+                  onClick={handleRateMenuOpen}
                   className="text-white flex items-center gap-1"
                 >
                   Reports
                   <ArrowDropDownIcon />
                 </button>
                 <Menu
-                  anchorEl={reportsAnchorEl}
-                  open={Boolean(reportsAnchorEl)}
-                  onClose={handleReportsMenuClose}
+                  anchorEl={rateAnchorEl}
+                  open={Boolean(rateAnchorEl)}
+                  onClose={handleRateMenuClose}
                 >
                   {RoleBasedScreens?.Reports?.map((d) => (
                     <MenuItem
