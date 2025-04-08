@@ -14,12 +14,9 @@ function PickupBooking() {
   const [countryCodeToName, setCountryCodeToName] = useState({});
   const [showModal, setShowModal] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({});
-  const [imageURLs, setImageURLs] = useState([]);
   const [username, setUsername] = useState("");
   const [files, setFiles] = useState([]);
-  const [awbNumber, setawbNumber] = useState();
   const [frachise, setfrachise] = useState("");
-  const [clientName, setClientName] = useState("");
   const [service, setservice] = useState("");
   const [latitudelongitude, setlatitudelongitude] = useState("");
   const [error, seterror] = useState("");
@@ -155,7 +152,7 @@ function PickupBooking() {
           setIsSourceFixed(false);
         }
       } catch (error) {
-        console.log(error);
+        // console.log(error);
       }
     } else {
       // Reset if input is too short or long
@@ -178,10 +175,6 @@ function PickupBooking() {
     }
     return "Not REP";
   }
-
-  useEffect(async () => {
-    console.log(await checkRepeatedCustomer(String(9042489690)));
-  }, []);
 
   const onSubmit = async (data) => {
     try {
