@@ -312,30 +312,38 @@ function PaymentConfirmationForm() {
     return truncatedResult;
   }
 
-  async function makePaymentNotify(docId) {
+  async function makePaymentNotify(
+    docId,
+    Payment_URL,
+    discount,
+    consignorphonenumber,
+    consignorname,
+    logisticCost
+  ) {
     try {
       const apiUrl = "https://public.doubletick.io/whatsapp/message/template";
       const authKey = "key_z6hIuLo8GC"; // Store this securely (e.g., in environment variables)
-
       // Message data
       const messageData = {
         messages: [
           {
             from: "+919600690881",
-            to: "+919042489612",
+            to: `+91${consignorphonenumber}`,
             content: {
               language: "en",
-              templateName: "makepaymentfinal_1",
+              templateName: "paymentrequest",
               templateData: {
                 body: {
-                  placeholders: ["nithish", "20000", "90234241232"],
+                  placeholders: [
+                    String(consignorname),
+                    String(logisticCost - discount),
+                  ],
                 },
                 buttons: [
                   {
                     type: "URL",
                     parameter: getTruncatedURL(Payment_URL),
                   },
-                  { type: "URL", parameter: String(details.awbNumber) },
                 ],
               },
             },
@@ -348,17 +356,13 @@ function PaymentConfirmationForm() {
         "content-type": "application/json",
         Authorization: authKey,
       };
-
       // Sending WhatsApp message
       const response = await axios.post(apiUrl, messageData, { headers });
-
       // Extract message status
       const messageStatus = response?.data?.messages?.[0]?.status === "SENT";
-
       // Update Firestore document
       const pickupRef = doc(db, "pickup", docId);
       await updateDoc(pickupRef, { makePaymentNotified: messageStatus });
-
       // Success message
       utilityFunctions.SuccessNotify(
         "Make Payment notification sent successfully."
@@ -389,6 +393,7 @@ function PaymentConfirmationForm() {
         where("awbNumber", "==", parseInt(awbnumber))
       );
       const querySnapshot = await getDocs(q);
+      const logisticCost = parseInt(details?.actualWeight) * parseInt(costKg);
       let final_result = [];
       querySnapshot.forEach((doc) => {
         final_result.push({ id: doc.id, ...doc.data() });
@@ -402,7 +407,7 @@ function PaymentConfirmationForm() {
       ); // db is your Firestore instance
       const updatedFields = {
         status: "PAYMENT REQUESTED",
-        logisticCost: parseInt(details?.actualWeight) * parseInt(costKg),
+        logisticCost: logisticCost,
         discountCost: data.discountCost,
         // paymentProof: await uploadFileToFirebase(paymentProof, "PAYMENT PROOF"),
         KycImage: await uploadFileToFirebase(KycImage, "KYC"),
@@ -420,7 +425,14 @@ function PaymentConfirmationForm() {
         payment_Receipt_URL: Payment_URL,
       };
       updateDoc(docRef, updatedFields);
-      await makePaymentNotify(details.id);
+      await makePaymentNotify(
+        details.id,
+        Payment_URL,
+        data.discountCost,
+        details.consignorphonenumber,
+        details.consignorname,
+        logisticCost
+      );
       setShowPopup(true);
     } catch (error) {
       console.log(error);
@@ -442,16 +454,12 @@ function PaymentConfirmationForm() {
       return true;
     };
     if (!validateForm()) return;
-
     try {
       if (!details) {
         throw new Error("User details not found");
       }
       setSubmitLoading(true);
-      const Payment_URL = await generate_Invoice_PDF(
-        details?.costKg,
-        details?.discountCost
-      );
+      const Payment_URL = details.payment_Receipt_URL;
       const q = query(
         collection(
           db,
@@ -510,8 +518,7 @@ function PaymentConfirmationForm() {
                 templateName: "payment_done6",
               },
               from: "+919600690881",
-              // to: `+91${details.consignorphonenumber}`,
-              to: `+919042489612`,
+              to: `+91${details.consignorphonenumber}`,
             },
           ],
         },

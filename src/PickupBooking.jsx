@@ -160,20 +160,59 @@ function PickupBooking() {
       setIsSourceFixed(false);
     }
   };
+  function truncateDate(dateStr) {
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+
+    // Extract just the date part (before any extra characters like '&')
+    const rawDate = dateStr.split(" ")[0]; // "3-12-2024"
+    const [day, month, year] = rawDate.split("-");
+
+    const shortMonth = months[parseInt(month, 10) - 1];
+
+    return `${day}-${shortMonth}-${year}`;
+  }
+
   async function checkRepeatedCustomer(phoneNumber) {
     const q = query(
       collection(db, "pickup"),
       where("consignorphonenumber", "==", phoneNumber)
     );
     const querySnapshot = await getDocs(q);
-    console.log(querySnapshot);
     if (!querySnapshot.empty) {
       const data = querySnapshot.docs[0].data();
       const dynamicSource = "REP"; // Get source from DB
-      console.log(dynamicSource);
       return dynamicSource;
     }
     return "Not REP";
+  }
+
+  async function sinceDatefun(phoneNumber) {
+    const q = query(
+      collection(db, "pickup"),
+      where("consignorphonenumber", "==", phoneNumber)
+    );
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+      const allDocs = querySnapshot.docs.map((doc) => doc.data());
+      // Sort manually by awbNumber descending (most recent first)
+      allDocs.sort((a, b) => b.awbNumber - a.awbNumber);
+      const mostRecent = allDocs[0];
+
+      return truncateDate(mostRecent.pickupDatetime);
+    }
   }
 
   const onSubmit = async (data) => {
@@ -218,9 +257,8 @@ function PickupBooking() {
       // Step 2: Increment awbNumber
       const newAwbNumber = maxAwbNumber + 1;
       const uploadedImageURLs = await uploadImages(files, newAwbNumber);
-      // Step 3: Store new document
-
       const isRepeated = await checkRepeatedCustomer(data.Consignornumber);
+      const sinceDate = await sinceDatefun(data.Consignornumber); // Output: 08-Apr-2025
 
       await addDoc(pickupsRef, {
         // Consignor Data
@@ -307,32 +345,9 @@ function PickupBooking() {
             headers: options.headers,
           }
         );
+        console.log(response);
       } else {
-        function truncateDate(dateStr) {
-          const months = [
-            "Jan",
-            "Feb",
-            "Mar",
-            "Apr",
-            "May",
-            "Jun",
-            "Jul",
-            "Aug",
-            "Sep",
-            "Oct",
-            "Nov",
-            "Dec",
-          ];
-
-          const [year, month, day] = dateStr.split("-");
-          const shortMonth = months[parseInt(month, 10) - 1];
-
-          return `${day}-${shortMonth}-${year}`;
-        }
-
         // Example:
-        const sinceDate = truncateDate(data.pickupDate); // Output: 08-Apr-2025
-
         const options = {
           method: "POST",
           headers: {
@@ -371,21 +386,21 @@ function PickupBooking() {
           }
         );
       }
-      console.log("testing");
+
       setFiles([]);
       setIsSourceFixed(false);
       setsource("");
       reset();
       setShowModal(true);
-
       setTimeout(() => {
         setShowModal(false);
       }, 2000);
+
       // await utility.sendNotification();
       // utility.SuccessNotify("Pickup request submitted successfully.");
     } catch (error) {
       utility.ErrorNotify("Failed to book the pickup. Please try again.");
-      console.log(error);
+      console.log("error", error);
     } finally {
       setLoading(false);
     }
@@ -404,7 +419,6 @@ function PickupBooking() {
         uploadTask.on(
           "state_changed",
           (snapshot) => {
-            // Calculate upload progress
             const progress = Math.round(
               (snapshot.bytesTransferred / snapshot.totalBytes) * 100
             );
@@ -900,9 +914,16 @@ function PickupBooking() {
               </label>
               <textarea
                 placeholder="Enter any special instructions"
-                {...register("instructions")}
+                {...register("instructions", {
+                  required: "Source is required",
+                })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#8847D9]"
               ></textarea>
+              {errors.instructions && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.instructions.message}
+                </p>
+              )}
             </div>
           </div>
           <div className="mb-4">
