@@ -8,6 +8,23 @@ import collectionName_BaseAwb from "./functions/collectionName";
 function CancelOrReschedule() {
   const [data, setData] = useState([]);
   const [activeTab, setActiveTab] = useState("CANCEL");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const parseDate = (datetime) => {
+    const [datePart, timePart] = datetime.split(" &");
+    const [day, month, year] = datePart.split("-").map(Number);
+
+    const [hour, period] = timePart.split(" ");
+    const hour24 =
+      period === "PM" && hour !== "12"
+        ? Number(hour) + 12
+        : Number(hour === "12" && period === "AM" ? 0 : hour);
+    return new Date(year, month - 1, day, hour24).getTime();
+  };
+
+  const handleSearchChange = (event) => {
+    setSearchTerm(event.target.value);
+  };
 
   useEffect(() => {
     const loginCredentials = JSON.parse(
@@ -35,6 +52,13 @@ function CancelOrReschedule() {
           id: doc.id,
           ...doc.data(),
         }));
+
+        documents.sort((a, b) => {
+          const dateA = parseDate(a.pickupDatetime);
+          const dateB = parseDate(b.pickupDatetime);
+          return dateB - dateA;
+        });
+
         setData(documents); // Update the state with real-time Firestore data
       },
       (error) => {
@@ -46,12 +70,15 @@ function CancelOrReschedule() {
     return () => unsubscribe();
   }, []);
 
-  // Filter data based on the active tab
   const filteredData = data?.filter((item) => {
-    if (activeTab === "CANCEL" || activeTab === "RESCHEDULE") {
-      return item.status === "RUN SHEET"; // Filter only items with status "RUN SHEET"
+    const awbMatch = String(item.awbNumber).includes(searchTerm);
+    if (
+      (activeTab === "CANCEL" || activeTab === "RESCHEDULE") &&
+      item.status === "RUN SHEET"
+    ) {
+      return awbMatch;
     }
-    return null; // No filtering for other tabs
+    return false;
   });
 
   return (
@@ -80,6 +107,14 @@ function CancelOrReschedule() {
             Reschedule Booking
           </button>
         </div>
+        <p className="font-medium text-lg mt-6">Awb number</p>
+        <input
+          type="text"
+          placeholder="Search by AWB Number"
+          value={searchTerm}
+          onChange={handleSearchChange}
+          className="mt-1 p-2 px-4 border border-gray-300 rounded-lg w-60"
+        />
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pt-10">
           {filteredData.length === 0 ? (
             <div className="flex flex-col items-center justify-center w-full h-64 bg-white rounded-lg shadow-md">

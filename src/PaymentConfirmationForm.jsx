@@ -41,12 +41,6 @@ function PaymentConfirmationForm() {
   const [downloadURL, setdownloadURL] = useState("");
   const [animationData, setAnimationData] = useState(null);
 
-  console.log(
-    details?.logisticCost
-      ? details?.logisticCost
-      : parseInt(details?.actualWeight) * costKg
-  );
-
   useEffect(() => {
     try {
       fetch("/loading_animation.json")
@@ -444,7 +438,6 @@ function PaymentConfirmationForm() {
   };
 
   const paymentConfirm = async () => {
-    setSubmitLoading(true);
     const validateForm = () => {
       if (!paymentProof) {
         setFormError("Payment proof Image is required.");
@@ -454,6 +447,7 @@ function PaymentConfirmationForm() {
       return true;
     };
     if (!validateForm()) return;
+    setSubmitLoading(true);
     try {
       if (!details) {
         throw new Error("User details not found");
@@ -533,7 +527,6 @@ function PaymentConfirmationForm() {
       setSubmitLoading(false);
       resetForm(); // Reset form after submission
     }
-    console.log("testing!");
   };
 
   const handleError = (error) => {
@@ -954,9 +947,9 @@ function PaymentConfirmationForm() {
           details.status == "PAYMENT REQUESTED" ? (
             <div
               onClick={() => paymentConfirm()}
-              className="w-full mt-4 p-2 bg-purple-600 text-white font-semibold rounded hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-600"
+              className="w-full mt-4 p-2 text-center cursor-pointer bg-purple-600 text-white font-semibold rounded hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-600"
               // disabled={submitLoading}
-            >
+            >``
               {submitLoading ? "Submitting..." : "Submit"}
             </div>
           ) : (

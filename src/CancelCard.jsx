@@ -17,11 +17,16 @@ function CancelCard({ item, index }) {
   // const [details, setDetails] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [error, seterror] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false); // State for button loading
 
   const handleAcceptClick = async (awbNumber) => {
+    if (cancelReason.length < 10 || cancelReason.length > 100) {
+      seterror("Reason must be between 10 to 100 characters long.");
+      return;
+    }
+    seterror("");
     setIsSubmitting(true); // Start loading when submitting
-
     try {
       // Step 1: Query the "pickups" collection to get the document that matches the awbNumber
       const q = query(
@@ -77,6 +82,8 @@ function CancelCard({ item, index }) {
   };
 
   const handleCloseModal = () => {
+    setCancelReason("");
+    seterror("");
     setIsModalOpen(false); // Close the modal
   };
 
@@ -196,6 +203,7 @@ function CancelCard({ item, index }) {
           <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg w-full">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Cancel Booking</h2>
+
               <button
                 onClick={handleCloseModal}
                 className="text-gray-600 hover:text-gray-800 focus:outline-none"
@@ -203,8 +211,13 @@ function CancelCard({ item, index }) {
                 &#x2715; {/* Close button */}
               </button>
             </div>
-            <p className="mb-4">Are you sure you want to cancel the booking?</p>
-
+            <div className="mb-2 flex items-end gap-2">
+              <p className="text-lg font-medium">Awb Number:</p>
+              <span className="text-purple-500 text-[17px] font-medium">
+                {item.awbNumber}
+              </span>
+            </div>
+            <p className="mb-2">Are you sure you want to cancel the booking?</p>
             {/* Reason Input */}
             <label className="block mb-2 text-sm font-medium text-gray-700">
               Reason for Cancelation:
@@ -216,7 +229,7 @@ function CancelCard({ item, index }) {
               rows="3"
               placeholder="Provide the reason for cancellation"
             />
-
+            {error && <p className="text-red-600">{error}</p>}
             <div className="flex justify-end">
               <button
                 onClick={() => handleAcceptClick(item.awbNumber)}
@@ -234,5 +247,4 @@ function CancelCard({ item, index }) {
     </div>
   );
 }
-
 export default CancelCard;

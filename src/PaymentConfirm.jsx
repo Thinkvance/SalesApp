@@ -6,6 +6,19 @@ import { db } from "./firebase";
 import collectionName_BaseAwb from "./functions/collectionName";
 import utilityFunctions from "./Utility/utilityFunctions";
 
+// ✅ Parse "20-10-2025 &10 AM" to a Date object
+const parseDate = (datetime) => {
+  const [datePart, timePart] = datetime.split(" &");
+  const [day, month, year] = datePart.split("-").map(Number);
+
+  const [hour, period] = timePart.split(" ");
+  const hour24 =
+    period === "PM" && hour !== "12"
+      ? Number(hour) + 12
+      : Number(hour === "12" && period === "AM" ? 0 : hour);
+  return new Date(year, month - 1, day, hour24).getTime();
+};
+
 function PaymentConfirm() {
   const [data, setData] = useState([]);
   const [activeTab, setActiveTab] = useState("PAYMENT PENDING");
@@ -34,6 +47,14 @@ function PaymentConfirm() {
           id: doc.id,
           ...doc.data(),
         }));
+
+        // ✅ Sort based on pickupDatetime descending
+        documents.sort((a, b) => {
+          const dateA = parseDate(a.pickupDatetime);
+          const dateB = parseDate(b.pickupDatetime);
+          return dateA - dateB;
+        });
+
         setData(documents);
         setLoading(false);
       },
@@ -93,7 +114,8 @@ function PaymentConfirm() {
             Payment Done
           </button>
         </div>
-        <p className="font-medium text-lg">Awb number</p>
+
+        <p className="font-medium text-lg mt-6">Awb number</p>
         <input
           type="text"
           placeholder="Search by AWB Number"
@@ -101,6 +123,7 @@ function PaymentConfirm() {
           onChange={handleSearchChange}
           className="mt-1 p-2 px-4 border border-gray-300 rounded-lg w-60"
         />
+
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <p className="text-lg font-semibold text-gray-600">

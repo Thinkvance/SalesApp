@@ -53,7 +53,7 @@ function PickupBooking() {
     reset,
   } = useForm();
   const barcodeRef = useRef(null);
-
+  console.log(errors);
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const day = date.getDate(); // Gets the day (1-31)
@@ -152,7 +152,7 @@ function PickupBooking() {
           setIsSourceFixed(false);
         }
       } catch (error) {
-        // console.log(error);
+        console.log(error);
       }
     } else {
       // Reset if input is too short or long
@@ -345,7 +345,6 @@ function PickupBooking() {
             headers: options.headers,
           }
         );
-        console.log(response);
       } else {
         // Example:
         const options = {
@@ -394,7 +393,7 @@ function PickupBooking() {
       setShowModal(true);
       setTimeout(() => {
         setShowModal(false);
-      }, 2000);
+      }, 1000);
 
       // await utility.sendNotification();
       // utility.SuccessNotify("Pickup request submitted successfully.");
@@ -670,7 +669,7 @@ function PickupBooking() {
                 className="w-1/2 px-3 py-2 border rounded-md focus:outline-none focus:border-[#8847D9]"
                 onChange={(e) => setcity(e.target.value)}
               >
-                <option value="Select">Select</option>
+                <option value="">Select</option>
                 {["Chennai", "Pondy", "Coimbatore", "Others"]?.map(
                   (option, index) => (
                     <option key={index} value={option}>
@@ -679,9 +678,9 @@ function PickupBooking() {
                   )
                 )}
               </select>
-              {errors.source && (
+              {errors.city && (
                 <p className="text-red-500 text-sm mt-1">
-                  {errors.source.message}
+                  {errors.city.message}
                 </p>
               )}
             </div>
@@ -895,7 +894,7 @@ function PickupBooking() {
                 }`}
                 onChange={(e) => setsource(e.target.value)}
               >
-                <option value="Select">Select</option>
+                <option value="">Select</option>
                 {sourceOptions?.map((option, index) => (
                   <option key={index} value={option}>
                     {option}

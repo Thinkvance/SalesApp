@@ -37,19 +37,6 @@ function Pickups() {
     setIsModalOpen(true); // Open the modal
   };
 
-  const parsePickupDateTime = (dateTimeString) => {
-    const [datePart, timePart] = dateTimeString
-      .split("&")
-      .map((str) => str.trim()); // Split and trim date and time
-    const [day, month] = datePart.split("-").map(Number); // Extract day and month as numbers
-    const currentYear = new Date().getFullYear(); // Assume the current year
-    let [hour, period] = timePart.split(" "); // Split hour and period (AM/PM)
-    hour = parseInt(hour, 10); // Convert hour to number
-    // Convert hour to 24-hour format if it's PM
-    if (period === "PM" && hour !== 12) hour += 12;
-    if (period === "AM" && hour === 12) hour = 0; // Handle midnight case
-    return new Date(currentYear, month - 1, day, hour, 0, 0); // Create Date object
-  };
   // Fetch pickup data from Firestore and filter based on the username
   useEffect(() => {
     if (Location == "ALL") {
@@ -85,7 +72,6 @@ function Pickups() {
               .then((results) => {
                 const combinedData = results.flat();
                 const sortedData = combinedData.sort((a, b) => {
-                  console.log(a);
                   const parseDate = (datetime) => {
                     const [datePart, timePart] = datetime.split(" &");
                     const [day, month, year] = datePart.split("-").map(Number);

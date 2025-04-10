@@ -70,7 +70,6 @@ function Nav() {
                 onClose={handlePickupMenuClose}
               >
                 {RoleBasedScreens?.PickupManagement?.map((d) => {
-                  console.log("Route path:", d); // Check this!
                   return (
                     <MenuItem
                       key={d}
