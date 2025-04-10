@@ -609,13 +609,13 @@ async function getTokenService() {
       if (currentToken) {
         return currentToken;
       } else {
-        ErrorNotify(
-          "No registration token available. Request permission to generate one."
-        );
+        // ErrorNotify(
+        //   "No registration token available. Request permission to generate one."
+        // );
       }
     })
     .catch((err) => {
-      ErrorNotify("An error occurred while retrieving token!");
+      // ErrorNotify("An error occurred while retrieving token!");
     });
 
   return token;
@@ -629,7 +629,7 @@ async function fetchAndStoreToken(username) {
       token: token, // Store the token under the user's username
     });
   } catch (error) {
-    ErrorNotify("Error storing token in Firestore");
+    // ErrorNotify("Error storing token in Firestore");
   }
 }
 

@@ -45,7 +45,7 @@ function Nav() {
       {/* Desktop Navigation */}
       <div className="flex  container mx-auto justify-between">
         <div className="flex items-center gap-4">
-          <Link to="/PickupBooking">
+          <Link to="/">
             <img src="/logo.png" className="h-10" alt="Logo" />
           </Link>
           <button

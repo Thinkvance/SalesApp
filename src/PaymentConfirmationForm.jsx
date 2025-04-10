@@ -25,7 +25,6 @@ function PaymentConfirmationForm() {
   const [paymentProof, setPaymentProof] = useState(null);
   const [KycImage, setKycImage] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
   const [submitLoading, setSubmitLoading] = useState(false);
   const [showPopup, setShowPopup] = useState(false); // State to control popup visibility
@@ -35,6 +34,7 @@ function PaymentConfirmationForm() {
     register,
     handleSubmit,
     setValue,
+    setError,
     formState: { errors },
   } = useForm();
   const navigate = useNavigate();
@@ -368,6 +368,14 @@ function PaymentConfirmationForm() {
   }
 
   const onSubmit = async (data) => {
+    if (costKg < 500) {
+      setError("costKg", {
+        type: "manual",
+        message: "Cost/KG must be at least 500",
+      });
+      return;
+    }
+
     setSubmitLoading(true);
     try {
       if (!details) {
@@ -563,9 +571,9 @@ function PaymentConfirmationForm() {
     );
   }
 
-  if (error) {
-    return <div className="text-red-500 text-center p-4">{error}</div>;
-  }
+  // if (error) {
+  //   return <div className="text-red-500 text-center p-4">{error}</div>;
+  // }
 
   return (
     <div className="p-6 max-w-3xl mx-auto bg-white shadow-md rounded-lg">
@@ -949,7 +957,7 @@ function PaymentConfirmationForm() {
               onClick={() => paymentConfirm()}
               className="w-full mt-4 p-2 text-center cursor-pointer bg-purple-600 text-white font-semibold rounded hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-600"
               // disabled={submitLoading}
-            >``
+            >
               {submitLoading ? "Submitting..." : "Submit"}
             </div>
           ) : (
