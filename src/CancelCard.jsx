@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   doc,
   getDocs,
@@ -19,6 +19,10 @@ function CancelCard({ item, index }) {
   const [cancelReason, setCancelReason] = useState("");
   const [error, seterror] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false); // State for button loading
+  const [User, setUser] = useState({});
+  useEffect(() => {
+    setUser(JSON.parse(localStorage.getItem("LoginCredentials")));
+  }, []);
 
   const handleAcceptClick = async (awbNumber) => {
     if (cancelReason.length < 10 || cancelReason.length > 100) {
@@ -92,6 +96,17 @@ function CancelCard({ item, index }) {
       key={index}
       className="flex flex-col border border-gray-300 rounded-lg p-6 bg-white shadow-lg hover:shadow-2xl transition-shadow duration-300"
     >
+      <div className="flex justify-between mb-2">
+        <div>
+          {User.role == "Manager" ? (
+            <div className=" text-sm  text-purple-700 font-semibold bg-white-100 border-[1px] border-gray-200 px-3 py-1 rounded-md ">
+              {item.pickupBookedBy}
+            </div>
+          ) : (
+            ""
+          )}
+        </div>
+      </div>
       <div className="flex flex-col mb-4 gap-2">
         {item.consignorname && (
           <p className="text-base font-medium text-gray-800">
