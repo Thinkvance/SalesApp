@@ -14,7 +14,9 @@ import collectionName_BaseAwb from "./functions/collectionName";
 import utilityFunctions from "./Utility/utilityFunctions";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
+import customParseFormat from "dayjs/plugin/customParseFormat";
 
+dayjs.extend(customParseFormat);
 dayjs.extend(isBetween);
 
 function SalesReport() {
@@ -113,10 +115,14 @@ function SalesReport() {
             ];
 
       const unsubscribes = [];
+      where("status", "in", ["SHIPMENT CONNECTED", "PAYMENT DONE"]);
 
       Promise.all(
         collectionNames.map((name) => {
-          const q = query(collection(db, name));
+          const q = query(
+            collection(db, name),
+            where("status", "in", ["SHIPMENT CONNECTED", "PAYMENT DONE"])
+          );
           return new Promise((resolve) => {
             const unsubscribe = onSnapshot(q, (snapshot) => {
               const data = snapshot.docs.map((doc) => ({
@@ -181,16 +187,18 @@ function SalesReport() {
         };
     }
   };
-
   const { from, to } = getFilterRange();
-
   const filteredPickups = pickups.filter((pickup) => {
-    const date = parseDate(pickup.pickupDatetime); // timestamp (number)
-    const dayjsDate = dayjs(date); // convert to dayjs object
+    const dateStr = pickup.PaymentComfirmedDate;
+    if (!dateStr) return false;
 
-    return (
-      date &&
-      dayjsDate.isBetween(from, to, "day", "[]") && // inclusive
+    const dayjsDate = dayjs(dateStr, "DD-MM-YYYY h:mm:ss A"); // handles 3:37:42 PM
+    if (!dayjsDate.isValid()) {
+      console.warn("Invalid date format:", dateStr);
+      return false;
+    }
+    const matches =
+      dayjsDate.isBetween(from, to, "day", "[]") &&
       String(pickup.awbNumber || "")
         .toLowerCase()
         .includes(awbSearchTerm.toLowerCase()) &&
@@ -199,8 +207,9 @@ function SalesReport() {
         .includes(consignorPhoneSearchTerm.toLowerCase()) &&
       (pickup.pickUpPersonName || "")
         .toLowerCase()
-        .includes(pickupPersonName.toLowerCase())
-    );
+        .includes(pickupPersonName.toLowerCase());
+
+    return matches;
   });
 
   const totalSales = filteredPickups.length;
@@ -313,7 +322,7 @@ function SalesReport() {
                   "Vendor",
                   "Pickup Area",
                   "Pickup Status",
-                  "Pickup Date",
+                  "Payment Confirmed At",
                   "Booked By",
                   "Pickup Person",
                   "Status",
@@ -355,7 +364,7 @@ function SalesReport() {
                         {pickup.pickUpPersonNameStatus || "NOT COMPLETED"}
                       </td>
                       <td className="py-3 px-4 border text-nowrap">
-                        {pickup.pickupDatetime}
+                        {pickup.PaymentComfirmedDate}
                       </td>
                       <td className="py-3 px-4 border">
                         {pickup.pickupBookedBy}
