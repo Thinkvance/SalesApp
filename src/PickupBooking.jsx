@@ -761,7 +761,7 @@ function PickupBooking() {
                 <option value="Aramex">ARAMEX</option>
                 <option value="UPS">UPS</option>
                 <option value="FedEx">FedEx</option>
-                <option value="SELF">DESK SELF</option>
+                <option value="DESK SELF">DESK SELF</option>
                 <option value="BOMBINO">BOMBINO</option>
                 <option value="ATLANTIC">ATLANTIC</option>
               </select>
