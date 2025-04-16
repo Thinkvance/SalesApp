@@ -227,20 +227,9 @@ function PickupBooking() {
       const destinationCountryName =
         countryCodeToName[data.country] || data.country;
       // Step 1: Fetch current maximum awbNumber
-      const pickupsRef = collection(
-        db,
-        collectionName_baseAwb.getCollection(
-          frachise
-            ? frachise
-            : JSON.parse(localStorage.getItem("LoginCredentials")).Location
-        )
-      );
+      const pickupsRef = collection(db, "pickup");
       const snapshot = await getDocs(pickupsRef);
-      let maxAwbNumber = collectionName_baseAwb.getFranchiseBasedAWb(
-        frachise
-          ? frachise
-          : JSON.parse(localStorage.getItem("LoginCredentials")).Location
-      ); // Initialize to 0
+      let maxAwbNumber = collectionName_baseAwb.getFranchiseBasedAWb("CHENNAI"); // Initialize to 0
       // testing
       if (!snapshot.empty) {
         snapshot.forEach((doc) => {
@@ -323,7 +312,7 @@ function PickupBooking() {
                 to: `+91${data.Consignornumber}`,
                 content: {
                   language: "en",
-                  templateName: "shipmentbookedfinal",
+                  templateName: "shipmentbookedffinal",
                   templateData: {
                     body: {
                       placeholders: [
@@ -361,7 +350,7 @@ function PickupBooking() {
                 to: `+91${data.Consignornumber}`,
                 content: {
                   language: "en",
-                  templateName: "repeatedcustomer",
+                  templateName: "repeatedcustomer_final",
                   templateData: {
                     body: {
                       placeholders: [

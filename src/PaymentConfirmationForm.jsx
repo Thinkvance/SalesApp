@@ -489,45 +489,50 @@ function PaymentConfirmationForm() {
         payment_Receipt_URL: Payment_URL,
       };
       updateDoc(docRef, updatedFields);
-      const options = {
-        method: "POST",
-        url: "https://public.doubletick.io/whatsapp/message/template",
-        headers: {
-          accept: "application/json",
-          "content-type": "application/json",
-          Authorization: "key_z6hIuLo8GC",
-        },
-        data: {
-          messages: [
-            {
-              content: {
-                language: "en_US",
-                templateData: {
-                  body: {
-                    placeholders: [
-                      String(details.consignorname),
-                      String(details.awbNumber),
+      try {
+        const options = {
+          method: "POST",
+          url: "https://public.doubletick.io/whatsapp/message/template",
+          headers: {
+            accept: "application/json",
+            "content-type": "application/json",
+            Authorization: "key_z6hIuLo8GC",
+          },
+          data: {
+            messages: [
+              {
+                content: {
+                  language: "en_US",
+                  templateData: {
+                    body: {
+                      placeholders: [
+                        String(details.consignorname),
+                        String(details.logisticCost),
+                        String(details.awbNumber),
+                      ],
+                    },
+                    buttons: [
+                      {
+                        type: "URL",
+                        parameter: getTruncatedURL(Payment_URL),
+                      },
+                      { type: "URL", parameter: String(details.awbNumber) },
                     ],
                   },
-                  buttons: [
-                    {
-                      type: "URL",
-                      parameter: getTruncatedURL(Payment_URL),
-                    },
-                    { type: "URL", parameter: String(details.awbNumber) },
-                  ],
+                  templateName: "payment_completed_final",
                 },
-                templateName: "payment_done6",
+                from: "+919600690881",
+                to: `+91${details.consignorphonenumber}`,
               },
-              from: "+919600690881",
-              to: `+91${details.consignorphonenumber}`,
-            },
-          ],
-        },
-      };
-      const response = await axios.post(options.url, options.data, {
-        headers: options.headers,
-      });
+            ],
+          },
+        };
+        const response = await axios.post(options.url, options.data, {
+          headers: options.headers,
+        });
+      } catch (error) {
+        console.log("error", error.message);
+      }
       setshowPopupForPayConfirm(true);
     } catch (error) {
       handleError(error);
