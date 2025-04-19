@@ -145,6 +145,14 @@ function Nav() {
             ) : (
               ""
             )}
+            <li className="flex items-center gap-2">
+              <Link to="/My-Shipments" className="text-white">
+                My shipments
+              </Link>
+              <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded-md">
+                New
+              </span>
+            </li>
           </ul>
         </div>
         {/* Right Section */}
@@ -224,6 +232,21 @@ function Nav() {
                 </Link>
               </li>
             ))}
+            <li className="flex items-center gap-2">
+              <Link
+                to="/My-Shipments"
+                className={`py-2 px-4 text-gray-700 rounded-lg transition-colors duration-200 block ${
+                  location.pathname === `/My-Shipments`
+                    ? "bg-purple-100 text-purple-800"
+                    : ""
+                } hover:bg-purple-200`}
+              >
+                My shipments
+              </Link>
+              <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded-md">
+                New
+              </span>
+            </li>
           </ul>
         </div>
         {/* Overlay */}

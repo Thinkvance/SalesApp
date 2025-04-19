@@ -25,6 +25,7 @@ import utilityFunctions from "./Utility/utilityFunctions";
 import PickupPersonIncentive from "./PickupPersonIncentive";
 import SalesIncentive from "./SalesIncentive";
 import SalesReport from "./SalesReport";
+import Myshipments from "./Myshipments";
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -151,11 +152,16 @@ function App() {
             element={user ? <PickupIncentive /> : <Navigate to="/signin" />}
           />
           <Route
+            path="/My-Shipments"
+            element={user ? <Myshipments /> : <Navigate to="/signin" />}
+          />
+          <Route
             path="/PickuPersonIncentive-Report"
             element={
               user ? <PickupPersonIncentive /> : <Navigate to="/signin" />
             }
           />
+
           {/* Sign In route, only accessible if no user is logged in */}
           <Route
             path="/signin"
