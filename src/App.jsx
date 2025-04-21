@@ -36,15 +36,15 @@ function App() {
         // Request permission for push notifications using the browser's Notification API
         const permission = await Notification.requestPermission();
         if (permission !== "granted") {
-          utilityFunctions.ErrorNotify("Notification permission denied");
+          // utilityFunctions.ErrorNotify("Notification permission denied");
           return; // Stop further execution if permission is not granted
         }
         utilityFunctions.SuccessNotify("Notification permission granted");
       } catch (error) {
-        utilityFunctions.ErrorNotify(
-          "Error requesting notification permission:",
-          error
-        );
+        // utilityFunctions.ErrorNotify(
+        //   "Error requesting notification permission:",
+        //   error
+        // );
       }
     };
     await getPermission();

@@ -33,7 +33,7 @@ function PickupBooking() {
     "Offline Ad",
     "GMB",
   ]);
-  const [city, setcity] = useState("Chennai");
+  const [city, setcity] = useState("");
   const [source, setsource] = useState("Select");
   function splitLati_Logi(value) {
     const [lat, long] = value.split(",").map(Number);
@@ -461,7 +461,7 @@ function PickupBooking() {
                 </label>
                 <input
                   type="text"
-                  placeholder="Enter consignor name"
+                  placeholder="E.g. Ram Kumar (letters only)"
                   {...register("Consignorname", {
                     required: "Consignor name is required",
                   })}
@@ -481,7 +481,7 @@ function PickupBooking() {
                 </label>
                 <input
                   type="text"
-                  placeholder="Enter consignor phone number"
+                  placeholder="E.g. 9876543210 (10 digits, should not add '+91')"
                   {...register("Consignornumber", {
                     required: "Consignor phone number is required",
                     pattern: {
@@ -516,7 +516,7 @@ function PickupBooking() {
                 </label>
                 <input
                   type="text"
-                  placeholder="Enter Consignor location"
+                  placeholder="E.g. Door No, Area, City, State, Pincode"
                   {...register("Consignorlocation", {
                     required: "Enter Consignor location",
                   })}
@@ -541,7 +541,7 @@ function PickupBooking() {
                 </label>
                 <input
                   type="text"
-                  placeholder="Enter consignee name"
+                  placeholder="E.g. Ramesh Kumar (Letters Only)"
                   {...register("consigneename", {
                     // required: "Consignee name is required",
                   })}
@@ -561,7 +561,7 @@ function PickupBooking() {
                 </label>
                 <input
                   type="text"
-                  placeholder="Enter consignee phone number"
+                  placeholder="E.g. 9876543210 (N digits, no country code)"
                   {...register("consigneenumber", {
                     // required: "consignee phone number is required",
                     pattern: {
@@ -587,7 +587,7 @@ function PickupBooking() {
                 </label>
                 <input
                   type="text"
-                  placeholder="Enter consignee location"
+                  placeholder="E.g. Door No, Area, City, State, Pincode"
                   {...register("consigneelocation", {
                     // required: "Enter consignee location",
                   })}
@@ -611,7 +611,7 @@ function PickupBooking() {
               </label>
               <input
                 type="text"
-                placeholder="Enter your pincode"
+                placeholder="E.g. 560001 (6-digit pincode)"
                 {...register("pincode", { required: "Pincode is required" })}
                 className={`w-full px-3 py-2 border ${
                   errors.pincode ? "border-red-500" : "border-gray-300"
@@ -634,7 +634,7 @@ function PickupBooking() {
                   errors.country ? "border-red-500" : "border-gray-300"
                 } rounded-md focus:outline-none focus:border-[#8847D9]`}
               >
-                <option value="">Select your country</option>
+                <option value="">Select Destination country</option>
                 {countries.map((country) =>
                   country ? (
                     <option key={country.code} value={country.code}>
@@ -680,7 +680,7 @@ function PickupBooking() {
               </label>
               <input
                 type="text"
-                placeholder="Enter your pickup area"
+                placeholder="E.g. Guindy, T. Nagar"
                 {...register("pickuparea", {
                   required: "Pickup area is required",
                 })}
@@ -700,7 +700,7 @@ function PickupBooking() {
               </label>
               <input
                 type="number"
-                placeholder="Enter weight without units"
+                placeholder="E.g. 25 (without units like kg, lbs)"
                 {...register("weight", {
                   required: "Weight is required",
                   valueAsNumber: true,
@@ -721,7 +721,7 @@ function PickupBooking() {
               </label>
               <input
                 type="text"
-                placeholder="Enter list of products"
+                placeholder="E.g. Turmeric, T-shirts, Status"
                 {...register("Content", {
                   required: "list of products is required",
                 })}
@@ -778,7 +778,7 @@ function PickupBooking() {
               </div>
               <input
                 type="text"
-                placeholder="Enter Your Longitude & Latitude"
+                placeholder="E.g. 11.00000 , 12.00000"
                 className={`w-full px-3 py-2 border "border-gray-300 rounded-md focus:outline-none focus:border-[#8847D9]`}
                 onChange={(e) => setlatitudelongitude(e.target.value)}
               />
@@ -901,7 +901,7 @@ function PickupBooking() {
                 Special Instructions
               </label>
               <textarea
-                placeholder="Enter any special instructions"
+                placeholder="E.g. Handle with care, Keep away from moisture"
                 {...register("instructions", {
                   required: "Source is required",
                 })}
