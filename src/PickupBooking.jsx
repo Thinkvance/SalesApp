@@ -8,6 +8,8 @@ import { addDoc, collection, getDocs, query, where } from "firebase/firestore";
 import axios from "axios";
 import collectionName_baseAwb from "./functions/collectionName";
 import utility from "./Utility/utilityFunctions";
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
 function PickupBooking() {
   const [loading, setLoading] = useState(false);
   const [countries, setCountries] = useState([]);
@@ -35,6 +37,7 @@ function PickupBooking() {
   ]);
   const [city, setcity] = useState("");
   const [source, setsource] = useState("Select");
+
   function splitLati_Logi(value) {
     const [lat, long] = value.split(",").map(Number);
     // Format the latitude and longitude to match the output precision
@@ -559,21 +562,51 @@ function PickupBooking() {
                 <label className="block text-gray-700 font-semibold mb-2">
                   Consignee Phone Number:
                 </label>
-                <input
-                  type="text"
-                  placeholder="E.g. 9876543210 (N digits, no country code)"
-                  {...register("consigneenumber", {
-                    // required: "consignee phone number is required",
-                    pattern: {
-                      value: /^[0-9]+$/,
-                      message: "Please enter a valid phone number",
+                <Controller
+                  name="consigneenumber"
+                  control={control}
+                  rules={{
+                    validate: (value) => {
+                      // 1) empty → OK
+                      if (!value || value.trim() === "") return true;
+
+                      // strip non‑digits
+                      const digitsOnly = value.replace(/\D/g, "");
+                      // remove up to 4‑digit code prefix
+                      const phoneWithoutCode = digitsOnly.replace(
+                        /^(\d{1,4})/,
+                        ""
+                      );
+                      const len = phoneWithoutCode.length;
+
+                      // 2) code only (no subscriber digits)
+                      if (len === 0) return "Please enter a phone number";
+                      // 3) too short/long
+                      if (len < 4) return "Phone number is too short";
+                      if (len > 15) return "Phone number is too long";
+
+                      return true;
                     },
-                  })}
-                  className={`w-full px-3 py-2 border ${
-                    errors.consigneenumber
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  } rounded-md focus:outline-none focus:border-[#8847D9]`}
+                  }}
+                  render={({ field }) => (
+                    <PhoneInput
+                      enableSearch
+                      value={field.value}
+                      onChange={(value) => field.onChange(value)}
+                      placeholder="Enter phone number"
+                      inputStyle={{
+                        width: "100%",
+                        padding: "12px 48px",
+                        borderColor: errors.consigneenumber
+                          ? "#f87171"
+                          : "#d1d5db",
+                        borderRadius: "0.375rem",
+                        fontSize: "1rem",
+                      }}
+                      containerStyle={{ width: "100%" }}
+                      specialLabel=""
+                    />
+                  )}
                 />
                 {errors.consigneenumber && (
                   <p className="text-red-500 text-sm mt-1">

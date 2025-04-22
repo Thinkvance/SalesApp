@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "./firebase"; // Import storage from your Firebase config
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import {
   collection,
   query,
@@ -17,6 +17,8 @@ import axios from "axios";
 import jsPDF from "jspdf";
 import utilityFunctions from "./Utility/utilityFunctions";
 import Lottie from "lottie-react";
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
 
 function PaymentConfirmationForm() {
   const [costKg, setcostKg] = useState(0);
@@ -33,6 +35,7 @@ function PaymentConfirmationForm() {
   const {
     register,
     handleSubmit,
+    control,
     setValue,
     setError,
     formState: { errors },
@@ -40,6 +43,7 @@ function PaymentConfirmationForm() {
   const navigate = useNavigate();
   const [downloadURL, setdownloadURL] = useState("");
   const [animationData, setAnimationData] = useState(null);
+  const dialCodeRef = useRef(null);
 
   useEffect(() => {
     try {
@@ -770,28 +774,67 @@ function PaymentConfirmationForm() {
           )}
           {details.consigneephonenumber == "" ? (
             <>
-              <div className="flex flex-col mb-2">
-                <label className="text-gray-700 font-medium mb-1">
+              <div className="mb-4">
+                <label className="block text-gray-700 font-semibold mb-2">
                   Consignee Phone Number:
                 </label>
-                <input
-                  type="text"
-                  placeholder="Enter Consignee Phone Number"
-                  className="p-2 border rounded bg-gray-100"
-                  {...register("consigneenumber1", {
-                    required: "Consignee phone number is required",
-                    pattern: {
-                      value: /^[0-9]+$/,
-                      message: "Please enter a valid phone number",
+                <Controller
+                  name="consigneenumber1"
+                  control={control}
+                  rules={{
+                    required: "Country code and phone number are required",
+                    validate: (value) => {
+                      // if they haven't touched it at all
+                      if (!value) return false;
+
+                      // if they never picked a flag
+                      if (!dialCodeRef.current) {
+                        return "Please select a country code";
+                      }
+
+                      // strip non‑digits, then remove the dialCode length
+                      const digitsOnly = value.replace(/\D/g, "");
+                      const subscriber = digitsOnly.slice(
+                        dialCodeRef.current.length
+                      );
+                      const len = subscriber.length;
+
+                      if (len === 0) return "Please enter a phone number";
+                      if (len < 4) return "Phone number is too short";
+                      if (len > 15) return "Phone number is too long";
+
+                      return true;
                     },
-                  })}
+                  }}
+                  render={({ field }) => (
+                    <PhoneInput
+                      enableSearch
+                      placeholder="Enter phone number"
+                      value={field.value}
+                      onChange={(value, data) => {
+                        dialCodeRef.current = data.dialCode; // store the code
+                        field.onChange(value);
+                      }}
+                      inputStyle={{
+                        width: "100%",
+                        padding: "12px 48px",
+                        borderColor: errors.consigneenumber1
+                          ? "#f87171"
+                          : "#d1d5db",
+                        borderRadius: "0.375rem",
+                        fontSize: "1rem",
+                      }}
+                      containerStyle={{ width: "100%" }}
+                      specialLabel=""
+                    />
+                  )}
                 />
+                {errors.consigneenumber1 && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.consigneenumber1.message}
+                  </p>
+                )}
               </div>
-              {errors.consigneenumber1 && (
-                <p className="text-red-500 text-sm mb-4">
-                  {errors.consigneenumber1.message}
-                </p>
-              )}
             </>
           ) : (
             ""
