@@ -461,7 +461,7 @@ function PickupBooking() {
                 </label>
                 <input
                   type="text"
-                  placeholder="E.g. Ram Kumar (letters only)"
+                  placeholder="E.g. Ram Kumar (Letters only)"
                   {...register("Consignorname", {
                     required: "Consignor name is required",
                   })}

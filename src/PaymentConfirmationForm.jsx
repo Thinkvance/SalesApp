@@ -156,7 +156,7 @@ function PaymentConfirmationForm() {
     doc.setFont("helvetica", "normal");
     doc.text("Shiphit", 40, 160);
 
-    const address = `No. 74, Tiny Sector Industrial Estate, Ekkatuthangal, Chennai - 600032. Tamilnadu, India.`;
+    const address = `2C, Rajarajan Street, Main Rd, Navarathna Garden, Ekkatuthangal, Chennai, Tamil Nadu 600032`;
     const phoneNumber = `\n9159 688 688`; // Add a newline before the phone number
 
     const fullText = address + phoneNumber; // Combine address and phone number
@@ -407,12 +407,13 @@ function PaymentConfirmationForm() {
         ),
         final_result[0].id
       ); // db is your Firestore instance
+
       const updatedFields = {
         status: "PAYMENT REQUESTED",
-        logisticCost: logisticCost,
+        logisticCost: parseInt(logisticCost) - parseInt(data.discountCost),
         discountCost: data.discountCost,
         // paymentProof: await uploadFileToFirebase(paymentProof, "PAYMENT PROOF"),
-        KycImage: await uploadFileToFirebase(KycImage, "KYC"),
+        // KycImage: await uploadFileToFirebase(KycImage, "KYC"),
         PaymentComfirmedDate: await getTodayDate(),
         consigneename: !data.consigneename1
           ? details.consigneename
@@ -978,7 +979,7 @@ function PaymentConfirmationForm() {
                   className="w-8 h-8"
                 />
               ) : (
-                "Make Payment"
+                "Get Payment"
               )}
             </button>
           )}
