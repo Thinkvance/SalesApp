@@ -259,7 +259,8 @@ function PickupBooking() {
         consignorlocation: data.Consignorlocation,
         // Consignee Data
         consigneename: data.consigneename,
-        consigneephonenumber: data.consigneenumber,
+        consigneephonenumber:
+          data.consigneephonenumber == undefined ? " " : data.consigneenumber,
         consigneelocation: data.consigneelocation,
         content: data.Content,
         longitude: result.longitude,

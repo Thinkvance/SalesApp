@@ -41,6 +41,7 @@
     "react-select": "^5.8.0",
     "react-select-country-list": "^2.2.3",
     "react-whatsapp": "^0.3.0",
+    "recharts": "^2.15.3",
     "styled-components": "^6.1.14",
     "uuid": "^10.0.0"
   },

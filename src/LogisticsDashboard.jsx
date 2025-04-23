@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
 import LineChartCom from "./Dashboard/LineChartCom";
+import BarChartCom from "./salesReportCharts/BarChartCom";
 
 const LogisticsDashboard = () => {
   const [totalPickups, setTotalPickups] = useState(0);
@@ -67,7 +68,8 @@ const LogisticsDashboard = () => {
           <p className="text-3xl font-bold text-blue-500">{shippedCount}</p>
         </div>
       </div>
-      {/* <LineChartCom /> */}
+      <LineChartCom />
+      <BarChartCom />
     </div>
   );
 };

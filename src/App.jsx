@@ -26,6 +26,7 @@ import PickupPersonIncentive from "./PickupPersonIncentive";
 import SalesIncentive from "./SalesIncentive";
 import SalesReport from "./SalesReport";
 import Myshipments from "./Myshipments";
+
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);

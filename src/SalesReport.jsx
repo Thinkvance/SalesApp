@@ -15,6 +15,7 @@ import utilityFunctions from "./Utility/utilityFunctions";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import customParseFormat from "dayjs/plugin/customParseFormat";
+import BarChartCom from "./salesReportCharts/BarChartCom";
 
 dayjs.extend(customParseFormat);
 dayjs.extend(isBetween);
@@ -33,6 +34,8 @@ function SalesReport() {
 
   const [filterOption, setFilterOption] = useState("this_month");
   const [customRange, setCustomRange] = useState({ from: "", to: "" });
+
+  const [selectedBookedBy, setSelectedBookedBy] = useState("All");
 
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("LoginCredentials"));
@@ -88,20 +91,22 @@ function SalesReport() {
 
   const parseDate = (datetime) => {
     if (!datetime) return 0;
-    const [datePart, timePart] = datetime.split(" &");
+
+    const parts = datetime.trim().split(" ");
+    if (parts.length < 3) return 0;
+
+    const [datePart, timePart, period] = parts;
     const [day, month, year] = datePart.split("-").map(Number);
+    let [hour, minute, second] = timePart.split(":").map(Number);
 
-    let hour = 0;
-    if (timePart) {
-      const [hourRaw, period] = timePart.trim().split(" ");
-      hour = parseInt(hourRaw);
-      if (period === "PM" && hour !== 12) hour += 12;
-      if (period === "AM" && hour === 12) hour = 0;
-    }
+    if (isNaN(day) || isNaN(hour)) return 0;
 
-    return new Date(year, month - 1, day, hour).getTime();
+    // Convert to 24-hour time
+    if (period === "PM" && hour !== 12) hour += 12;
+    if (period === "AM" && hour === 12) hour = 0;
+
+    return new Date(year, month - 1, day, hour, minute, second).getTime();
   };
-
   const fetchPickups = () => {
     setLoading(true);
     try {
@@ -192,24 +197,33 @@ function SalesReport() {
     const dateStr = pickup.PaymentComfirmedDate;
     if (!dateStr) return false;
 
-    const dayjsDate = dayjs(dateStr, "DD-MM-YYYY h:mm:ss A"); // handles 3:37:42 PM
+    const dayjsDate = dayjs(dateStr, "DD-MM-YYYY h:mm:ss A");
     if (!dayjsDate.isValid()) {
-      console.warn("Invalid date format:", dateStr);
+      // console.warn("Invalid date format:", pickup.awbNumber);
       return false;
     }
-    const matches =
-      dayjsDate.isBetween(from, to, "day", "[]") &&
-      String(pickup.awbNumber || "")
-        .toLowerCase()
-        .includes(awbSearchTerm.toLowerCase()) &&
-      (pickup.consignorphonenumber || "")
-        .toLowerCase()
-        .includes(consignorPhoneSearchTerm.toLowerCase()) &&
-      (pickup.pickUpPersonName || "")
-        .toLowerCase()
-        .includes(pickupPersonName.toLowerCase());
 
-    return matches;
+    const withinDateRange = dayjsDate.isBetween(from, to, "day", "[]");
+    const matchesAwb = String(pickup.awbNumber || "")
+      .toLowerCase()
+      .includes(awbSearchTerm.toLowerCase());
+    const matchesPhone = (pickup.consignorphonenumber || "")
+      .toLowerCase()
+      .includes(consignorPhoneSearchTerm.toLowerCase());
+    const matchesPickupPerson = (pickup.pickUpPersonName || "")
+      .toLowerCase()
+      .includes(pickupPersonName.toLowerCase());
+    const matchesBookedBy =
+      selectedBookedBy === "All" ||
+      pickup.pickupBookedBy?.toLowerCase() === selectedBookedBy.toLowerCase();
+
+    return (
+      withinDateRange &&
+      matchesAwb &&
+      matchesPhone &&
+      matchesPickupPerson &&
+      matchesBookedBy
+    );
   });
 
   const totalSales = filteredPickups.length;
@@ -248,7 +262,23 @@ function SalesReport() {
               <option value="select_range">Select Range</option>
             </select>
           </div>
-
+          <div className="col-span-1 md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Sales Representative
+            </label>
+            {/* Booked By Dropdown */}
+            <select
+              value={selectedBookedBy}
+              onChange={(e) => setSelectedBookedBy(e.target.value)}
+              className="border rounded  input-style w-full"
+            >
+              <option value="All"> Select Sales Representative</option>
+              <option value="mouli">mouli</option>
+              <option value="sana">sana</option>
+              <option value="Tamil Selvi">Tamil Selvi</option>
+              <option value="jaga">jaga</option>
+            </select>
+          </div>
           {filterOption === "select_range" && (
             <>
               <div>
@@ -283,29 +313,51 @@ function SalesReport() {
             </>
           )}
         </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6 items-center">
+          {/* Total Sales */}
+          <div className="bg-purple-100 border border-purple-300 rounded-xl p-6 shadow-md flex flex-col justify-between h-fit">
+            <div>
+              <h2 className="text-xl font-semibold text-purple-700 mb-2">
+                Total Sales
+              </h2>
+              <p className="text-3xl font-bold text-purple-900">{totalSales}</p>
+            </div>
+          </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <div className="bg-purple-100 border border-purple-300 rounded-xl p-4 shadow">
-            <h2 className="text-lg font-semibold text-purple-700 mb-1">
-              Total Sales
-            </h2>
-            <p className="text-2xl font-bold text-purple-900">{totalSales}</p>
+          {/* Total Logistic Cost */}
+          <div className="bg-green-100 border border-green-300 rounded-xl p-6 shadow-md flex flex-col justify-between h-fit">
+            <div>
+              <h2 className="text-xl font-semibold text-green-700 mb-2">
+                Total Logistic Cost
+              </h2>
+              <p className="text-3xl font-bold text-green-900">
+                {totalLogisticsCost}
+              </p>
+            </div>
           </div>
-          <div className="bg-green-100 border border-green-300 rounded-xl p-4 shadow">
-            <h2 className="text-lg font-semibold text-green-700 mb-1">
-              Total Logistic Cost
-            </h2>
-            <p className="text-2xl font-bold text-green-900">
-              {totalLogisticsCost}
-            </p>
+
+          {/* Total Margin */}
+          <div className="bg-yellow-100 border border-yellow-300 rounded-xl p-6 shadow-md flex flex-col justify-between h-fit">
+            <div>
+              <h2 className="text-xl font-semibold text-yellow-700 mb-2">
+                Total Margin
+              </h2>
+              <p className="text-3xl font-bold text-yellow-900">
+                ₹ {totalMargin}
+              </p>
+            </div>
           </div>
-          <div className="bg-yellow-100 border border-yellow-300 rounded-xl p-4 shadow">
-            <h2 className="text-lg font-semibold text-yellow-700 mb-1">
-              Total Margin
-            </h2>
-            <p className="text-2xl font-bold text-yellow-900">
-              ₹ {totalMargin}
-            </p>
+          {/* Bar Chart Section */}
+          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-md flex flex-col justify-between min-h-[160px]">
+            <div className="mb-4">
+              <BarChartCom  data={}/>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-700 mb-1">
+                Total Margin Overview
+              </h2>
+              <p className="text-xl font-bold text-gray-900">₹ {totalMargin}</p>
+            </div>
           </div>
         </div>
 
@@ -342,7 +394,8 @@ function SalesReport() {
                 [...filteredPickups]
                   .sort(
                     (a, b) =>
-                      parseDate(b.pickupDatetime) - parseDate(a.pickupDatetime)
+                      parseDate(b.PaymentComfirmedDate) -
+                      parseDate(a.PaymentComfirmedDate)
                   )
                   .map((pickup, idx) => (
                     <tr
