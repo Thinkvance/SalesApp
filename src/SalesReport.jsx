@@ -238,6 +238,20 @@ function SalesReport() {
     0
   );
 
+  const salesData = Object.values(
+    filteredPickups.reduce((acc, curr) => {
+      const name = curr.pickupBookedBy;
+      const margin = parseFloat(curr.margin);
+      const safeMargin = isNaN(margin) ? 0 : margin;
+
+      if (!acc[name]) {
+        acc[name] = { name, totalMargin: 0, color: "#9333ea" };
+      }
+      acc[name].totalMargin += safeMargin;
+      return acc;
+    }, {})
+  );
+
   return (
     <>
       <Nav />
@@ -313,50 +327,47 @@ function SalesReport() {
             </>
           )}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6 items-center">
+        <div className="flex flex-wrap gap-4 mb-6 justify-start items-center">
           {/* Total Sales */}
-          <div className="bg-purple-100 border border-purple-300 rounded-xl p-6 shadow-md flex flex-col justify-between h-fit">
-            <div>
-              <h2 className="text-xl font-semibold text-purple-700 mb-2">
-                Total Sales
-              </h2>
-              <p className="text-3xl font-bold text-purple-900">{totalSales}</p>
-            </div>
+          <div className="flex-1 min-w-[220px] max-w-sm bg-purple-100 border border-purple-300 rounded-xl p-6 shadow-md h-fit">
+            <h2 className="text-lg font-semibold text-purple-700 mb-2">
+              Total Sales
+            </h2>
+            <p className="text-2xl font-bold text-purple-900">{totalSales}</p>
           </div>
 
           {/* Total Logistic Cost */}
-          <div className="bg-green-100 border border-green-300 rounded-xl p-6 shadow-md flex flex-col justify-between h-fit">
-            <div>
-              <h2 className="text-xl font-semibold text-green-700 mb-2">
-                Total Logistic Cost
-              </h2>
-              <p className="text-3xl font-bold text-green-900">
-                {totalLogisticsCost}
-              </p>
-            </div>
+          <div className="flex-1 min-w-[220px] max-w-sm bg-green-100 border border-green-300 rounded-xl p-6 shadow-md h-fit">
+            <h2 className="text-lg font-semibold text-green-700 mb-2">
+              Total Logistic Cost
+            </h2>
+            <p className="text-2xl font-bold text-green-900">
+              {totalLogisticsCost}
+            </p>
           </div>
 
           {/* Total Margin */}
-          <div className="bg-yellow-100 border border-yellow-300 rounded-xl p-6 shadow-md flex flex-col justify-between h-fit">
-            <div>
-              <h2 className="text-xl font-semibold text-yellow-700 mb-2">
-                Total Margin
-              </h2>
-              <p className="text-3xl font-bold text-yellow-900">
-                ₹ {totalMargin}
-              </p>
-            </div>
+          <div className="flex-1 min-w-[220px] max-w-sm bg-yellow-100 border border-yellow-300 rounded-xl p-6 shadow-md h-fit">
+            <h2 className="text-lg font-semibold text-yellow-700 mb-2">
+              Total Margin
+            </h2>
+            <p className="text-2xl font-bold text-yellow-900">
+              ₹ {totalMargin}
+            </p>
           </div>
-          {/* Bar Chart Section */}
-          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-md flex flex-col justify-between min-h-[160px]">
-            <div className="mb-4">
-              <BarChartCom  data={}/>
+
+          {/* Bar Chart Section (Visually wider) */}
+          <div className="flex-[2] min-w-full sm:min-w-[500px] bg-white border border-gray-200 rounded-xl p-4 shadow-md">
+            <div className="mb-3">
+              <BarChartCom salesData={salesData} />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-700 mb-1">
+              <h2 className="text-sm sm:text-base font-semibold text-gray-700 mb-1">
                 Total Margin Overview
               </h2>
-              <p className="text-xl font-bold text-gray-900">₹ {totalMargin}</p>
+              <p className="text-lg sm:text-xl font-bold text-gray-900">
+                ₹ {totalMargin}
+              </p>
             </div>
           </div>
         </div>

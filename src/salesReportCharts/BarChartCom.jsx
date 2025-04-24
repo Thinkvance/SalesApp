@@ -1,15 +1,9 @@
 import { BarChart } from "@mui/x-charts";
 import React from "react";
 
-const salesData = [
-  { name: "mouli", totalMargin: 10000, color: "#9333ea" }, // Tailwind purple-600
-  { name: "jaga", totalMargin: 93000, color: "#9333ea" },
-  { name: "Sana", totalMargin: 93000, color: "#9333ea" },
-];
-
-function BarChartCom() {
+function BarChartCom({ salesData }) {
   return (
-    <div className="bg-transparent shadow-lg rounded-lg p-4">
+    <div className="bg-transparent shadow-lg rounded-lg ">
       <BarChart
         dataset={salesData}
         xAxis={[
@@ -30,7 +24,7 @@ function BarChartCom() {
           },
         ]}
         height={120} // Increased height for clarity
-        margin={{ left: 60, right: 10, top: 20, bottom: 40 }}
+        margin={{ top: 20, bottom: 40 }}
         grid={{ vertical: false, horizontal: true }}
         tooltip
       />

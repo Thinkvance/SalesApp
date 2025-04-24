@@ -10,6 +10,7 @@ import collectionName_baseAwb from "./functions/collectionName";
 import utility from "./Utility/utilityFunctions";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
+import DB from "./DB/DB";
 function PickupBooking() {
   const [loading, setLoading] = useState(false);
   const [countries, setCountries] = useState([]);
@@ -129,7 +130,7 @@ function PickupBooking() {
     if (phoneNumber.length >= 9 && phoneNumber.length <= 10) {
       try {
         const q = query(
-          collection(db, "pickup"),
+          collection(db, DB.db_collection),
           where("consignorphonenumber", "==", phoneNumber)
         );
         const querySnapshot = await getDocs(q);
@@ -190,7 +191,7 @@ function PickupBooking() {
 
   async function checkRepeatedCustomer(phoneNumber) {
     const q = query(
-      collection(db, "pickup"),
+      collection(db, DB.db_collection),
       where("consignorphonenumber", "==", phoneNumber)
     );
     const querySnapshot = await getDocs(q);
@@ -204,7 +205,7 @@ function PickupBooking() {
 
   async function sinceDatefun(phoneNumber) {
     const q = query(
-      collection(db, "pickup"),
+      collection(db, DB.db_collection),
       where("consignorphonenumber", "==", phoneNumber)
     );
     const querySnapshot = await getDocs(q);
@@ -230,7 +231,7 @@ function PickupBooking() {
       const destinationCountryName =
         countryCodeToName[data.country] || data.country;
       // Step 1: Fetch current maximum awbNumber
-      const pickupsRef = collection(db, "pickup");
+      const pickupsRef = collection(db, DB.db_collection);
       const snapshot = await getDocs(pickupsRef);
       let maxAwbNumber = collectionName_baseAwb.getFranchiseBasedAWb("CHENNAI"); // Initialize to 0
       // testing
@@ -447,7 +448,7 @@ function PickupBooking() {
       >
         TEST
       </button> */}
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4  flex-col gap-4">
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4 flex-col gap-4">
         <h className="text-3xl font-bold">Sales</h>
         <form
           onSubmit={handleSubmit(onSubmit)}
@@ -755,7 +756,7 @@ function PickupBooking() {
               </label>
               <input
                 type="text"
-                placeholder="E.g. Turmeric, T-shirts, Status"
+                placeholder="E.g. Garments, Groceries, Handicrafts"
                 {...register("Content", {
                   required: "list of products is required",
                 })}
@@ -935,7 +936,7 @@ function PickupBooking() {
                 Special Instructions
               </label>
               <textarea
-                placeholder="E.g. Handle with care, Keep away from moisture"
+                placeholder="E.g. Take swiping machine, Bubble wrap, Take extra boxes"
                 {...register("instructions", {
                   required: "Source is required",
                 })}

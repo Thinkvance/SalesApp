@@ -1,6 +1,6 @@
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../firebase";
-
+import DB from "../DB/DB";
 function extractDate(dateString) {
   // Split the string at the '&' character and return the first part (the date)
   const datePart = dateString.split(" &")[0];
@@ -20,21 +20,21 @@ function convertDateToTimestamp(dateString) {
 
 async function fetchData(DateRange, startendrange) {
   try {
-    let queryRef = collection(db, "pickup");
+    let queryRef = collection(db, DB.db_collection);
     // Conditional query based on selected DateRange
     if (DateRange === "This Week") {
       queryRef = query(
-        collection(db, "pickup"),
+        collection(db, DB.db_collection),
         where("pickUpPersonNameStatus", "in", ["PICKUP COMPLETED"])
       );
     } else if (DateRange === "Last Week") {
       queryRef = query(
-        collection(db, "pickup"),
+        collection(db, DB.db_collection),
         where("pickUpPersonNameStatus", "in", ["PICKUP COMPLETED"])
       );
     } else if (DateRange == "Select range") {
       queryRef = query(
-        collection(db, "pickup"),
+        collection(db, DB.db_collection),
         where("pickUpPersonNameStatus", "in", ["PICKUP COMPLETED"])
       );
     }
@@ -148,7 +148,7 @@ async function TopPerformer(DateRange, startendrange) {
 
 async function allPickupsData(DateRange, startendrange) {
   try {
-    queryRef = query(collection(db, "pickup"));
+    queryRef = query(collection(db, DB.db_collection));
 
     const querySnapshot = await getDocs(queryRef);
     const fetchedData = querySnapshot.docs.map((doc) => {

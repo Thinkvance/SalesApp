@@ -14,6 +14,7 @@ import toast from "react-hot-toast";
 import axios from "axios";
 import { getToken } from "firebase/messaging";
 import { revokeAccessToken } from "firebase/auth";
+import DB from "../DB/DB";
 
 function extractDate(dateString) {
   // Split the string at the '&' character and return the first part (the date)
@@ -90,21 +91,21 @@ async function fetchStartEndDate(DateRange, startendrange) {
 
 async function fetchData(DateRange, startendrange) {
   try {
-    let queryRef = collection(db, "pickup");
+    let queryRef = collection(db, DB.db_collection);
     // Conditional query based on selected DateRange
     if (DateRange === "This Week") {
       queryRef = query(
-        collection(db, "pickup"),
+        collection(db, DB.db_collection),
         where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"])
       );
     } else if (DateRange === "Last Week") {
       queryRef = query(
-        collection(db, "pickup"),
+        collection(db, DB.db_collection),
         where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"])
       );
     } else if (DateRange == "Select range") {
       queryRef = query(
-        collection(db, "pickup"),
+        collection(db, DB.db_collection),
         where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"])
       );
     }

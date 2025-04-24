@@ -4,7 +4,7 @@ import ResheduleCard from "./ResheduleCard";
 import CancelCard from "./CancelCard";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "./firebase";
-import collectionName_BaseAwb from "./functions/collectionName";
+import DB from "./DB/DB";
 function CancelOrReschedule() {
   const [data, setData] = useState([]);
   const [activeTab, setActiveTab] = useState("CANCEL");
@@ -33,10 +33,7 @@ function CancelOrReschedule() {
     const { role, Location, name } = loginCredentials;
 
     // Determine the Firestore query based on the role
-    const collectionRef = collection(
-      db,
-      collectionName_BaseAwb.getCollection(Location)
-    );
+    const collectionRef = collection(db, DB.db_collection);
     // Real-time listener for Firestore data using onSnapshot
     const baseQuery =
       role === "Manager" || role === "sales admin"

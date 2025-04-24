@@ -4,6 +4,7 @@ import { collection, query, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase";
 import collectionName_BaseAwb from "./functions/collectionName";
 import utilityFunctions from "./Utility/utilityFunctions";
+import DB from "./DB/DB";
 
 function Pickups() {
   const [username, setUsername] = useState(null);
@@ -44,7 +45,7 @@ function Pickups() {
         const fetchData = () => {
           try {
             const collectionNames = [
-              "pickup",
+              DB.db_collection,
               "franchise_pondy",
               "franchise_coimbatore",
             ];
@@ -74,19 +75,24 @@ function Pickups() {
                 const sortedData = combinedData.sort((a, b) => {
                   const parseDate = (datetime) => {
                     const [datePart, timePart] = datetime.split(" &");
+
                     const [day, month, year] = datePart.split("-").map(Number);
 
-                    const [hour, period] = timePart.split(" ");
-                    const hour24 =
-                      period === "PM" && hour !== "12"
-                        ? Number(hour) + 12
-                        : Number(hour === "12" && period === "AM" ? 0 : hour);
-                    return new Date(year, month - 1, day, hour24).getTime();
+                    let [hourStr, period] = timePart.trim().split(" ");
+                    let hour = Number(hourStr);
+
+                    // Convert to 24-hour format
+                    if (period === "PM" && hour !== 12) hour += 12;
+                    if (period === "AM" && hour === 12) hour = 0;
+
+                    return new Date(year, month - 1, day, hour).getTime();
                   };
+
                   return (
                     parseDate(b.pickupDatetime) - parseDate(a.pickupDatetime)
                   );
                 });
+
                 setPickups(sortedData);
                 setLoading(false);
               })
@@ -132,14 +138,19 @@ function Pickups() {
             const sortedData = filteredData.sort((a, b) => {
               const parseDate = (datetime) => {
                 const [datePart, timePart] = datetime.split(" &");
+
                 const [day, month, year] = datePart.split("-").map(Number);
-                const [hour, period] = timePart.split(" ");
-                const hour24 =
-                  period === "PM" && hour !== "12"
-                    ? Number(hour) + 12
-                    : Number(hour === "12" && period === "AM" ? 0 : hour);
-                return new Date(year, month - 1, day, hour24).getTime();
+
+                let [hourStr, period] = timePart.trim().split(" ");
+                let hour = Number(hourStr);
+
+                // Convert to 24-hour format
+                if (period === "PM" && hour !== 12) hour += 12;
+                if (period === "AM" && hour === 12) hour = 0;
+
+                return new Date(year, month - 1, day, hour).getTime();
               };
+
               return parseDate(b.pickupDatetime) - parseDate(a.pickupDatetime);
             });
             setPickups(sortedData);

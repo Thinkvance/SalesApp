@@ -1,3 +1,5 @@
+import DB from "../DB/DB";
+
 function getCollection(location) {
   const franchiseLocation = location;
   const collectionName =
@@ -6,7 +8,7 @@ function getCollection(location) {
       : franchiseLocation === "COIMBATORE"
       ? "franchise_coimbatore"
       : franchiseLocation === "CHENNAI"
-      ? "pickup"
+      ? DB.db_collection
       : "default_collection";
   return collectionName;
 }
