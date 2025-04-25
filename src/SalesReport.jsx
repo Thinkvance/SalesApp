@@ -16,6 +16,7 @@ import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import BarChartCom from "./salesReportCharts/BarChartCom";
+import DB from "./DB/DB";
 
 dayjs.extend(customParseFormat);
 dayjs.extend(isBetween);
@@ -47,7 +48,7 @@ function SalesReport() {
     if (newVendorPayment > 0) {
       try {
         const q = query(
-          collection(db, "pickup"),
+          collection(db, DB.db_collection),
           where("awbNumber", "==", awbNumber)
         );
         const querySnapshot = await getDocs(q);
@@ -55,7 +56,7 @@ function SalesReport() {
 
         querySnapshot.forEach((docSnap) => {
           const data = docSnap.data();
-          const docRef = doc(db, "pickup", docSnap.id);
+          const docRef = doc(db, DB.db_collection, docSnap.id);
 
           if (data.vendorpayment !== newVendorPayment) {
             const logisticCost = parseFloat(data.logisticCost) || 0;
@@ -112,7 +113,7 @@ function SalesReport() {
     try {
       const collectionNames =
         location === "ALL"
-          ? ["pickup", "franchise_pondy", "franchise_coimbatore"]
+          ? [DB.db_collection, "franchise_pondy", "franchise_coimbatore"]
           : [
               collectionName_BaseAwb.getCollection(
                 location === "HQ CHENNAI" ? "CHENNAI" : location

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import Nav from "./Nav";
-import "./Myshipments.css";
+// import "./Myshipments.css";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "./firebase";
 import axios from "axios";
 import Lottie from "lottie-react";
 import loadingAnimation from "../public/loading_sharebtn.json"; // adjust the path as needed
+import DB from "./DB/DB";
 
 export default function Myshipments() {
   const [selectedRecipient, setSelectedRecipient] = useState({});
@@ -90,11 +91,11 @@ export default function Myshipments() {
 
     if (role === "Manager" || role === "sales admin") {
       // Get all data from "pickup"
-      q = query(collection(db, "pickup"));
+      q = query(collection(db, DB.db_collection));
     } else {
       // Get only data where pickupBookedBy == "mouli"
       q = query(
-        collection(db, "pickup"),
+        collection(db, DB.db_collection),
         where("pickupBookedBy", "==", username)
       );
     }
