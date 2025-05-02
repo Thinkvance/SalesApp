@@ -19,6 +19,7 @@ import utilityFunctions from "./Utility/utilityFunctions";
 import Lottie from "lottie-react";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
+import DB from "./DB/DB";
 
 function PaymentConfirmationForm() {
   const [costKg, setcostKg] = useState(0);
@@ -359,13 +360,14 @@ function PaymentConfirmationForm() {
       // Extract message status
       const messageStatus = response?.data?.messages?.[0]?.status === "SENT";
       // Update Firestore document
-      const pickupRef = doc(db, "pickup", docId);
+      const pickupRef = doc(db, DB.db_collection, docId);
       await updateDoc(pickupRef, { makePaymentNotified: messageStatus });
       // Success message
       utilityFunctions.SuccessNotify(
         "Make Payment notification sent successfully."
       );
     } catch (error) {
+      console.log("error", error);
       utilityFunctions.ErrorNotify(error.message);
     } finally {
     }
@@ -776,7 +778,7 @@ function PaymentConfirmationForm() {
             <>
               <div className="mb-4">
                 <label className="block text-gray-700 font-semibold mb-2">
-                  Consignee Phone Number:
+                  Consignee Phone Number
                 </label>
                 <Controller
                   name="consigneenumber1"
