@@ -8,9 +8,10 @@ import { addDoc, collection, getDocs, query, where } from "firebase/firestore";
 import axios from "axios";
 import collectionName_baseAwb from "./functions/collectionName";
 import utility from "./Utility/utilityFunctions";
+import DB from "./DB/DB";
+import "react-phone-number-input/style.css";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
-import DB from "./DB/DB";
 function PickupBooking() {
   const [loading, setLoading] = useState(false);
   const [countries, setCountries] = useState([]);
@@ -540,81 +541,85 @@ function PickupBooking() {
             </div>
             {/* Consignee */}
             <div>
-              <div className="mb-4">
-                <label className="block text-gray-700 font-semibold mb-2">
-                  Consignee Name:
-                </label>
-                <input
-                  type="text"
-                  placeholder="E.g. Ramesh Kumar (Letters Only)"
-                  {...register("consigneename", {
-                    // required: "Consignee name is required",
-                  })}
-                  className={`w-full px-3 py-2 border ${
-                    errors.consigneename ? "border-red-500" : "border-gray-300"
-                  } rounded-md focus:outline-none focus:border-[#8847D9]`}
-                />
-                {errors.consigneename && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.consigneename.message}
-                  </p>
-                )}
-              </div>
-              <div className="mb-4">
-                <label className="block text-gray-700 font-semibold mb-2">
-                  Consignee Phone Number:
-                </label>
-                <Controller
-                  name="consigneenumber"
-                  control={control}
-                  rules={{
-                    validate: (value) => {
-                      // 1) empty → OK
-                      if (!value || value.trim() === "") return true;
-
-                      // strip non‑digits
-                      const digitsOnly = value.replace(/\D/g, "");
-                      // remove up to 4‑digit code prefix
-                      const phoneWithoutCode = digitsOnly.replace(
-                        /^(\d{1,4})/,
-                        ""
-                      );
-                      const len = phoneWithoutCode.length;
-
-                      // 2) code only (no subscriber digits)
-                      if (len === 0) return "Please enter a phone number";
-                      // 3) too short/long
-                      if (len < 4) return "Phone number is too short";
-                      if (len > 15) return "Phone number is too long";
-
-                      return true;
-                    },
-                  }}
-                  render={({ field }) => (
-                    <PhoneInput
-                      enableSearch
-                      value={field.value}
-                      onChange={(value) => field.onChange(value)}
-                      placeholder="Enter phone number"
-                      inputStyle={{
-                        width: "100%",
-                        padding: "12px 48px",
-                        borderColor: errors.consigneenumber
-                          ? "#f87171"
-                          : "#d1d5db",
-                        borderRadius: "0.375rem",
-                        fontSize: "1rem",
-                      }}
-                      containerStyle={{ width: "100%" }}
-                      specialLabel=""
-                    />
+              <div>
+                <div className="mb-4">
+                  <label className="block text-gray-700 font-semibold mb-2">
+                    Consignee Name:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="E.g. Ramesh Kumar (Letters Only)"
+                    {...register("consigneename", {
+                      // required: "Consignee name is required",
+                    })}
+                    className={`w-full px-3 py-2 border ${
+                      errors.consigneename
+                        ? "border-red-500"
+                        : "border-gray-300"
+                    } rounded-md focus:outline-none focus:border-[#8847D9]`}
+                  />
+                  {errors.consigneename && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.consigneename.message}
+                    </p>
                   )}
-                />
-                {errors.consigneenumber && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.consigneenumber.message}
-                  </p>
-                )}
+                </div>
+                <div className="mb-4">
+                  <label className="block text-gray-700 font-semibold mb-2">
+                    Consignee Phone Number:
+                  </label>
+                  <Controller
+                    name="consigneenumber"
+                    control={control}
+                    rules={{
+                      validate: (value) => {
+                        // 1) empty → OK
+                        if (!value || value.trim() === "") return true;
+
+                        // strip non‑digits
+                        const digitsOnly = value.replace(/\D/g, "");
+                        // remove up to 4‑digit code prefix
+                        const phoneWithoutCode = digitsOnly.replace(
+                          /^(\d{1,4})/,
+                          ""
+                        );
+                        const len = phoneWithoutCode.length;
+
+                        // 2) code only (no subscriber digits)
+                        if (len === 0) return "Please enter a phone number";
+                        // 3) too short/long
+                        if (len < 4) return "Phone number is too short";
+                        if (len > 15) return "Phone number is too long";
+
+                        return true;
+                      },
+                    }}
+                    render={({ field }) => (
+                      <PhoneInput
+                        enableSearch
+                        value={field.value}
+                        onChange={(value) => field.onChange(value)}
+                        placeholder="Enter phone number"
+                        inputStyle={{
+                          width: "100%",
+                          padding: "12px 48px",
+                          borderColor: errors.consigneenumber
+                            ? "#f87171"
+                            : "#d1d5db",
+                          borderRadius: "0.375rem",
+                          fontSize: "1rem",
+                        }}
+                        containerStyle={{ width: "100%" }}
+                        specialLabel=""
+                      />
+                    )}
+                  />
+                  {errors.consigneenumber && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.consigneenumber.message}
+                    </p>
+                  )}
+                </div>{" "}
               </div>
               <div className="mb-4">
                 <label className="block text-gray-700 font-semibold mb-2">

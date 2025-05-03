@@ -193,6 +193,9 @@ function Pickups() {
   if (error) {
     return <div className="text-center text-red-600">{error}</div>;
   }
+
+  console.log("pickups", pickups);
+
   return (
     <>
       <Nav />
@@ -630,53 +633,48 @@ function Pickups() {
                   </div>
                 )}
               </div>
-              {typeof selectedPickup.finalWeightImage === "string" ? (
-                <div className="mt-6  pb-3 border-b-2 border-purple-700">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3">
-                    Final Weight Image{" "}
-                  </h3>
-                  <div className="grid grid-cols-1 gap-4">
-                    <a
-                      href={selectedPickup.finalWeightImage}
-                      target="_blank"
-                      className="w-fit"
-                    >
-                      <img
-                        src={selectedPickup.finalWeightImage}
-                        alt="Final Weight Image"
-                        className="w-48 rounded-2xl object-scale-down h-48"
-                      />
-                    </a>
+              <div className="mt-6 pb-3">
+                {selectedPickup?.volumaticActualImages?.length > 0 ? (
+                  selectedPickup.volumaticActualImages.map((item, index) => (
+                    <>
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                        Final Weight Images
+                      </h3>
+                      <div key={index} className="mb-6">
+                        <h4 className="text-md font-semibold capitalize text-purple-700 mb-3">
+                          {item.type} Images
+                        </h4>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                          {item.image?.map((imgUrl, imgIndex) => (
+                            <a
+                              href={imgUrl}
+                              key={imgIndex}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="w-fit"
+                            >
+                              <div className="bg-white border rounded-lg shadow-md overflow-hidden">
+                                <img
+                                  src={imgUrl}
+                                  alt={`${item.type}-${imgIndex}`}
+                                  className="w-full h-40 object-cover"
+                                />
+                              </div>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  ))
+                ) : (
+                  <div className="grid grid-cols-1 gap-4 pb-3 border-b-2 border-purple-700">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                      Final Weight Images
+                    </h3>
+                    <p>No Image</p>
                   </div>
-                </div>
-              ) : Array.isArray(selectedPickup.finalWeightImage) &&
-                selectedPickup.finalWeightImage.length > 0 ? (
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3">
-                    Final Weight Image{" "}
-                  </h3>
-                  <div className="grid grid-cols-1 gap-4">
-                    {selectedPickup.finalWeightImage.map((d, index) => (
-                      <a href={d} key={index} target="_blank" className="w-fit">
-                        <img
-                          src={d}
-                          alt={`Form Image ${index + 1}`}
-                          className="w-48 rounded-2xl object-scale-down h-48"
-                        />
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-6 pb-3 border-b-2 border-purple-700">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3">
-                    Final Weight Image{" "}
-                  </h3>
-                  <div className="grid grid-cols-1 gap-4">
-                    <>No Images</>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
 
               <div className="mt-6">
                 {selectedPickup.paymentProof ? (
@@ -710,9 +708,8 @@ function Pickups() {
                   </div>
                 )}
               </div>
-
               <div className="mt-6">
-                {selectedPickup.AWbNumberImage ? (
+                {selectedPickup.finalWeightImage ? (
                   <div className="relative grid grid-cols-1 gap-4 pb-3 border-b-2 border-purple-700">
                     <h3 className="text-lg font-semibold text-gray-800 mb-3">
                       AWb Number Image
@@ -724,12 +721,12 @@ function Pickups() {
                       {selectedPickup.packageConnectedDataTime || "NA"}
                     </p>
                     <a
-                      href={selectedPickup.AWbNumberImage}
+                      href={selectedPickup.finalWeightImage}
                       target="_blank"
                       className="w-fit"
                     >
                       <img
-                        src={selectedPickup.AWbNumberImage}
+                        src={selectedPickup.finalWeightImage}
                         className="w-48 rounded-2xl object-scale-down h-48"
                       />
                     </a>
