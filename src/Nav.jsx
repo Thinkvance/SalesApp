@@ -112,7 +112,7 @@ function Nav() {
                 ))}
               </Menu>
             </li>
-            {user?.role == "Manager" ? (
+            {user?.role == "Manager" || user?.role == "sales admin" ? (
               <li>
                 <button
                   onClick={handleReportsMenuOpen}
@@ -232,6 +232,24 @@ function Nav() {
                 </Link>
               </li>
             ))}
+            {user?.role == "Manager" || user?.role == "sales admin"
+              ? RoleBasedScreens?.Reports?.map((d) => (
+                  <li>
+                    <Link
+                      to={`/${d}`}
+                      className={`py-2 px-4 text-gray-700 rounded-lg transition-colors duration-200 block ${
+                        location.pathname === `/${d}`
+                          ? "bg-purple-100 text-purple-800"
+                          : ""
+                      } hover:bg-purple-200`}
+                      onClick={() => setSidebarOpen(false)}
+                    >
+                      {utility.formatRouteName(d)}
+                    </Link>
+                  </li>
+                ))
+              : ""}
+
             <li className="flex items-center gap-2">
               <Link
                 to="/My-Shipments"

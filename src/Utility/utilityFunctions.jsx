@@ -459,6 +459,7 @@ function rolesPermissions() {
         "Payment-confirm",
       ],
       RateManagement: ["Sale-rates"],
+      Reports: ["Sales-Report", "Sales-Incentive", "Pickup-Incentive"],
     };
   }
 }
