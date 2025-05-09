@@ -64,6 +64,12 @@ function PaymentConfirmationForm() {
   }, [details?.discountCost, setValue]);
 
   useEffect(() => {
+    if (details?.additionalcharges != null) {
+      setValue("additionalcharges", details?.additionalcharges); // Set value in React Hook Form
+    }
+  }, [details?.additionalcharges, setValue]);
+
+  useEffect(() => {
     if (!awbnumber) return;
 
     setLoading(true); // Start loading state
@@ -143,10 +149,10 @@ function PaymentConfirmationForm() {
     return `${day}-${month}-${year} ${hours}:${minutes}:${seconds} ${period}`;
   };
 
-  async function generate_Invoice_PDF(costKg, discountCost) {
+  async function generate_Invoice_PDF(costKg, discountCost, additionalcharges) {
     const doc = new jsPDF("p", "pt");
     const subtotal = parseInt(costKg) * details.actualWeight;
-    const nettotal = subtotal - parseInt(discountCost);
+    const nettotal = subtotal - parseInt(discountCost) + additionalcharges;
     // Add business name and logo
     doc.setFontSize(20);
     doc.addImage("/shiphtlogo.png", "PNG", 40, 30, 180, 60); // Replace with your logo
@@ -265,9 +271,14 @@ function PaymentConfirmationForm() {
         doc.lastAutoTable.finalY + 120
       );
       doc.text(
-        `Net Total: ${nettotal}.00 Rs`,
+        `Additional Charges: ${additionalcharges}.00 Rs`,
         400,
         doc.lastAutoTable.finalY + 139
+      );
+      doc.text(
+        `Net Total: ${nettotal}.00 Rs`,
+        400,
+        doc.lastAutoTable.finalY + 159
       );
     }
 
@@ -317,7 +328,8 @@ function PaymentConfirmationForm() {
     discount,
     consignorphonenumber,
     consignorname,
-    logisticCost
+    logisticCost,
+    additionalcharges
   ) {
     try {
       const apiUrl = "https://public.doubletick.io/whatsapp/message/template";
@@ -335,7 +347,9 @@ function PaymentConfirmationForm() {
                 body: {
                   placeholders: [
                     String(consignorname),
-                    String(logisticCost - discount),
+                    String(
+                      logisticCost + parseInt(additionalcharges) - discount
+                    ),
                   ],
                 },
                 buttons: [
@@ -389,7 +403,8 @@ function PaymentConfirmationForm() {
       }
       const Payment_URL = await generate_Invoice_PDF(
         data.costKg,
-        data.discountCost
+        data.discountCost,
+        data.additionalcharges
       );
       const q = query(
         collection(
@@ -416,7 +431,9 @@ function PaymentConfirmationForm() {
 
       const updatedFields = {
         status: "PAYMENT REQUESTED",
-        logisticCost: parseInt(logisticCost) - parseInt(data.discountCost),
+        logisticCost:
+          parseInt(logisticCost + data.additionalcharges) -
+          parseInt(data.discountCost),
         discountCost: data.discountCost,
         // paymentProof: await uploadFileToFirebase(paymentProof, "PAYMENT PROOF"),
         // KycImage: await uploadFileToFirebase(KycImage, "KYC"),
@@ -432,6 +449,7 @@ function PaymentConfirmationForm() {
           : data.consigneelocation1,
         costKg: costKg,
         payment_Receipt_URL: Payment_URL,
+        additionalcharges: data.additionalcharges,
       };
       updateDoc(docRef, updatedFields);
       await makePaymentNotify(
@@ -440,7 +458,8 @@ function PaymentConfirmationForm() {
         data.discountCost,
         details.consignorphonenumber,
         details.consignorname,
-        logisticCost
+        logisticCost,
+        data.additionalcharges
       );
       setShowPopup(true);
     } catch (error) {
@@ -928,6 +947,8 @@ function PaymentConfirmationForm() {
             <p className="text-red-500 text-sm mb-4">{errors.costKg.message}</p>
           )}
           <div className="flex flex-col mb-1">
+            {console.log(details.discountCost ? true : false)}
+            {console.log(details.discountCost)}
             <label className="text-gray-700 font-medium mb-1">
               Enter Discount Amount
             </label>
@@ -935,7 +956,7 @@ function PaymentConfirmationForm() {
               type="text"
               className="p-2 border rounded bg-gray-100"
               placeholder="Enter Discount Amount"
-              readOnly={!!details.discountCost} // Readonly if discountCost exists
+              readOnly={details.discountCost == undefined ? false : true}
               {...register("discountCost", {
                 required: "Please enter the discount amount.",
                 pattern: {
@@ -953,6 +974,35 @@ function PaymentConfirmationForm() {
           {errors.discountCost && (
             <p className="text-red-500 text-sm mb-4">
               {errors.discountCost.message}
+            </p>
+          )}
+          <div className="flex flex-col mb-1">
+            <label className="text-gray-700 font-medium mb-1">
+              Enter Additional Charges If Any
+            </label>
+            <input
+              type="text"
+              className="p-2 border rounded bg-gray-100"
+              placeholder="Enter 0  or Ex: 100"
+              readOnly={!!details.additionalcharges} // Readonly if discountCost exists
+              {...register("additionalcharges", {
+                required:
+                  "Please enter any additional charges, or enter 0 if none.",
+                pattern: {
+                  value: /^[0-9]+$/,
+                  message:
+                    "Please enter a valid additional charges number consisting of digits only.",
+                },
+                valueAsNumber: true, // Converts input value to an integer
+                validate: (value) =>
+                  Number.isInteger(value) ||
+                  "Please enter a valid integer number",
+              })}
+            />
+          </div>
+          {errors.additionalcharges && (
+            <p className="text-red-500 text-sm mb-4">
+              {errors.additionalcharges.message}
             </p>
           )}
           {details.makePaymentNotified ? (
@@ -1055,7 +1105,6 @@ function PaymentConfirmationForm() {
           </div>
         </div>
       )}
-
       {showPopupForPayConfirm && (
         <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-70">
           <div className="bg-white p-8 rounded-lg shadow-lg transition-transform transform scale-95 hover:scale-100 duration-300">
@@ -1077,7 +1126,6 @@ function PaymentConfirmationForm() {
           </div>
         </div>
       )}
-
       {/* Hidden canvas for generating barcode */}
       <canvas ref={barcodeRef} style={{ display: "none" }} />
     </div>
