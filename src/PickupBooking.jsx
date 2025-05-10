@@ -56,7 +56,11 @@ function PickupBooking() {
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm();
+  } = useForm({
+    defaultValues: {
+      consigneenumber: "",
+    },
+  });
   const barcodeRef = useRef(null);
   console.log(errors);
   const formatDate = (dateString) => {
