@@ -30,6 +30,32 @@ import Myshipments from "./Myshipments";
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [newVersion, setNewVersion] = useState(false);
+
+  useEffect(() => {
+    const onSwUpdated = () => setNewVersion(true);
+
+    // Listen for our custom event
+    window.addEventListener("swUpdated", onSwUpdated);
+
+    // Or, listen for direct SW postMessage if needed
+    navigator.serviceWorker?.addEventListener("message", (event) => {
+      if (event.data?.type === "SW_UPDATED") {
+        setNewVersion(true);
+      }
+    });
+
+    return () => {
+      window.removeEventListener("swUpdated", onSwUpdated);
+    };
+  }, []);
+
+  const refreshPage = () => {
+    // Tell SW to skip waiting and become active
+    navigator.serviceWorker.controller?.postMessage({ type: "SKIP_WAITING" });
+    setNewVersion(false);
+    window.location.reload();
+  };
 
   useEffect(async () => {
     const getPermission = async () => {
@@ -90,6 +116,19 @@ function App() {
   return (
     <Router>
       <div>
+        {newVersion && (
+          <div className="fixed bottom-5 left-5 bg-white text-purple-700 p-5 rounded-xl shadow-xl flex items-center gap-6 z-50 border border-purple-100">
+            <p className="text-sm font-medium flex items-center gap-2">
+              🚀 <span>New version available</span>
+            </p>
+            <button
+              onClick={refreshPage}
+              className="bg-purple-600 text-white px-5 py-2 rounded-md hover:bg-purple-700 transition duration-300 text-sm font-semibold shadow-md"
+            >
+              Refresh
+            </button>
+          </div>
+        )}
         <Toaster />
         <Routes>
           {/* If user is not present, redirect to SignIn */}

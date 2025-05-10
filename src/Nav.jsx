@@ -158,7 +158,7 @@ function Nav() {
         {/* Right Section */}
         <div className="flex items-center gap-6 bg-purple-400  rounded-lg">
           <Avatar className="bg-purple-600 text-white p-3 text-lg font-semibold">
-            {user?.name?.[0] || "?"}
+            {user?.name?.[0]?.toUpperCase() || "?"}
           </Avatar>
           <div className="text-gray-900 hidden sm:block">
             {user ? (
