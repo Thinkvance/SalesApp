@@ -7,6 +7,7 @@ import axios from "axios";
 import Lottie from "lottie-react";
 import loadingAnimation from "../public/loading_sharebtn.json"; // adjust the path as needed
 import DB from "./DB/DB";
+import ShipmentDetails from "./ShipmentDetails";
 
 export default function Myshipments() {
   const [selectedRecipient, setSelectedRecipient] = useState({});
@@ -16,6 +17,9 @@ export default function Myshipments() {
   const [loading, setLoading] = useState(false);
   const [awbSearchTerm, setAwbSearchTerm] = useState("");
   const [consignorPhoneSearchTerm, setConsignorPhoneSearchTerm] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false); // State to control modal visibility
+  const [selectedPickup, setSelectedPickup] = useState(null); // State to hold the selected pickup for modal
+
   async function Sharetrackinglink({ name, awb, mode, destination, phone }) {
     setLoading(true);
 
@@ -137,6 +141,15 @@ export default function Myshipments() {
     return awbMatch && consignorPhoneMatch; // Use AND logic to filter
   });
 
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedPickup(null); // Reset selected pickup when modal is closed
+  };
+  const handleMoreIconClick = (pickup) => {
+    setSelectedPickup(pickup);
+    setIsModalOpen(true); // Open the modal
+  };
+
   return (
     <>
       <Nav />
@@ -167,14 +180,14 @@ export default function Myshipments() {
                 {[
                   "AWB",
                   "Consignor Name",
-                  "Consignor Number",
-                  "Consignee Number",
+                  "Consignor No.",
+                  "Consignee No.",
                   "Vendor",
                   "Status",
-                  "Pickup Date & Time",
                   "Send To",
                   "Share",
                   "Track",
+                  "Details",
                 ].map((header) => (
                   <th
                     key={header}
@@ -204,9 +217,7 @@ export default function Myshipments() {
                   <td className="px-4 border py-2 whitespace-nowrap">
                     {item.status}
                   </td>
-                  <td className="px-4 border py-2 whitespace-nowrap">
-                    {item.pickupDatetime}
-                  </td>
+
                   <td className="px-4 border  py-2">
                     <div className="flex gap-2">
                       {["consignor", "consignee"].map((type) => {
@@ -287,7 +298,7 @@ export default function Myshipments() {
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-2 text-center">
+                  <td className="px-4 py-2  border text-center">
                     <a
                       href={`https://shiphittracking.web.app/TrackingDetails/${item.awbNumber}`}
                       target="_blank"
@@ -297,11 +308,24 @@ export default function Myshipments() {
                       Track
                     </a>
                   </td>
+                  <td className="px-4 py-2 text-center">
+                    <img
+                      className="w-8 cursor-pointer mt-3"
+                      src="more-icon.svg"
+                      onClick={() => handleMoreIconClick(item)} // On click, show details in modal
+                    />
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        {isModalOpen && selectedPickup && (
+          <ShipmentDetails
+            selectedPickup={selectedPickup}
+            closeModal={closeModal}
+          />
+        )}
       </div>
     </>
   );
