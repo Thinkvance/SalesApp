@@ -17,6 +17,7 @@ import isBetween from "dayjs/plugin/isBetween";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import BarChartCom from "./salesReportCharts/BarChartCom";
 import DB from "./DB/DB";
+import ShipmentDetails from "./ShipmentDetails";
 
 dayjs.extend(customParseFormat);
 dayjs.extend(isBetween);
@@ -37,6 +38,19 @@ function SalesReport() {
   const [customRange, setCustomRange] = useState({ from: "", to: "" });
 
   const [selectedBookedBy, setSelectedBookedBy] = useState("All");
+
+  const [isModalOpen, setIsModalOpen] = useState(false); // State to control modal visibility
+  const [selectedPickup, setSelectedPickup] = useState(null); // State to hold the selected pickup for modal
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedPickup(null); // Reset selected pickup when modal is closed
+  };
+
+  const handleMoreIconClick = (pickup) => {
+    setSelectedPickup(pickup);
+    setIsModalOpen(true); // Open the modal
+  };
 
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("LoginCredentials"));
@@ -394,6 +408,7 @@ function SalesReport() {
                   "Vendor Payment",
                   "Margin",
                   "Payment Proof",
+                  "Details",
                 ].map((head, i) => (
                   <th key={i} className="py-3 px-4 border">
                     {head}
@@ -489,6 +504,13 @@ function SalesReport() {
                           <p className="w-5 ml-auto mr-auto">--</p>
                         )}
                       </td>
+                      <td className="px-4 py-2 text-center">
+                        <img
+                          className="w-8 cursor-pointer mt-3"
+                          src="more-icon.svg"
+                          onClick={() => handleMoreIconClick(pickup)} // On click, show details in modal
+                        />
+                      </td>
                     </tr>
                   ))
               ) : (
@@ -502,6 +524,12 @@ function SalesReport() {
           </table>
         </div>
       </div>
+      {isModalOpen && selectedPickup && (
+        <ShipmentDetails
+          selectedPickup={selectedPickup}
+          closeModal={closeModal}
+        />
+      )}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 transition-opacity duration-300">
           <div className="relative bg-white rounded-2xl shadow-2xl p-6 max-w-lg w-full animate-fade-in">
