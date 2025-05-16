@@ -38,6 +38,8 @@ function SalesReport() {
   const [customRange, setCustomRange] = useState({ from: "", to: "" });
 
   const [selectedBookedBy, setSelectedBookedBy] = useState("All");
+  const [SelectedCity, setSelectedCity] = useState("All");
+  const [selectedSource, setselectedSource] = useState("All");
 
   const [isModalOpen, setIsModalOpen] = useState(false); // State to control modal visibility
   const [selectedPickup, setSelectedPickup] = useState(null); // State to hold the selected pickup for modal
@@ -231,13 +233,21 @@ function SalesReport() {
     const matchesBookedBy =
       selectedBookedBy === "All" ||
       pickup.pickupBookedBy?.toLowerCase() === selectedBookedBy.toLowerCase();
+    const matchedCity =
+      SelectedCity === "All" ||
+      pickup.City?.toLowerCase() === SelectedCity.toLowerCase();
+    const matchedsource =
+      selectedSource === "All" ||
+      pickup.Source?.toLowerCase() === selectedSource.toLowerCase();
 
     return (
       withinDateRange &&
       matchesAwb &&
       matchesPhone &&
       matchesPickupPerson &&
-      matchesBookedBy
+      matchesBookedBy &&
+      matchedCity &&
+      matchedsource
     );
   });
 
@@ -274,8 +284,8 @@ function SalesReport() {
         <h1 className="text-3xl font-bold mb-6 text-purple-700">
           Sales Report
         </h1>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 items-end">
-          <div className="col-span-1 md:col-span-2">
+        <div className="flex flex-row  flex-wrap gap-6 mb-6 items-end">
+          <div className="w-fit col-span-1 md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Filter By
             </label>
@@ -291,7 +301,7 @@ function SalesReport() {
               <option value="select_range">Select Range</option>
             </select>
           </div>
-          <div className="col-span-1 md:col-span-2">
+          <div className=" w-fit col-span-1 md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Sales Representative
             </label>
@@ -306,6 +316,43 @@ function SalesReport() {
               <option value="sana">sana</option>
               <option value="Tamil Selvi">Tamil Selvi</option>
               <option value="jaga">jaga</option>
+            </select>
+          </div>
+          <div className="w-fit col-span-1 md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Area
+            </label>
+            <select
+              value={SelectedCity}
+              onChange={(e) => setSelectedCity(e.target.value)}
+              className="border rounded  input-style w-full"
+            >
+              <option value="All">All</option>
+              <option value="CHENNAI">Chennai</option>
+              <option value="PONDY">Pondy</option>
+              <option value="COIMBATORE">Coimbatore</option>
+            </select>
+          </div>
+          <div className="w-fit col-span-1 md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Source
+            </label>
+            <select
+              value={selectedSource}
+              onChange={(e) => setselectedSource(e.target.value)}
+              className="border rounded  input-style w-full"
+            >
+              <option value="All">All</option>
+              <option value="FB Ad">FB Ad</option>
+              <option value="Google Ad">Google Ad</option>
+              <option value="Website Ad">Website Ad</option>
+              <option value="Direct Ad">Direct Ad</option>
+              <option value="Whatsapp Campaign">Whatsapp Campaign</option>
+              <option value="Repeated Customer">Repeated Customer</option>
+              <option value="Customer Refer">Customer Refer</option>
+              <option value="Employee Refer">Employee Refer</option>
+              <option value="Offline Ad">Offline Ad</option>
+              <option value="GMB">GMB</option>
             </select>
           </div>
           {filterOption === "select_range" && (
@@ -370,7 +417,6 @@ function SalesReport() {
               ₹ {totalMargin}
             </p>
           </div>
-
           {/* Bar Chart Section (Visually wider) */}
           <div className="flex-[2] min-w-full sm:min-w-[500px] bg-white border border-gray-200 rounded-xl p-4 shadow-md">
             <div className="mb-3">
@@ -386,7 +432,6 @@ function SalesReport() {
             </div>
           </div>
         </div>
-
         <div className="overflow-auto border scrollbar-hide">
           <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow overflow-hidden">
             <thead className="bg-purple-600 text-white sticky top-0">
@@ -398,6 +443,7 @@ function SalesReport() {
                   "Destination",
                   "Weight",
                   "Vendor",
+                  "Source",
                   "Pickup Area",
                   "Pickup Status",
                   "Payment Confirmed At",
@@ -439,6 +485,7 @@ function SalesReport() {
                       <td className="py-3 px-4 border">{pickup.destination}</td>
                       <td className="py-3 px-4 border">{pickup.weightapx}</td>
                       <td className="py-3 px-4 border">{pickup.vendorName}</td>
+                      <td className="py-3 px-4 border">{pickup.Source}</td>
                       <td className="py-3 px-4 border">{pickup.pickuparea}</td>
                       <td className="py-3 px-4 border">
                         {pickup.pickUpPersonNameStatus || "NOT COMPLETED"}

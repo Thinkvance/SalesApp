@@ -12,6 +12,8 @@ import DB from "./DB/DB";
 import "react-phone-number-input/style.css";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
+import sha256 from "crypto-js/sha256";
+
 function PickupBooking() {
   const [loading, setLoading] = useState(false);
   const [countries, setCountries] = useState([]);
@@ -271,6 +273,7 @@ function PickupBooking() {
         longitude: result.longitude,
         latitude: result.latitude,
         pincode: data.pincode,
+        awbHashedValue: sha256(newAwbNumber).toString(),
         destination: destinationCountryName, // Use full country name here
         pickupInstructions: data.instructions,
         weightapx: data.weight + " KG",
