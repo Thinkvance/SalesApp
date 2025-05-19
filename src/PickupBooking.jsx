@@ -294,6 +294,7 @@ function PickupBooking() {
         postNumberOfPackages: null,
         postPickupWeight: null,
         actualNoOfPackages: null,
+        reviewNotificationSent: false,
         actualWeight: null,
         PaymentComfirmedDate: "",
         status: "RUN SHEET",
