@@ -44,6 +44,32 @@ function SalesReport() {
   const [isModalOpen, setIsModalOpen] = useState(false); // State to control modal visibility
   const [selectedPickup, setSelectedPickup] = useState(null); // State to hold the selected pickup for modal
 
+  const [pickupPersons, setPickupPersons] = useState([""]);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      collection(db, "LoginCredentials"),
+      (querySnapshot) => {
+        const names = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          Object.values(data).forEach((arr) => {
+            if (["sales admin", "sales associate"].includes(arr[2]))
+              names.push(arr[0]); // Push only the name (index 0)
+          });
+        });
+        setPickupPersons(names);
+      },
+      (error) => {
+        console.error("Error fetching pickup persons: ", error);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  console.log("pickupPersons", pickupPersons);
+
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedPickup(null); // Reset selected pickup when modal is closed
@@ -305,17 +331,15 @@ function SalesReport() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Sales Representative
             </label>
-            {/* Booked By Dropdown */}
             <select
               value={selectedBookedBy}
               onChange={(e) => setSelectedBookedBy(e.target.value)}
               className="border rounded  input-style w-full"
             >
               <option value="All"> Select Sales Representative</option>
-              <option value="mouli">mouli</option>
-              <option value="sana">sana</option>
-              <option value="Tamil Selvi">Tamil Selvi</option>
-              <option value="jaga">jaga</option>
+              {pickupPersons.map((d) => (
+                <option value={d}>{d}</option>
+              ))}
             </select>
           </div>
           <div className="w-fit col-span-1 md:col-span-2">
