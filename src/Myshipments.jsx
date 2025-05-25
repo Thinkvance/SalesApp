@@ -8,6 +8,7 @@ import Lottie from "lottie-react";
 import loadingAnimation from "../public/loading_sharebtn.json"; // adjust the path as needed
 import DB from "./DB/DB";
 import ShipmentDetails from "./ShipmentDetails";
+import utilityFunctions from "./Utility/utilityFunctions";
 
 export default function Myshipments() {
   const [selectedRecipient, setSelectedRecipient] = useState({});
@@ -20,67 +21,75 @@ export default function Myshipments() {
   const [isModalOpen, setIsModalOpen] = useState(false); // State to control modal visibility
   const [selectedPickup, setSelectedPickup] = useState(null); // State to hold the selected pickup for modal
 
-  async function Sharetrackinglink({ name, awb, mode, destination, phone }) {
+  async function Sharetrackinglink({
+    name,
+    awb,
+    mode,
+    destination,
+    phone,
+    currentStatus,
+    packageConnectedDataTime,
+  }) {
     setLoading(true);
+    try {
+      if (selectedRecipient[awb] == "consignee") {
+        return;
+      }
 
-    if (selectedRecipient[awb] == "consignee") {
-      return;
-    }
-    const estimatedDelivery =
-      mode === "Express"
-        ? "3 - 4 Working Days"
-        : mode === "Economy"
-        ? "5 - 7 Working Days"
-        : mode === "Duty Free"
-        ? "10 - 14 Working Days"
-        : "Unknown";
-    const data = {
-      messages: [
-        {
-          content: {
-            language: "es",
-            templateData: {
-              body: {
-                placeholders: [
-                  name, // {{1}} - Name
-                  String(awb), // {{2}} - AWB Number
-                  String(mode), // {{3}} - Mode
-                  destination, // {{4}} - Destination
-                  estimatedDelivery, // {{5}} - Estimated Delivery
+      const estimatedDelivery = utilityFunctions.getEstimatedDate(
+        packageConnectedDataTime,
+        mode
+      );
+
+      const data = {
+        messages: [
+          {
+            content: {
+              language: "en",
+              templateData: {
+                body: {
+                  placeholders: [
+                    name, // {{1}} - Name
+                    currentStatus,
+                    destination, // {{4}} - Destination
+                    estimatedDelivery, // {{5}} - Estimated Delivery
+                  ],
+                },
+                buttons: [
+                  {
+                    type: "URL",
+                    parameter: String(awb), // Will be appended to URL in template
+                  },
                 ],
               },
-              buttons: [
-                {
-                  type: "URL",
-                  parameter: String(awb), // Will be appended to URL in template
-                },
-              ],
+              templateName: "shareshipmentstatus",
             },
-            templateName: "sharetrackingdetails",
+            from: "+919600690881",
+            to: `+91${phone}`,
           },
-          from: "+919600690881",
-          to: `+91${phone}`,
-        },
-      ],
-    };
+        ],
+      };
 
-    await axios
-      .post("https://public.doubletick.io/whatsapp/message/template", data, {
-        headers: {
-          Authorization: "key_z6hIuLo8GC",
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-      })
-      .then((response) => {
-        // console.log("Message sent:", response.data);
-      })
-      .catch((error) => {
-        console.error(
-          "Error sending message:",
-          error.response?.data || error.message
-        );
-      });
+      await axios
+        .post("https://public.doubletick.io/whatsapp/message/template", data, {
+          headers: {
+            Authorization: "key_z6hIuLo8GC",
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+        })
+        .then((response) => {
+          console.log("Message sent:", response.data);
+        })
+        .catch((error) => {
+          console.error(
+            "Error sending message:",
+            error.response?.data || error.message
+          );
+        });
+    } catch (error) {
+      console.log(error);
+    }
     setLoading(false);
   }
 
@@ -92,15 +101,17 @@ export default function Myshipments() {
 
   useEffect(() => {
     let q;
-
     if (role === "Manager" || role === "sales admin") {
       // Get all data from "pickup"
-      q = query(collection(db, DB.db_collection));
-    } else {
-      // Get only data where pickupBookedBy == "mouli"
       q = query(
         collection(db, DB.db_collection),
-        where("pickupBookedBy", "==", username)
+        where("currentStatus", "!=", "DELIVERED")
+      );
+    } else {
+      q = query(
+        collection(db, DB.db_collection),
+        where("pickupBookedBy", "==", username),
+        where("currentStatus", "!=", "DELIVERED")
       );
     }
 
@@ -186,6 +197,7 @@ export default function Myshipments() {
                   "Status",
                   "Send To",
                   "Share",
+                  "Current Status",
                   "Track",
                   "Details",
                 ].map((header) => (
@@ -272,6 +284,9 @@ export default function Myshipments() {
                               mode: item.service,
                               destination: item.destination,
                               phone: recipientPhone,
+                              currentStatus: item.currentStatus.toLowerCase(),
+                              packageConnectedDataTime:
+                                item.packageConnectedDataTime,
                             });
                           } catch (err) {
                             console.error("Error sharing tracking link:", err);
@@ -298,6 +313,10 @@ export default function Myshipments() {
                       </span>
                     )}
                   </td>
+                  <td className="text-[12px] px-4 py-2 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
+                    {item.currentStatus}
+                  </td>
+
                   <td className="px-4 py-2  border text-center">
                     <a
                       href={`https://shiphittracking.web.app/TrackingDetails/${item.awbNumber}`}

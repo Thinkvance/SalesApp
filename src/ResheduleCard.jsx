@@ -215,7 +215,8 @@ function CancelCard({ item, index }) {
                   const date = new Date(e.target.value);
                   const day = date.getDate(); // Get day without leading zero
                   const month = date.getMonth() + 1; // Get month (0-indexed, so +1) without leading zero
-                  setSelectedDate(`${day}-${month}`);
+                  const year = date.getFullYear(); // Full year
+                  setSelectedDate(`${day}-${month}-${year}`);
                 }}
               />
             </div>

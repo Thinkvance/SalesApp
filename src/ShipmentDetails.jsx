@@ -1,4 +1,14 @@
+import { useState } from "react";
+import { FiClipboard, FiCheck } from "react-icons/fi";
+
 function ShipmentDetails({ selectedPickup, closeModal }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(selectedPickup.vendorAwbnumber);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500); // reset after 1.5s
+  };
   return (
     <div className="fixed inset-0 w-full bg-black bg-opacity-50 flex justify-center items-center z-50 overflow-auto">
       <div className="bg-white relative z-50 p-8 rounded-lg w-full max-w-lg shadow-lg max-h-screen overflow-y-auto">
@@ -394,16 +404,45 @@ function ShipmentDetails({ selectedPickup, closeModal }) {
                 </span>
                 {selectedPickup.packageConnectedDataTime || "NA"}
               </p>
-              <a
-                href={selectedPickup.AWbNumberImage}
-                target="_blank"
-                className="w-fit"
-              >
-                <img
-                  src={selectedPickup.AWbNumberImage}
-                  className="w-48 rounded-2xl object-scale-down h-48"
-                />
-              </a>
+              <div className="flex">
+                <a
+                  href={selectedPickup.AWbNumberImage}
+                  target="_blank"
+                  className="w-fit"
+                >
+                  <img
+                    src={selectedPickup.AWbNumberImage}
+                    className="w-48 rounded-2xl object-scale-down h-48"
+                  />
+                </a>
+                <div className="pl-3 mt-5">
+                  <span className="font-semibold text-purple-700">
+                    Vendor AWB:
+                  </span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p>{selectedPickup.vendorAwbnumber || "NA"}</p>
+                    {selectedPickup.vendorAwbnumber && (
+                      <button
+                        onClick={handleCopy}
+                        className="text-purple-600 hover:text-purple-800 transition-colors duration-200"
+                        title="Copy AWB"
+                      >
+                        {copied ? (
+                          <FiCheck
+                            size={20}
+                            className="text-green-600 animate-bounce"
+                          />
+                        ) : (
+                          <FiClipboard
+                            size={20}
+                            className="hover:scale-110 transition-transform"
+                          />
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 pb-3 border-b-2 border-purple-700">
@@ -414,7 +453,6 @@ function ShipmentDetails({ selectedPickup, closeModal }) {
             </div>
           )}
         </div>
-
         <button
           onClick={closeModal}
           className="mt-6 w-fit absolute top-0 right-0 px-4 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
