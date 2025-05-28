@@ -864,11 +864,14 @@ function PickupBooking() {
                   } rounded-md focus:outline-none focus:border-[#8847D9]`}
                 >
                   <option value="">Select Hour</option>
-                  {[...Array(12).keys()].map((hour) => (
-                    <option key={hour + 1} value={hour + 1}>
+                  {[...Array(12).keys()].flatMap((hour) => [
+                    <option key={`${hour + 1}:00`} value={`${hour + 1}:00`}>
                       {hour + 1}:00
-                    </option>
-                  ))}
+                    </option>,
+                    <option key={`${hour + 1}:30`} value={`${hour + 1}:30`}>
+                      {hour + 1}:30
+                    </option>,
+                  ])}
                 </select>
                 <select
                   {...register("pickupPeriod", {
@@ -968,17 +971,7 @@ function PickupBooking() {
             <Controller
               name="kycFile"
               control={control}
-              rules={{
-                required: "Upload KYC Image",
-                validate: (value) => {
-                  if (files.length === 0) return "File is required.";
-                  const file = files[0];
-                  if (file.type !== "application/pdf") {
-                    return "Only PDF files are allowed.";
-                  }
-                  return true;
-                },
-              }}
+              // Remove required here or any validation related to file presence
               render={({ field }) => (
                 <input
                   type="file"
@@ -1004,10 +997,11 @@ function PickupBooking() {
             )}
             {files.length > 0 && (
               <div className="mt-2">
-                <p className="text-gray-700">{files[0].name}</p>{" "}
+                <p className="text-gray-700">{files[0].name}</p>
               </div>
             )}
           </div>
+
           <div className="flex justify-center">
             <button
               type="submit"

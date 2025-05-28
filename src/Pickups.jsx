@@ -1,10 +1,20 @@
 import { useEffect, useState } from "react";
 import Nav from "./Nav";
-import { collection, query, onSnapshot, where } from "firebase/firestore";
+import {
+  collection,
+  query,
+  onSnapshot,
+  where,
+  getDocs,
+  updateDoc,
+} from "firebase/firestore";
 import { db } from "./firebase";
 import collectionName_BaseAwb from "./functions/collectionName";
 import utilityFunctions from "./Utility/utilityFunctions";
 import ShipmentDetails from "./ShipmentDetails";
+import EditShipmentModal from "./EditShipmentModal";
+import { FiEdit } from "react-icons/fi";
+
 function Pickups() {
   const [username, setUsername] = useState(null);
   const [role, setRole] = useState("");
@@ -17,7 +27,7 @@ function Pickups() {
   const [PickupPersonName, setPickUpPersonName] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false); // State to control modal visibility
   const [selectedPickup, setSelectedPickup] = useState(null); // State to hold the selected pickup for modal
-
+  const [loadingEdit, setLoadingEdit] = useState(false);
   // Fetch user info from localStorage
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("LoginCredentials"));
@@ -127,6 +137,44 @@ function Pickups() {
     return awbMatch && dateMatch && consignorPhoneMatch && PhonesearchItem; // Use AND logic to filter
   });
 
+  const [editPickup, setEditPickup] = useState(null);
+  const [isModalOpenEdit, setModalOpenEdit] = useState(false);
+  const [Editedvalue, setEditedvalue] = useState(null);
+
+  const handleEditClick = (pickup) => {
+    setEditPickup({ ...pickup });
+    setModalOpenEdit(true);
+  };
+
+  const handleSave = async (value) => {
+    setLoadingEdit(true);
+    try {
+      const q = query(
+        collection(db, "pickuptestdata"),
+        where("awbNumber", "==", value.awbNumber)
+      );
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        const docRef = querySnapshot.docs[0].ref;
+        await updateDoc(docRef, {
+          vendorName: value.vendorName,
+          consignorname: value.consignorname,
+          consignorphonenumber: value.consignorphonenumber,
+          consignorlocation: value.consignorlocation,
+          service: value.service,
+        });
+        console.log("Document successfully updated!");
+      } else {
+        console.error("No document found with the given AWB number.");
+      }
+    } catch (error) {
+      console.error("Error updating document:", error);
+    } finally {
+      setLoadingEdit(false);
+      setModalOpenEdit(false);
+    }
+  };
+
   if (loading) {
     return <div className="text-center">Loading...</div>;
   }
@@ -197,6 +245,7 @@ function Pickups() {
                 <th className="py-3 px-4  border">Pickup Date & Time</th>
                 <th className="py-3 px-4 border"> Pickup Booked by</th>
                 <th className="py-3 px-4 border">PickUp Person</th>
+                <th className="py-3 px-4 border">Edit Shipment</th>
               </tr>
             </thead>
             <tbody>
@@ -223,13 +272,31 @@ function Pickups() {
                     <td className="py-10 px-4 border">
                       {pickup.pickupBookedBy}
                     </td>
-                    <td className="py-10 px-4 border flex flex-col items-center">
-                      {pickup.pickUpPersonName}
-                      <img
-                        className="w-8 cursor-pointer mt-3"
-                        src="more-icon.svg"
-                        onClick={() => handleMoreIconClick(pickup)} // On click, show details in modal
-                      />
+                    <td className="py-6 px-4 border text-center align-middle">
+                      <div className="flex flex-col items-center gap-2">
+                        <span className="text-sm font-semibold text-gray-800">
+                          {pickup.pickUpPersonName || "—"}
+                        </span>
+                        <button
+                          onClick={() => handleMoreIconClick(pickup)}
+                          className="p-2 rounded-full hover:bg-purple-100 transition duration-150 ease-in-out group"
+                          title="More Actions"
+                        >
+                          <img
+                            src="more-icon.svg"
+                            alt="More"
+                            className="w-8 h-8 group-hover:scale-110 transition-transform"
+                          />
+                        </button>
+                      </div>
+                    </td>
+                    <td className="p-4 border text-center align-middle">
+                      <button
+                        onClick={() => handleEditClick(pickup)}
+                        className="text-purple-600 hover:underline text-[16px]  font-medium"
+                      >
+                        Edit
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -246,11 +313,19 @@ function Pickups() {
             </tbody>
           </table>
         </div>
-
         {isModalOpen && selectedPickup && (
           <ShipmentDetails
             selectedPickup={selectedPickup}
             closeModal={closeModal}
+          />
+        )}
+        {isModalOpenEdit && (
+          <EditShipmentModal
+            pickup={editPickup}
+            onChange={setEditedvalue}
+            onClose={() => setModalOpenEdit(false)}
+            onSave={handleSave}
+            loadingEdit={loadingEdit}
           />
         )}
       </div>
