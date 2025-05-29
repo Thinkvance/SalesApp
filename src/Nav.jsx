@@ -155,6 +155,11 @@ function Nav() {
             </li>
           </ul>
         </div>
+        <li className="flex items-center gap-2">
+          <Link to="/review-management" className="text-white">
+            review Management
+          </Link>
+        </li>
         {/* Right Section */}
         <div className="flex items-center gap-6 bg-purple-400  rounded-lg">
           <Avatar className="bg-purple-600 text-white p-3 text-lg font-semibold">
