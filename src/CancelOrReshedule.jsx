@@ -11,15 +11,19 @@ function CancelOrReschedule() {
   const [searchTerm, setSearchTerm] = useState("");
 
   const parseDate = (datetime) => {
-    const [datePart, timePart] = datetime.split(" &");
+    const [datePart, timePartRaw] = datetime.split(" &");
     const [day, month, year] = datePart.split("-").map(Number);
 
-    const [hour, period] = timePart.split(" ");
-    const hour24 =
-      period === "PM" && hour !== "12"
-        ? Number(hour) + 12
-        : Number(hour === "12" && period === "AM" ? 0 : hour);
-    return new Date(year, month - 1, day, hour24).getTime();
+    const [timePart, period] = timePartRaw.trim().split(" ");
+    let [hour, minute] = timePart.includes(":")
+      ? timePart.split(":").map(Number)
+      : [Number(timePart), 0]; // default to 0 minutes if missing
+
+    // Convert to 24-hour format
+    if (period === "PM" && hour !== 12) hour += 12;
+    if (period === "AM" && hour === 12) hour = 0;
+
+    return new Date(year, month - 1, day, hour, minute).getTime();
   };
 
   const handleSearchChange = (event) => {

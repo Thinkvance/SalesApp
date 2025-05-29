@@ -198,6 +198,7 @@ export default function Myshipments() {
                   "Send To",
                   "Share",
                   "Current Status",
+                  "Last Update",
                   "Track",
                   "Details",
                 ].map((header) => (
@@ -316,7 +317,11 @@ export default function Myshipments() {
                   <td className="text-[12px] px-4 py-2 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
                     {item.currentStatus}
                   </td>
-
+                  <td className="text-[12px] px-4 py-2 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
+                    {utilityFunctions.formateFirebaseTimestamp(
+                      item.lastStatusUpdated
+                    )}
+                  </td>
                   <td className="px-4 py-2  border text-center">
                     <a
                       href={`https://shiphittracking.web.app/TrackingDetails/${item.awbNumber}`}

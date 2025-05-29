@@ -16,6 +16,23 @@ import { getToken } from "firebase/messaging";
 import { revokeAccessToken } from "firebase/auth";
 import DB from "../DB/DB";
 
+function formateFirebaseTimestamp(isoString) {
+  const date = new Date(isoString);
+  // Options for formatting
+  const options = {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Kolkata", // Optional: Set your local timezone
+  };
+
+  const formattedDate = date.toLocaleString("en-US", options);
+  return formattedDate;
+}
+
 function extractDate(dateString) {
   // Split the string at the '&' character and return the first part (the date)
   const datePart = dateString.split(" &")[0];
@@ -765,4 +782,5 @@ export default {
   foregroundNotification: foregroundNotification,
   fetchAndStoreToken: fetchAndStoreToken,
   getEstimatedDate: getEstimatedDate,
+  formateFirebaseTimestamp: formateFirebaseTimestamp,
 };

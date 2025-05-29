@@ -45,20 +45,6 @@ function Pickups() {
     setSelectedPickup(null); // Reset selected pickup when modal is closed
   };
 
-  const parsePickupDateTime = (dateTimeString) => {
-    const [datePart, timePart] = dateTimeString
-      .split("&")
-      .map((str) => str.trim()); // Split and trim date and time
-    const [day, month] = datePart.split("-").map(Number); // Extract day and month as numbers
-    const currentYear = new Date().getFullYear(); // Assume the current year
-    let [hour, period] = timePart.split(" "); // Split hour and period (AM/PM)
-    hour = parseInt(hour, 10); // Convert hour to number
-    // Convert hour to 24-hour format if it's PM
-    if (period === "PM" && hour !== 12) hour += 12;
-    if (period === "AM" && hour === 12) hour = 0; // Handle midnight case
-    return new Date(currentYear, month - 1, day, hour, 0, 0); // Create Date object
-  };
-
   // Fetch pickup data from Firestore and filter based on the username
   useEffect(() => {
     if (username) {
@@ -87,23 +73,30 @@ function Pickups() {
                 ); // Fetch only user's pickups
 
           const unsubscribe = onSnapshot(q, (snapshot) => {
-            const filteredData = snapshot.docs.map((doc) => ({
-              ...doc.data(),
-              id: doc.id,
-            }));
+            const filteredData = snapshot.docs
+              .map((doc) => ({
+                ...doc.data(),
+                id: doc.id,
+              }))
+              .filter((doc) => doc.currentStatus !== "DELIVERED");
             // Sort data by date and time
             const sortedData = filteredData.sort((a, b) => {
               const parseDate = (datetime) => {
-                const [datePart, timePart] = datetime.split(" &");
+                const [datePart, timePartRaw] = datetime.split(" &");
                 const [day, month, year] = datePart.split("-").map(Number);
 
-                const [hour, period] = timePart.split(" ");
-                const hour24 =
-                  period === "PM" && hour !== "12"
-                    ? Number(hour) + 12
-                    : Number(hour === "12" && period === "AM" ? 0 : hour);
-                return new Date(year, month - 1, day, hour24).getTime();
+                // Handle both "12 PM" and "1:00 PM" formats
+                const [timePart, period] = timePartRaw.trim().split(" ");
+                let [hour, minute] = timePart.includes(":")
+                  ? timePart.split(":").map(Number)
+                  : [Number(timePart), 0]; // If no minutes provided, assume 0
+
+                if (period === "PM" && hour !== 12) hour += 12;
+                if (period === "AM" && hour === 12) hour = 0;
+
+                return new Date(year, month - 1, day, hour, minute).getTime();
               };
+
               return parseDate(b.pickupDatetime) - parseDate(a.pickupDatetime);
             });
             setPickups(sortedData);

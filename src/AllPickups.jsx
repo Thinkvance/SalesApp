@@ -61,10 +61,12 @@ function Pickups() {
                 (q) =>
                   new Promise((resolve) => {
                     const unsubscribe = onSnapshot(q, (snapshot) => {
-                      const data = snapshot.docs.map((doc) => ({
-                        ...doc.data(),
-                        id: doc.id,
-                      }));
+                      const data = snapshot.docs
+                        .map((doc) => ({
+                          ...doc.data(),
+                          id: doc.id,
+                        }))
+                        .filter((doc) => doc.currentStatus !== "DELIVERED");
                       resolve(data);
                     });
                     unsubscribes.push(unsubscribe);
@@ -75,23 +77,30 @@ function Pickups() {
                 const combinedData = results.flat();
                 const sortedData = combinedData.sort((a, b) => {
                   const parseDate = (datetime) => {
-                    const [datePart, timePart] = datetime.split(" &");
+                    const [datePart, timePartRaw] = datetime.split(" &");
 
                     const [day, month, year] = datePart.split("-").map(Number);
 
-                    let [hourStr, period] = timePart.trim().split(" ");
-                    let hour = Number(hourStr);
+                    const [timePart, period] = timePartRaw.trim().split(" ");
+                    let [hour, minute] = timePart.includes(":")
+                      ? timePart.split(":").map(Number)
+                      : [Number(timePart), 0]; // default to 0 minutes if not provided
 
-                    // Convert to 24-hour format
                     if (period === "PM" && hour !== 12) hour += 12;
                     if (period === "AM" && hour === 12) hour = 0;
 
-                    return new Date(year, month - 1, day, hour).getTime();
+                    return new Date(
+                      year,
+                      month - 1,
+                      day,
+                      hour,
+                      minute
+                    ).getTime();
                   };
 
                   return (
                     parseDate(b.pickupDatetime) - parseDate(a.pickupDatetime)
-                  );
+                  ); // descending order
                 });
 
                 setPickups(sortedData);
@@ -130,29 +139,33 @@ function Pickups() {
           // Fetch only user's pickups
 
           const unsubscribe = onSnapshot(q, (snapshot) => {
-            const filteredData = snapshot.docs.map((doc) => ({
-              ...doc.data(),
-              id: doc.id,
-            }));
-            // Sort data by date and time
+            const filteredData = snapshot.docs
+              .map((doc) => ({
+                ...doc.data(),
+                id: doc.id,
+              }))
+              .filter((doc) => doc.currentStatus !== "DELIVERED");
+
             const sortedData = filteredData.sort((a, b) => {
               const parseDate = (datetime) => {
-                const [datePart, timePart] = datetime.split(" &");
+                const [datePart, timePartRaw] = datetime.split(" &");
 
                 const [day, month, year] = datePart.split("-").map(Number);
 
-                let [hourStr, period] = timePart.trim().split(" ");
-                let hour = Number(hourStr);
+                const [timePart, period] = timePartRaw.trim().split(" ");
+                let [hour, minute] = timePart.includes(":")
+                  ? timePart.split(":").map(Number)
+                  : [Number(timePart), 0]; // assume 0 minutes if missing
 
-                // Convert to 24-hour format
                 if (period === "PM" && hour !== 12) hour += 12;
                 if (period === "AM" && hour === 12) hour = 0;
 
-                return new Date(year, month - 1, day, hour).getTime();
+                return new Date(year, month - 1, day, hour, minute).getTime();
               };
 
-              return parseDate(b.pickupDatetime) - parseDate(a.pickupDatetime);
+              return parseDate(b.pickupDatetime) - parseDate(a.pickupDatetime); // descending order
             });
+
             setPickups(sortedData);
             setLoading(false);
           });

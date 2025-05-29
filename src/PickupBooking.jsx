@@ -457,10 +457,9 @@ function PickupBooking() {
         TEST
       </button> */}
       <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4 flex-col gap-4">
-        <h className="text-3xl font-bold">Sales</h>
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="bg-white p-6 rounded-md shadow-none w-full max-w-4xl"
+          className="bg-white p-6  rounded-md shadow-none w-full max-w-4xl"
         >
           <h2 className="text-xl font-bold text-center mb-6 text-gray-800">
             Submit Pickup Details

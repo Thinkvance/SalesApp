@@ -41,7 +41,7 @@ function Nav() {
   const handleReportsMenuClose = () => setReportsAnchorEl(null);
 
   return (
-    <nav className="sticky top-0 z-40 flex items-center justify-between bg-purple-400 p-4 shadow-md">
+    <nav className="sticky top-0 z-40 flex items-center justify-between bg-purple-400 p-2 shadow-md">
       {/* Desktop Navigation */}
       <div className="flex  container mx-auto justify-between">
         <div className="flex items-center gap-4">
