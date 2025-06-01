@@ -139,12 +139,10 @@ function Pickups() {
           // Fetch only user's pickups
 
           const unsubscribe = onSnapshot(q, (snapshot) => {
-            const filteredData = snapshot.docs
-              .map((doc) => ({
-                ...doc.data(),
-                id: doc.id,
-              }))
-              .filter((doc) => doc.currentStatus !== "DELIVERED");
+            const filteredData = snapshot.docs.map((doc) => ({
+              ...doc.data(),
+              id: doc.id,
+            }));
 
             const sortedData = filteredData.sort((a, b) => {
               const parseDate = (datetime) => {

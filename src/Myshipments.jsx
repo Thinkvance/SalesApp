@@ -31,6 +31,7 @@ export default function Myshipments() {
     packageConnectedDataTime,
   }) {
     setLoading(true);
+
     try {
       if (selectedRecipient[awb] == "consignee") {
         return;
@@ -41,6 +42,7 @@ export default function Myshipments() {
         mode
       );
 
+      const currentStatus_temp = currentStatus ? currentStatus : "-";
       const data = {
         messages: [
           {
@@ -50,7 +52,7 @@ export default function Myshipments() {
                 body: {
                   placeholders: [
                     name, // {{1}} - Name
-                    currentStatus,
+                    currentStatus_temp,
                     destination, // {{4}} - Destination
                     estimatedDelivery, // {{5}} - Estimated Delivery
                   ],
@@ -103,15 +105,11 @@ export default function Myshipments() {
     let q;
     if (role === "Manager" || role === "sales admin") {
       // Get all data from "pickup"
-      q = query(
-        collection(db, DB.db_collection),
-        where("currentStatus", "!=", "DELIVERED")
-      );
+      q = query(collection(db, DB.db_collection));
     } else {
       q = query(
         collection(db, DB.db_collection),
-        where("pickupBookedBy", "==", username),
-        where("currentStatus", "!=", "DELIVERED")
+        where("pickupBookedBy", "==", username)
       );
     }
 
@@ -285,7 +283,7 @@ export default function Myshipments() {
                               mode: item.service,
                               destination: item.destination,
                               phone: recipientPhone,
-                              currentStatus: item.currentStatus.toLowerCase(),
+                              currentStatus: item?.currentStatus?.toLowerCase(),
                               packageConnectedDataTime:
                                 item.packageConnectedDataTime,
                             });

@@ -17,20 +17,24 @@ import { revokeAccessToken } from "firebase/auth";
 import DB from "../DB/DB";
 
 function formateFirebaseTimestamp(isoString) {
-  const date = new Date(isoString);
-  // Options for formatting
-  const options = {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-    timeZone: "Asia/Kolkata", // Optional: Set your local timezone
-  };
+  if (isoString) {
+    const date = new Date(isoString);
+    // Options for formatting
+    const options = {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: "Asia/Kolkata", // Optional: Set your local timezone
+    };
 
-  const formattedDate = date.toLocaleString("en-US", options);
-  return formattedDate;
+    const formattedDate = date.toLocaleString("en-US", options);
+    return formattedDate;
+  } else {
+    return "null";
+  }
 }
 
 function extractDate(dateString) {

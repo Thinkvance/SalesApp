@@ -242,45 +242,55 @@ function PaymentConfirmationForm() {
     const splitTerms = doc.splitTextToSize(terms, maxWidth + 300);
     doc.text(splitTerms, 40, doc.lastAutoTable.finalY + 50);
 
-    // Subtotal, Discount, and Total
-    if (discountCost > 1) {
-      // Set Subtotal text to bold
-      doc.text(
-        `Subtotal: ${subtotal}.00 Rs`,
-        400,
-        doc.lastAutoTable.finalY + 120
-      );
+    const labelX = 330;
+    const valueX = 460;
+    let currentY = doc.lastAutoTable.finalY + 120;
 
-      // Set Discount text to normal
-      doc.setFont("helvetica", "normal");
-      doc.text(
-        `Discount: ${discountCost}.00 Rs`,
-        400,
-        doc.lastAutoTable.finalY + 139
-      );
+    // Subtotal
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text("Subtotal:", labelX, currentY);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 128, 0); // green
+    doc.text(`${subtotal}.00 Rs`, valueX, currentY);
+    currentY += 19;
 
-      // Set Total text to bold
-      doc.text(`Total: ${nettotal}.00 Rs`, 400, doc.lastAutoTable.finalY + 159);
-
-      // Set back to normal after this section if needed
-      doc.setFont("helvetica", "normal");
+    // Additional Charges (always shown)
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text("Additional Charges:", labelX, currentY);
+    doc.setFont("helvetica", "normal");
+    if (additionalcharges > 0) {
+      doc.setTextColor(0, 128, 0); // green
     } else {
-      doc.text(
-        `Subtotal: ${subtotal}.00 Rs`,
-        400,
-        doc.lastAutoTable.finalY + 120
-      );
-      doc.text(
-        `Additional Charges: ${additionalcharges}.00 Rs`,
-        400,
-        doc.lastAutoTable.finalY + 139
-      );
-      doc.text(
-        `Net Total: ${nettotal}.00 Rs`,
-        400,
-        doc.lastAutoTable.finalY + 159
-      );
+      doc.setTextColor(150, 150, 150); // gray
     }
+    doc.text(`+ ${additionalcharges}.00 Rs`, valueX, currentY);
+    currentY += 19;
+
+    // Discount (always shown)
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text("Discount:", labelX, currentY);
+    doc.setFont("helvetica", "normal");
+    if (discountCost > 0) {
+      doc.setTextColor(220, 20, 60); // red
+    } else {
+      doc.setTextColor(150, 150, 150); // gray
+    }
+    doc.text(`- ${discountCost}.00 Rs`, valueX, currentY);
+    currentY += 19;
+
+    // Total
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text("Total:", labelX, currentY);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 100, 0); // dark green
+    doc.text(`${nettotal}.00 Rs`, valueX, currentY);
+
+    // Reset text color
+    doc.setTextColor(0, 0, 0);
 
     // Footer
     doc.setFontSize(10);
