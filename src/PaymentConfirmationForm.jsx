@@ -446,7 +446,11 @@ function PaymentConfirmationForm() {
           parseInt(data.discountCost),
         discountCost: data.discountCost,
         // paymentProof: await uploadFileToFirebase(paymentProof, "PAYMENT PROOF"),
-        KycImage: await uploadFileToFirebase(KycImage, "KYC"),
+        KycImage:
+          typeof details.KycImage === "string" &&
+          details.KycImage.startsWith("http")
+            ? details.KycImage
+            : await uploadFileToFirebase(KycImage, "KYC"),
         PaymentComfirmedDate: await getTodayDate(),
         consigneename: !data.consigneename1
           ? details.consigneename
