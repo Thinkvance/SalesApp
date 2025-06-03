@@ -1,6 +1,4 @@
 import { useEffect, useState } from "react";
-import positive_lottie from "./assets/positive_lottie.json"; // Replace with your animation JSON path
-import negative_lottie from "./assets/negative_lottie.json"; // Replace with your animation JSON path
 import Nav from "./Nav";
 import {
   collection,
@@ -20,13 +18,11 @@ import customParseFormat from "dayjs/plugin/customParseFormat";
 import BarChartCom from "./salesReportCharts/BarChartCom";
 import DB from "./DB/DB";
 import ShipmentDetails from "./ShipmentDetails";
-import SalesReportBarChart from "./Charts/SalesReportBarChart";
-import Lottie from "lottie-react";
 
 dayjs.extend(customParseFormat);
 dayjs.extend(isBetween);
 
-function SalesReport() {
+function Accounts() {
   const [username, setUsername] = useState(null);
   const [role, setRole] = useState("");
   const [pickups, setPickups] = useState([]);
@@ -37,7 +33,7 @@ function SalesReport() {
   const [consignorPhoneSearchTerm, setConsignorPhoneSearchTerm] = useState("");
   const [pickupPersonName, setPickupPersonName] = useState("");
   const [location, setLocation] = useState("ALL");
-  const [GrowthPercentage, setGrowthPercentage] = useState("");
+
   const [filterOption, setFilterOption] = useState("this_month");
   const [customRange, setCustomRange] = useState({ from: "", to: "" });
 
@@ -288,8 +284,8 @@ function SalesReport() {
     0
   );
 
-  const totalDiscount = filteredPickups.reduce(
-    (sum, pickup) => sum + (pickup.discountCost || 0),
+  const totalMargin = filteredPickups.reduce(
+    (sum, pickup) => sum + (pickup.margin || 0),
     0
   );
 
@@ -306,20 +302,6 @@ function SalesReport() {
       return acc;
     }, {})
   );
-
-  useEffect(() => {
-    async function getData() {
-      try {
-        const [growthPercentage] = await Promise.all([
-          utilityFunctions.growth(),
-        ]);
-        setGrowthPercentage(growthPercentage);
-      } catch (error) {
-        utilityFunctions.ErrorNotify("Data fetch failed. Please try again.");
-      }
-    }
-    getData();
-  }, []); // Trigger fetch when startendrange updates
 
   return (
     <>
@@ -431,68 +413,49 @@ function SalesReport() {
             </>
           )}
         </div>
-        <div className="flex flex-col gap-6 mb-6 sm:flex-row sm:flex-wrap sm:gap-10 sm:items-start">
-          {/* Card Grid Section */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full sm:max-w-[500px]">
-            <div className="bg-purple-50 border border-purple-200 rounded-xl p-6 shadow-md">
-              <h2 className="text-lg font-semibold text-purple-800 mb-2">
-                Total Sales
-              </h2>
-              <p className="text-2xl font-bold text-purple-900">{totalSales}</p>
-            </div>
-
-            <div className="bg-green-50 border border-green-200 rounded-xl p-6 shadow-md">
-              <h2 className="text-lg font-semibold text-green-800 mb-2">
-                Total Logistic Cost
-              </h2>
-              <p className="text-2xl font-bold text-green-900">
-                {totalLogisticsCost}
-              </p>
-            </div>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 shadow-md">
-              <h2 className="text-lg font-semibold text-blue-800 mb-2">
-                Discounts Applied
-              </h2>
-              <p className="text-2xl font-bold text-blue-900">
-                {totalDiscount}
-              </p>
-            </div>
-
-            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 shadow-md min-w-[200px] max-w-sm">
-              <h2 className="text-lg font-semibold text-yellow-800 mb-2">
-                Growth
-              </h2>
-              <p className="text-2xl font-bold text-yellow-900 flex items-center gap-2">
-                {`${GrowthPercentage}%`}
-                {GrowthPercentage > 0 ? (
-                  <Lottie
-                    animationData={positive_lottie}
-                    loop={true}
-                    autoplay={true}
-                    style={{ width: 40, height: 40 }}
-                  />
-                ) : (
-                  <Lottie
-                    animationData={negative_lottie}
-                    loop={true}
-                    autoplay={true}
-                    style={{ width: 40, height: 40 }}
-                  />
-                )}
-              </p>
-              <p className="text-sm text-yellow-700 mt-1">
-                Compared to last month
-              </p>
-            </div>
+        <div className="flex flex-wrap gap-4 mb-6 justify-start items-center">
+          {/* Total Sales */}
+          <div className="flex-1 min-w-[220px] max-w-sm bg-purple-100 border border-purple-300 rounded-xl p-6 shadow-md h-fit">
+            <h2 className="text-lg font-semibold text-purple-700 mb-2">
+              Total Sales
+            </h2>
+            <p className="text-2xl font-bold text-purple-900">{totalSales}</p>
           </div>
 
-          {/* Bar Chart Section */}
-          <div className="w-full sm:flex-1 bg-white border border-gray-200 rounded-xl p-4 shadow-md">
-            <SalesReportBarChart pickups={filteredPickups} />
+          {/* Total Logistic Cost */}
+          <div className="flex-1 min-w-[220px] max-w-sm bg-green-100 border border-green-300 rounded-xl p-6 shadow-md h-fit">
+            <h2 className="text-lg font-semibold text-green-700 mb-2">
+              Total Logistic Cost
+            </h2>
+            <p className="text-2xl font-bold text-green-900">
+              {totalLogisticsCost}
+            </p>
+          </div>
+
+          {/* Total Margin */}
+          <div className="flex-1 min-w-[220px] max-w-sm bg-yellow-100 border border-yellow-300 rounded-xl p-6 shadow-md h-fit">
+            <h2 className="text-lg font-semibold text-yellow-700 mb-2">
+              Total Margin
+            </h2>
+            <p className="text-2xl font-bold text-yellow-900">
+              ₹ {totalMargin}
+            </p>
+          </div>
+          {/* Bar Chart Section (Visually wider) */}
+          <div className="flex-[2] min-w-full sm:min-w-[500px] bg-white border border-gray-200 rounded-xl p-4 shadow-md">
+            <div className="mb-3">
+              <BarChartCom salesData={salesData} />
+            </div>
+            <div>
+              <h2 className="text-sm sm:text-base font-semibold text-gray-700 mb-1">
+                Total Margin Overview
+              </h2>
+              <p className="text-lg sm:text-xl font-bold text-gray-900">
+                ₹ {totalMargin}
+              </p>
+            </div>
           </div>
         </div>
-
         <div className="overflow-auto border scrollbar-hide">
           <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow overflow-hidden">
             <thead className="bg-purple-600 text-white sticky top-0">
@@ -512,6 +475,8 @@ function SalesReport() {
                   "Pickup Person",
                   "Status",
                   "Sales Close",
+                  "Vendor Payment",
+                  "Margin",
                   "Payment Proof",
                   "Details",
                 ].map((head, i) => (
@@ -563,6 +528,37 @@ function SalesReport() {
                       </td>
                       <td className="py-3 px-4 border">
                         {pickup.logisticCost || "--"}
+                      </td>
+                      <td className="border w-[120px] h-full relative">
+                        <textarea
+                          readOnly={!pickup.logisticCost}
+                          value={pickup.vendorpayment || ""}
+                          placeholder="₹"
+                          title="Enter vendor payment"
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (/^\d*$/.test(value)) {
+                              setPickups((prev) =>
+                                prev.map((p) =>
+                                  p.id === pickup.id
+                                    ? { ...p, vendorpayment: value }
+                                    : p
+                                )
+                              );
+                            }
+                          }}
+                          onBlur={() =>
+                            handleBlur(
+                              pickup.id,
+                              pickup.awbNumber,
+                              parseInt(pickup.vendorpayment || "0")
+                            )
+                          }
+                          className="w-full h-full text-center resize-none bg-transparent p-2 focus:ring-1 focus:ring-purple-500 rounded-md"
+                        />
+                      </td>
+                      <td className="py-3 px-4 border">
+                        {pickup.margin || "--"}
                       </td>
                       <td className="py-3 px-4 border">
                         {pickup.paymentProof ? (
@@ -646,4 +642,4 @@ function SalesReport() {
   );
 }
 
-export default SalesReport;
+export default Accounts;

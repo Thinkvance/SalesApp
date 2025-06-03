@@ -26,6 +26,7 @@ import PickupPersonIncentive from "./PickupPersonIncentive";
 import SalesIncentive from "./SalesIncentive";
 import SalesReport from "./SalesReport";
 import Myshipments from "./Myshipments";
+import Accounts from "./Accounts";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -107,6 +108,10 @@ function App() {
             element={user ? <SalesReport /> : <Navigate to="/signin" />}
           />
           <Route
+            path="/accounts"
+            element={user ? <Accounts /> : <Navigate to="/signin" />}
+          />
+          <Route
             path="/Cancel-or-reschedule"
             element={user ? <CancelOrReshedule /> : <Navigate to="/signin" />}
           />
@@ -162,7 +167,6 @@ function App() {
               user ? <PickupPersonIncentive /> : <Navigate to="/signin" />
             }
           />
-
           {/* Sign In route, only accessible if no user is logged in */}
           <Route
             path="/signin"

@@ -157,6 +157,8 @@ async function fetchData(DateRange, startendrange) {
 }
 
 async function getRevenue(DateRange, startendrange) {
+  console.log(DateRange);
+  console.log(startendrange);
   var Revenue = 0;
   await fetchData(DateRange, startendrange).then((d) => {
     d?.map((value) => {
@@ -762,6 +764,52 @@ function getEstimatedDate(packageConnectedDataTime, service) {
   return `${formattedStart} – ${formattedEnd}, ${year}`;
 }
 
+async function growth() {
+  const today = new Date();
+
+  // Current month date range
+  const currentStartDate = new Date(today.getFullYear(), today.getMonth(), 1);
+  const currentEndDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+  // Previous month date range
+  const previousStartDate = new Date(
+    today.getFullYear(),
+    today.getMonth() - 1,
+    1
+  );
+
+  const previousEndDate = new Date(today.getFullYear(), today.getMonth(), 0);
+
+  const formatDate = (date) =>
+    `${String(date.getDate()).padStart(2, "0")}-${String(
+      date.getMonth() + 1
+    ).padStart(2, "0")}-${date.getFullYear()}`;
+
+  const currentMonthSales = await getRevenue("Select range", {
+    start: convertDateToTimestamp(formatDate(currentStartDate)),
+    end: convertDateToTimestamp(formatDate(currentEndDate)),
+  });
+
+  const previousMonthSales = await getRevenue("Select range", {
+    start: convertDateToTimestamp(formatDate(previousStartDate)),
+    end: convertDateToTimestamp(formatDate(previousEndDate)),
+  });
+
+  const growthPercentage =
+    previousMonthSales === 0
+      ? 0
+      : (
+          ((currentMonthSales - previousMonthSales) / previousMonthSales) *
+          100
+        ).toFixed(1);
+
+  console.log("currentMonthSales", currentMonthSales);
+  console.log("previousMonthSales", previousMonthSales);
+  console.log("growthPercentage", growthPercentage);
+
+  return growthPercentage;
+}
+
 export default {
   getRevenue: getRevenue,
   getTotalBookings: getTotalBookings,
@@ -787,4 +835,5 @@ export default {
   fetchAndStoreToken: fetchAndStoreToken,
   getEstimatedDate: getEstimatedDate,
   formateFirebaseTimestamp: formateFirebaseTimestamp,
+  growth: growth,
 };

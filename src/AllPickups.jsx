@@ -20,6 +20,28 @@ function Pickups() {
   const [Location, setLocation] = useState("ALL");
   const [isModalOpen, setIsModalOpen] = useState(false); // State to control modal visibility
   const [selectedPickup, setSelectedPickup] = useState(null); // State to hold the selected pickup for modal
+  const [pickupPersons, setPickupPersons] = useState(["Unassigned"]);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      collection(db, "OpsPickupLoginCredentials"),
+      (querySnapshot) => {
+        const names = ["Unassigned"];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          Object.values(data).forEach((arr) => {
+            names.push(arr[0]); // Push only the name (index 0)
+          });
+        });
+        setPickupPersons(names);
+      },
+      (error) => {
+        console.error("Error fetching pickup persons: ", error);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
 
   // Fetch user info from localStorage
   useEffect(() => {
@@ -227,13 +249,13 @@ function Pickups() {
           <option value="COIMBATORE">COIMBATORE</option>
         </select>
         {/* Search Inputs */}
-        <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="mb-6  flex flex-row flex-wrap gap-6">
           <input
             type="text"
             placeholder="Search by AWB Number"
             value={awbSearchTerm}
             onChange={(e) => setAwbSearchTerm(e.target.value)}
-            className="border border-gray-300 rounded py-2 px-4 w-full mb-2 focus:outline-none focus:ring-2 focus:ring-purple-600"
+            className="border border-gray-300 rounded py-2 px-4 w-fit mb-2 focus:outline-none focus:ring-2 focus:ring-purple-600"
           />
           <input
             type="date"
@@ -246,26 +268,25 @@ function Pickups() {
               )}`;
               setDateSearchTerm(result);
             }}
-            className="border border-gray-300 rounded py-2 px-4 w-full mb-2 focus:outline-none focus:ring-2 focus:ring-purple-600"
+            className="border w-fit border-gray-300 rounded py-2 px-4 mb-2 focus:outline-none focus:ring-2 focus:ring-purple-600"
           />
           <input
             type="text"
-            placeholder="Search by Consignor Phone Number"
+            placeholder="Consignor Phone Number"
             value={consignorPhoneSearchTerm}
             onChange={(e) => setConsignorPhoneSearchTerm(e.target.value)}
-            className="border border-gray-300 rounded py-2 px-4 w-full mb-2 focus:outline-none focus:ring-2 focus:ring-purple-600"
+            className="border border-gray-300 rounded py-2 px-4 w-fit mb-2 focus:outline-none focus:ring-2 focus:ring-purple-600"
           />
-          <input
-            type="text"
-            placeholder="Search by Pickup Person"
-            value={PickupPersonName}
+          <select
             onChange={(e) => setPickUpPersonName(e.target.value)}
-            className="border border-gray-300 rounded py-2 px-4 w-full mb-2 focus:outline-none focus:ring-2 focus:ring-purple-600"
-          />
+            className="border border-gray-300 rounded py-2 px-4 w-fit mb-2 focus:outline-none focus:ring-2 focus:ring-purple-600"
+          >
+            {pickupPersons.map((d) => (
+              <option value={d}>{d}</option>
+            ))}
+          </select>
         </div>
-        {/* <h1 className="text-2xl font-bold mb-6 text-purple-700">
-          {Location}
-        </h1> */}
+
         {/* Scrollable Table Wrapper */}
         <div className="overflow-auto border scrollbar-hide">
           <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow overflow-hidden">
