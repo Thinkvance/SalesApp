@@ -144,7 +144,7 @@ function PickupBooking() {
 
         if (!querySnapshot.empty) {
           const data = querySnapshot.docs[0].data();
-          const dynamicSource = "Repeat Customer"; // Get source from DB
+          const dynamicSource = "Repeated Customer"; // Get source from DB
           // Ensure the dynamic source is added to options first
           setSourceOptions((prev) =>
             prev.includes(dynamicSource) ? prev : [...prev, dynamicSource]
@@ -204,7 +204,7 @@ function PickupBooking() {
     const querySnapshot = await getDocs(q);
     if (!querySnapshot.empty) {
       const data = querySnapshot.docs[0].data();
-      const dynamicSource = "Repeat Customer"; // Get source from DB
+      const dynamicSource = "Repeated Customer"; // Get source from DB
       return dynamicSource;
     }
     return "Not REP";
