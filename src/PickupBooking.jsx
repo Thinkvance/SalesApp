@@ -273,7 +273,7 @@ function PickupBooking() {
         longitude: result.longitude,
         latitude: result.latitude,
         pincode: data.pincode,
-        awbHashedValue: sha256(newAwbNumber).toString(),
+        awbHashedValue: sha256(newAwbNumber.toString()).toString(),
         destination: destinationCountryName, // Use full country name here
         pickupInstructions: data.instructions,
         weightapx: data.weight + " KG",
