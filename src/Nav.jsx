@@ -157,7 +157,7 @@ function Nav() {
         </div>
         <li className="flex items-center gap-2">
           <Link to="/review-management" className="text-white">
-            review Management
+            Review Management
           </Link>
         </li>
         {/* Right Section */}
