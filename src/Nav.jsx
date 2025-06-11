@@ -149,9 +149,6 @@ function Nav() {
               <Link to="/My-Shipments" className="text-white">
                 My shipments
               </Link>
-              <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded-md">
-                New
-              </span>
             </li>
           </ul>
         </div>
@@ -261,9 +258,6 @@ function Nav() {
               >
                 My shipments
               </Link>
-              <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded-md">
-                New
-              </span>
             </li>
           </ul>
         </div>

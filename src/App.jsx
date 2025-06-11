@@ -27,6 +27,7 @@ import SalesIncentive from "./SalesIncentive";
 import SalesReport from "./SalesReport";
 import Myshipments from "./Myshipments";
 import Accounts from "./Accounts";
+import ReviewManagement from "./ReviewManagement";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -160,6 +161,10 @@ function App() {
           <Route
             path="/My-Shipments"
             element={user ? <Myshipments /> : <Navigate to="/signin" />}
+          />
+          <Route
+            path="/review-management"
+            element={user ? <ReviewManagement /> : <Navigate to="/signin" />}
           />
           <Route
             path="/PickuPersonIncentive-Report"

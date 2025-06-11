@@ -462,6 +462,7 @@ function rolesPermissions() {
         "accounts",
         "Sales-Incentive",
         "Pickup-Incentive",
+        "review-management",
       ],
     };
   }
