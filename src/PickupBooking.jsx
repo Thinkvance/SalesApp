@@ -13,6 +13,8 @@ import "react-phone-number-input/style.css";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import sha256 from "crypto-js/sha256";
+import countryList from '../src/CountryDialCode.json';
+
 
 function PickupBooking() {
   const [loading, setLoading] = useState(false);
@@ -27,6 +29,7 @@ function PickupBooking() {
   const [latitudelongitude, setlatitudelongitude] = useState("");
   const [error, seterror] = useState("");
   const [isSourceFixed, setIsSourceFixed] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState(null);
   const [sourceOptions, setSourceOptions] = useState([
     "FB Ad",
     "Google Ad",
@@ -89,6 +92,7 @@ function PickupBooking() {
     countryData = countryData.map((country) =>
       country.code == "GB" ? { ...country, name: "United Kingdom" } : country
     );
+
     const topCountries = [
       "USA",
       "United Kingdom",
@@ -124,6 +128,7 @@ function PickupBooking() {
 
     setCountries(orderedCountries);
 
+    console.log("orderedCountries", orderedCountries);
     // Create a map of country codes to names
     const codeToNameMap = orderedCountries.reduce((acc, country) => {
       acc[country.code] = country.name;
@@ -446,6 +451,36 @@ function PickupBooking() {
     const googleMapsUrl = `https://www.google.com/maps?q=${result.latitude},${result.longitude}`;
     window.open(googleMapsUrl, "_blank");
   }
+
+  const countryDialCodeMap = {
+    US: "1",
+    AE: "971",
+    IN: "91",
+    GB: "44",
+    SG: "65",
+    CA: "1",
+    AU: "61",
+    NZ: "64",
+    CN: "86",
+    DE: "49",
+    FR: "33",
+    MY: "60",
+    EU: "65", // assuming mapped to Singapore
+    UAE: "971", // just in case you're using this too
+  };
+
+  const selectedCountryCode = watch("country");
+
+  useEffect(() => {
+    if (selectedCountryCode) {
+      const country = countryList.find(c => c.code === selectedCountryCode);
+      if (country) {
+        setSelectedCountry(country.code.toLowerCase());
+        setValue("consigneenumber", country.dial_code);
+      }
+    }
+  }, [selectedCountryCode, setValue]);
+
   return (
     <div className="">
       <Nav />
@@ -669,32 +704,28 @@ function PickupBooking() {
                 </p>
               )}
             </div>
-
             <div className="mb-4">
-              <label className="block text-gray-700 font-semibold mb-2">
-                Country (Destination):
-              </label>
-              <select
-                {...register("country", { required: "Country is required" })}
-                className={`w-full px-3 py-2 border ${
-                  errors.country ? "border-red-500" : "border-gray-300"
-                } rounded-md focus:outline-none focus:border-[#8847D9]`}
-              >
-                <option value="">Select Destination country</option>
-                {countries.map((country) =>
-                  country ? (
-                    <option key={country.code} value={country.code}>
-                      {country.name}
-                    </option>
-                  ) : null
-                )}
-              </select>
-              {errors.country && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.country.message}
-                </p>
-              )}
-            </div>
+        <label className="block text-gray-700 font-semibold mb-2">
+          Country (Destination):
+        </label>
+        <select
+          {...register("country", { required: "Country is required" })}
+          onChange={(e) => {
+            setValue("country", e.target.value);
+            setSelectedCountry(e.target.value?.toLowerCase());
+          }}
+          className={`w-full px-3 py-2 border ${
+            errors.country ? "border-red-500" : "border-gray-300"
+          } rounded-md focus:outline-none focus:border-[#8847D9]`}
+        >
+          <option value="">Select Destination country</option>
+          {countryList.map((country) => (
+            <option key={country.code} value={country.code}>
+              {country.name} {country.dial_code}
+            </option>
+          ))}
+        </select>
+      </div>
 
             <div>
               <p className="text-gray-700 font-semibold mb-2">City</p>
