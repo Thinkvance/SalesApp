@@ -630,6 +630,9 @@ function PickupBooking() {
                 <div className="mb-4">
                   <label className="block text-gray-700 font-semibold mb-2">
                     Consignee Phone Number:
+                    <span className="ml-2 text-sm font-normal text-gray-500">
+                      (enter without country code)
+                    </span>
                   </label>
                   <Controller
                     name="consigneenumber"
