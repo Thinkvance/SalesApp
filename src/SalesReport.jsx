@@ -17,7 +17,7 @@ import utilityFunctions from "./Utility/utilityFunctions";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import customParseFormat from "dayjs/plugin/customParseFormat";
-import BarChartCom from "./salesReportCharts/BarChartCom";
+import SalesReportBarChartCity from "./Charts/SalesReportBarChartCity";
 import DB from "./DB/DB";
 import ShipmentDetails from "./ShipmentDetails";
 import SalesReportBarChart from "./Charts/SalesReportBarChart";
@@ -40,7 +40,7 @@ function SalesReport() {
   const [GrowthPercentage, setGrowthPercentage] = useState("");
   const [filterOption, setFilterOption] = useState("this_month");
   const [customRange, setCustomRange] = useState({ from: "", to: "" });
-
+  const [selectedChart, setselectedChart] = useState("Chart For SE");
   const [selectedBookedBy, setSelectedBookedBy] = useState("All");
   const [SelectedCity, setSelectedCity] = useState("All");
   const [selectedSource, setselectedSource] = useState("All");
@@ -360,7 +360,7 @@ function SalesReport() {
               ))}
             </select>
           </div>
-          <div className="w-fit col-span-1 md:col-span-2">
+          {/* <div className="w-fit col-span-1 md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Area
             </label>
@@ -374,7 +374,7 @@ function SalesReport() {
               <option value="PONDY">Pondy</option>
               <option value="COIMBATORE">Coimbatore</option>
             </select>
-          </div>
+          </div> */}
           <div className="w-fit col-span-1 md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Source
@@ -395,6 +395,19 @@ function SalesReport() {
               <option value="Employee Refer">Employee Refer</option>
               <option value="Offline Ad">Offline Ad</option>
               <option value="GMB">GMB</option>
+            </select>
+          </div>
+          <div className="w-fit col-span-1 md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Change By Chart
+            </label>
+            <select
+              value={selectedChart}
+              onChange={(e) => setselectedChart(e.target.value)}
+              className="border rounded  input-style w-full"
+            >
+              <option value="Chart For SE">Chart For SE</option>
+              <option value="Chart For City">Chart for City</option>
             </select>
           </div>
           {filterOption === "select_range" && (
@@ -489,7 +502,13 @@ function SalesReport() {
 
           {/* Bar Chart Section */}
           <div className="w-full sm:flex-1 bg-white border border-gray-200 rounded-xl p-4 shadow-md">
-            <SalesReportBarChart pickups={filteredPickups} />
+            {selectedChart == "Chart For SE" ? (
+              <SalesReportBarChart pickups={filteredPickups} />
+            ) : selectedChart == "Chart For City" ? (
+              <SalesReportBarChartCity pickups={filteredPickups} />
+            ) : (
+              ""
+            )}
           </div>
         </div>
 

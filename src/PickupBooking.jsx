@@ -583,6 +583,30 @@ function PickupBooking() {
               <div>
                 <div className="mb-4">
                   <label className="block text-gray-700 font-semibold mb-2">
+                    Country (Destination):
+                  </label>
+                  <select
+                    {...register("country", {
+                      required: "Country is required",
+                    })}
+                    onChange={(e) => {
+                      setValue("country", e.target.value);
+                      setSelectedCountry(e.target.value?.toLowerCase());
+                    }}
+                    className={`w-full px-3 py-2 border ${
+                      errors.country ? "border-red-500" : "border-gray-300"
+                    } rounded-md focus:outline-none focus:border-[#8847D9]`}
+                  >
+                    <option value="">Select Destination country</option>
+                    {countryList.map((country) => (
+                      <option key={country.code} value={country.code}>
+                        {country.name} {country.dial_code}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="mb-4">
+                  <label className="block text-gray-700 font-semibold mb-2">
                     Consignee Name:
                   </label>
                   <input
@@ -606,6 +630,9 @@ function PickupBooking() {
                 <div className="mb-4">
                   <label className="block text-gray-700 font-semibold mb-2">
                     Consignee Phone Number:
+                    <span className="ml-2 text-sm font-normal text-gray-500">
+                      (enter without country code)
+                    </span>
                   </label>
                   <Controller
                     name="consigneenumber"
@@ -658,7 +685,7 @@ function PickupBooking() {
                       {errors.consigneenumber.message}
                     </p>
                   )}
-                </div>{" "}
+                </div>
               </div>
               <div className="mb-4">
                 <label className="block text-gray-700 font-semibold mb-2">
@@ -701,28 +728,6 @@ function PickupBooking() {
                   {errors.pincode.message}
                 </p>
               )}
-            </div>
-            <div className="mb-4">
-              <label className="block text-gray-700 font-semibold mb-2">
-                Country (Destination):
-              </label>
-              <select
-                {...register("country", { required: "Country is required" })}
-                onChange={(e) => {
-                  setValue("country", e.target.value);
-                  setSelectedCountry(e.target.value?.toLowerCase());
-                }}
-                className={`w-full px-3 py-2 border ${
-                  errors.country ? "border-red-500" : "border-gray-300"
-                } rounded-md focus:outline-none focus:border-[#8847D9]`}
-              >
-                <option value="">Select Destination country</option>
-                {countryList.map((country) => (
-                  <option key={country.code} value={country.code}>
-                    {country.name} {country.dial_code}
-                  </option>
-                ))}
-              </select>
             </div>
 
             <div>
