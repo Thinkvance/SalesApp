@@ -19,6 +19,29 @@ function PaymentConfirmCard({ item, index }) {
     setUser(JSON.parse(localStorage.getItem("LoginCredentials")));
   }, []);
 
+  const getTodayDate = async () => {
+    const now = new Date();
+
+    // Convert to IST (Indian Standard Time)
+    const istOffset = 5 * 60 + 30; // IST is UTC+5:30
+    const utcTime = now.getTime() + now.getTimezoneOffset() * 60000; // Get the UTC time
+    const istTime = new Date(utcTime + istOffset * 60000); // Adjust to IST time
+
+    // Format the date
+    const day = String(istTime.getDate()).padStart(2, "0");
+    const month = String(istTime.getMonth() + 1).padStart(2, "0"); // Month is zero-indexed
+    const year = istTime.getFullYear();
+
+    // Format the time in 12-hour format
+    let hours = istTime.getHours();
+    const minutes = String(istTime.getMinutes()).padStart(2, "0");
+    const seconds = String(istTime.getSeconds()).padStart(2, "0");
+    const period = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12; // Convert to 12-hour format, with 12 for midnight and noon
+
+    return `${day}-${month}-${year} ${hours}:${minutes}:${seconds} ${period}`;
+  };
+
   const handleAcceptClick = () => {
     const url = `/payment-confirmation-form/${item.awbNumber}`; // Use item.vendorAwbnumber if that's the correct field
     navigate(url);
@@ -139,12 +162,11 @@ function PaymentConfirmCard({ item, index }) {
     }
   }
 
-  async function generate_Invoice_PDF() {
+  async function generate_Invoice_PDF(costKg, discountCost, additionalcharges) {
     try {
       const doc = new jsPDF("p", "pt");
-      const subtotal = item.costKg * item.actualWeight;
-      const nettotal = subtotal - item.discountCost;
-
+      const subtotal = parseInt(costKg) * item.actualWeight;
+      const nettotal = subtotal - parseInt(discountCost) + additionalcharges;
       // Add business name and logo
       doc.setFontSize(20);
       doc.addImage("/shiphtlogo.png", "PNG", 40, 30, 180, 60); // Replace with your logo
@@ -159,7 +181,7 @@ function PaymentConfirmCard({ item, index }) {
       doc.setFont("helvetica", "normal");
       doc.text("Shiphit", 40, 160);
 
-      const address = `No. 74, Tiny Sector Industrial Estate, Ekkatuthangal, Chennai - 600032. Tamilnadu, India.`;
+      const address = `2C, Rajarajan Street, Main Rd, Navarathna Garden, Ekkatuthangal, Chennai, Tamil Nadu 600032`;
       const phoneNumber = `\n9159 688 688`; // Add a newline before the phone number
 
       const fullText = address + phoneNumber; // Combine address and phone number
@@ -179,7 +201,7 @@ function PaymentConfirmCard({ item, index }) {
       const splitText = doc.splitTextToSize(fullText1, maxWidth);
       doc.text(splitText, 350, 180);
 
-      // Align invoice details at the top-right corner
+      // Align invoice item at the top-right corner
       const pageWidth = doc.internal.pageSize.getWidth();
       const rightMargin = pageWidth - 40; // Right margin of 40 units
 
@@ -187,7 +209,7 @@ function PaymentConfirmCard({ item, index }) {
       doc.text(`Receipt Number: RCPT-${item.awbNumber}`, rightMargin, 40, {
         align: "right",
       });
-      doc.text(`Date: ${item.PaymentComfirmedDate}`, rightMargin, 61, {
+      doc.text(`Date: ${await getTodayDate()}`, rightMargin, 61, {
         align: "right",
       });
       doc.setFont("helvetica", "bold");
@@ -205,7 +227,7 @@ function PaymentConfirmCard({ item, index }) {
             item.destination,
             item.service + " " + "Service",
             item.actualWeight + " KG",
-            `${item.costKg} Rs`,
+            `${costKg} Rs`,
             `${subtotal}.00 Rs`,
           ],
         ],
@@ -227,51 +249,57 @@ function PaymentConfirmCard({ item, index }) {
       doc.text("Terms & Conditions:", 40, doc.lastAutoTable.finalY + 30);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(12);
-      const terms = `* This invoice is only valid for ${item.actualWeight} Kg.
-* Shipments exceeding ${item.actualWeight} KG will attract additional costs.
-* All shipments sent are subject to customs clearance only.
-* Customs duty applicable (if any).`;
+      const terms = `
+       * This invoice is only valid for ${item.actualWeight} Kg.
+       * Shipments exceeding ${item.actualWeight} KG will attract additional costs.
+       * All shipments sent are subject to customs clearance only.
+       * Customs duty applicable (if any).`;
       const splitTerms = doc.splitTextToSize(terms, maxWidth + 300);
-      doc.text(splitTerms, 40, doc.lastAutoTable.finalY + 50);
+      doc.text(splitTerms, 20, doc.lastAutoTable.finalY + 40);
 
-      // Subtotal, Discount, and Total
-      if (item.discountCost > 1) {
-        // Set Subtotal text to bold
-        doc.text(
-          `Subtotal: ${subtotal}.00 Rs`,
-          400,
-          doc.lastAutoTable.finalY + 120
-        );
+      const labelX = 330;
+      const valueX = 460;
+      let currentY = doc.lastAutoTable.finalY + 120;
 
-        // Set Discount text to normal
+      // Subtotal
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
+      doc.text("Subtotal:", labelX, currentY);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(0, 128, 0); // green
+      doc.text(`${subtotal}.00 Rs`, valueX, currentY);
+      currentY += 19;
+
+      // Additional Charges (conditional rendering)
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
+      doc.text("Additional Charges:", labelX, currentY);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(0, 128, 0); // green
+      doc.text(`+ ${additionalcharges}.00 Rs`, valueX, currentY);
+      currentY += 19;
+
+      // Discount (conditional rendering)
+      if (discountCost > 0) {
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(0, 0, 0);
+        doc.text("Discount:", labelX, currentY);
         doc.setFont("helvetica", "normal");
-        doc.text(
-          `Discount: ${item.discountCost}.00 Rs`,
-          400,
-          doc.lastAutoTable.finalY + 139
-        );
-
-        // Set Total text to bold
-        doc.text(
-          `Total: ${nettotal}.00 Rs`,
-          400,
-          doc.lastAutoTable.finalY + 159
-        );
-
-        // Set back to normal after this section if needed
-        doc.setFont("helvetica", "normal");
-      } else {
-        doc.text(
-          `Subtotal: ${subtotal}.00 Rs`,
-          400,
-          doc.lastAutoTable.finalY + 120
-        );
-        doc.text(
-          `Net Total: ${nettotal}.00 Rs`,
-          400,
-          doc.lastAutoTable.finalY + 139
-        );
+        doc.setTextColor(220, 20, 60); // red
+        doc.text(`- ${discountCost}.00 Rs`, valueX, currentY);
+        currentY += 19;
       }
+
+      // Total
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
+      doc.text("Total:", labelX, currentY);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(0, 100, 0); // dark green
+      doc.text(`${nettotal}.00 Rs`, valueX, currentY);
+
+      // Reset text color
+      doc.setTextColor(0, 0, 0);
 
       // Footer
       doc.setFontSize(10);
@@ -289,6 +317,7 @@ function PaymentConfirmCard({ item, index }) {
       doc.save(`Receipt_${item.consignorname}.pdf`);
       utilityFunctions.SuccessNotify("Invoice PDF generated successfully!"); // Add success toast
     } catch (error) {
+      console.log(error);
       utilityFunctions.ErrorNotify("Error generating Invoice PDF. Try again.");
     }
   }
@@ -388,7 +417,13 @@ function PaymentConfirmCard({ item, index }) {
       {allowedStatuses.includes(item.status) ? (
         <div className="flex gap-10">
           <button
-            onClick={() => generate_Invoice_PDF()}
+            onClick={() =>
+              generate_Invoice_PDF(
+                item.costKg,
+                item.discountCost,
+                item.additionalcharges
+              )
+            }
             className="p-2 rounded-md bg-purple-600  text-white"
           >
             Receipt

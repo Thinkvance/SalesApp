@@ -240,7 +240,7 @@ function PaymentConfirmationForm() {
 * All shipments sent are subject to customs clearance only.
 * Customs duty applicable (if any).`;
     const splitTerms = doc.splitTextToSize(terms, maxWidth + 300);
-    doc.text(splitTerms, 40, doc.lastAutoTable.finalY + 50);
+    doc.text(splitTerms, 20, doc.lastAutoTable.finalY + 40);
 
     const labelX = 330;
     const valueX = 460;
@@ -255,31 +255,25 @@ function PaymentConfirmationForm() {
     doc.text(`${subtotal}.00 Rs`, valueX, currentY);
     currentY += 19;
 
-    // Additional Charges (always shown)
+    // Additional Charges (conditional rendering)
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
     doc.text("Additional Charges:", labelX, currentY);
     doc.setFont("helvetica", "normal");
-    if (additionalcharges > 0) {
-      doc.setTextColor(0, 128, 0); // green
-    } else {
-      doc.setTextColor(150, 150, 150); // gray
-    }
+    doc.setTextColor(0, 128, 0); // green
     doc.text(`+ ${additionalcharges}.00 Rs`, valueX, currentY);
     currentY += 19;
 
-    // Discount (always shown)
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(0, 0, 0);
-    doc.text("Discount:", labelX, currentY);
-    doc.setFont("helvetica", "normal");
+    // Discount (conditional rendering)
     if (discountCost > 0) {
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
+      doc.text("Discount:", labelX, currentY);
+      doc.setFont("helvetica", "normal");
       doc.setTextColor(220, 20, 60); // red
-    } else {
-      doc.setTextColor(150, 150, 150); // gray
+      doc.text(`- ${discountCost}.00 Rs`, valueX, currentY);
+      currentY += 19;
     }
-    doc.text(`- ${discountCost}.00 Rs`, valueX, currentY);
-    currentY += 19;
 
     // Total
     doc.setFont("helvetica", "bold");
