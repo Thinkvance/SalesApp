@@ -14,6 +14,7 @@ import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import sha256 from "crypto-js/sha256";
 import countryList from "../src/CountryDialCode.json";
+import ConsigneePhoneNumberInput from "./ConsigneePhoneNumberInput";
 
 function PickupBooking() {
   const [loading, setLoading] = useState(false);
@@ -451,30 +452,13 @@ function PickupBooking() {
     window.open(googleMapsUrl, "_blank");
   }
 
-  const countryDialCodeMap = {
-    US: "1",
-    AE: "971",
-    IN: "91",
-    GB: "44",
-    SG: "65",
-    CA: "1",
-    AU: "61",
-    NZ: "64",
-    CN: "86",
-    DE: "49",
-    FR: "33",
-    MY: "60",
-    EU: "65", // assuming mapped to Singapore
-    UAE: "971", // just in case you're using this too
-  };
-
   const selectedCountryCode = watch("country");
 
   useEffect(() => {
     if (selectedCountryCode) {
       const country = countryList.find((c) => c.code === selectedCountryCode);
       if (country) {
-        setValue("consigneenumber", country.dialCode);
+        setValue("countrycode", country.dialCode);
       }
     }
   }, [selectedCountryCode, setValue]);
@@ -583,6 +567,30 @@ function PickupBooking() {
               <div>
                 <div className="mb-4">
                   <label className="block text-gray-700 font-semibold mb-2">
+                    Country (Destination):
+                  </label>
+                  <select
+                    {...register("country", {
+                      required: "Country is required",
+                    })}
+                    onChange={(e) => {
+                      setValue("country", e.target.value);
+                      setSelectedCountry(e.target.value?.toLowerCase());
+                    }}
+                    className={`w-full px-3 py-2 border ${
+                      errors.country ? "border-red-500" : "border-gray-300"
+                    } rounded-md focus:outline-none focus:border-[#8847D9]`}
+                  >
+                    <option value="">Select Destination country</option>
+                    {countryList.map((country) => (
+                      <option key={country.code} value={country.code}>
+                        {country.name} {country.dial_code}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="mb-4">
+                  <label className="block text-gray-700 font-semibold mb-2">
                     Consignee Name:
                   </label>
                   <input
@@ -603,62 +611,7 @@ function PickupBooking() {
                     </p>
                   )}
                 </div>
-                <div className="mb-4">
-                  <label className="block text-gray-700 font-semibold mb-2">
-                    Consignee Phone Number:
-                  </label>
-                  <Controller
-                    name="consigneenumber"
-                    control={control}
-                    rules={{
-                      validate: (value) => {
-                        // 1) empty → OK
-                        if (!value || value.trim() === "") return true;
-
-                        // strip non‑digits
-                        const digitsOnly = value.replace(/\D/g, "");
-                        // remove up to 4‑digit code prefix
-                        const phoneWithoutCode = digitsOnly.replace(
-                          /^(\d{1,4})/,
-                          ""
-                        );
-                        const len = phoneWithoutCode.length;
-
-                        // 2) code only (no subscriber digits)
-                        if (len === 0) return "Please enter a phone number";
-                        // 3) too short/long
-                        if (len < 4) return "Phone number is too short";
-                        if (len > 15) return "Phone number is too long";
-
-                        return true;
-                      },
-                    }}
-                    render={({ field }) => (
-                      <PhoneInput
-                        enableSearch
-                        value={field.value}
-                        onChange={(value) => field.onChange(value)}
-                        placeholder="Enter phone number"
-                        inputStyle={{
-                          width: "100%",
-                          padding: "12px 48px",
-                          borderColor: errors.consigneenumber
-                            ? "#f87171"
-                            : "#d1d5db",
-                          borderRadius: "0.375rem",
-                          fontSize: "1rem",
-                        }}
-                        containerStyle={{ width: "100%" }}
-                        specialLabel=""
-                      />
-                    )}
-                  />
-                  {errors.consigneenumber && (
-                    <p className="text-red-500 text-sm mt-1">
-                      {errors.consigneenumber.message}
-                    </p>
-                  )}
-                </div>{" "}
+                <ConsigneePhoneNumberInput control={control} errors={errors} />
               </div>
               <div className="mb-4">
                 <label className="block text-gray-700 font-semibold mb-2">
@@ -701,28 +654,6 @@ function PickupBooking() {
                   {errors.pincode.message}
                 </p>
               )}
-            </div>
-            <div className="mb-4">
-              <label className="block text-gray-700 font-semibold mb-2">
-                Country (Destination):
-              </label>
-              <select
-                {...register("country", { required: "Country is required" })}
-                onChange={(e) => {
-                  setValue("country", e.target.value);
-                  setSelectedCountry(e.target.value?.toLowerCase());
-                }}
-                className={`w-full px-3 py-2 border ${
-                  errors.country ? "border-red-500" : "border-gray-300"
-                } rounded-md focus:outline-none focus:border-[#8847D9]`}
-              >
-                <option value="">Select Destination country</option>
-                {countryList.map((country) => (
-                  <option key={country.code} value={country.code}>
-                    {country.name} {country.dial_code}
-                  </option>
-                ))}
-              </select>
             </div>
 
             <div>
