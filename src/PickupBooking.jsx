@@ -62,9 +62,7 @@ function PickupBooking() {
     formState: { errors },
     reset,
   } = useForm({
-    defaultValues: {
-      consigneenumber: "",
-    },
+    defaultValues: {},
   });
   const barcodeRef = useRef(null);
   console.log(errors);
@@ -226,12 +224,28 @@ function PickupBooking() {
       // Sort manually by awbNumber descending (most recent first)
       allDocs.sort((a, b) => b.awbNumber - a.awbNumber);
       const mostRecent = allDocs[0];
-
       return truncateDate(mostRecent.pickupDatetime);
     }
   }
 
   const onSubmit = async (data) => {
+    function removeSpaces(text) {
+      if (typeof text !== "string") {
+        console.warn("Input is not a string. Returning as is.");
+        return text;
+      }
+      return text.replace(/\s/g, "");
+    }
+
+    let consigneephonenumber;
+    if (data.consigneephonenumber) {
+      consigneephonenumber = `${removeSpaces(data.countrycode)}${" "}${
+        data.consigneephonenumber
+      }`;
+    } else {
+      consigneephonenumber = "";
+    }
+
     try {
       if (latitudelongitude == "") {
         seterror("Latitude & Longitude  Is Required!");
@@ -258,13 +272,11 @@ function PickupBooking() {
           }
         });
       }
-
       // Step 2: Increment awbNumber
       const newAwbNumber = maxAwbNumber + 1;
       const uploadedImageURLs = await uploadImages(files, newAwbNumber);
       const isRepeated = await checkRepeatedCustomer(data.Consignornumber);
       const sinceDate = await sinceDatefun(data.Consignornumber); // Output: 08-Apr-2025
-
       await addDoc(pickupsRef, {
         // Consignor Data
         consignorname: data.Consignorname,
@@ -272,7 +284,7 @@ function PickupBooking() {
         consignorlocation: data.Consignorlocation,
         // Consignee Data
         consigneename: data.consigneename,
-        consigneephonenumber: data.consigneenumber,
+        consigneephonenumber: consigneephonenumber,
         consigneelocation: data.consigneelocation,
         content: data.Content,
         longitude: result.longitude,
@@ -314,7 +326,6 @@ function PickupBooking() {
         Source: source,
         City: city,
       });
-
       if (isRepeated == "Not REP") {
         const options = {
           method: "POST",
@@ -344,7 +355,6 @@ function PickupBooking() {
             ],
           },
         };
-
         const response = await axios.post(
           "https://public.doubletick.io/whatsapp/message/template",
           options.data,
@@ -383,7 +393,6 @@ function PickupBooking() {
             ],
           },
         };
-
         const response = await axios.post(
           "https://public.doubletick.io/whatsapp/message/template",
           options.data,
@@ -392,7 +401,6 @@ function PickupBooking() {
           }
         );
       }
-
       setFiles([]);
       setIsSourceFixed(false);
       setsource("");
@@ -401,7 +409,6 @@ function PickupBooking() {
       setTimeout(() => {
         setShowModal(false);
       }, 1000);
-
       // await utility.sendNotification();
       // utility.SuccessNotify("Pickup request submitted successfully.");
     } catch (error) {
@@ -611,7 +618,48 @@ function PickupBooking() {
                     </p>
                   )}
                 </div>
-                <ConsigneePhoneNumberInput control={control} errors={errors} />
+                <div className="flex flex-col">
+                  <label className="block text-gray-700 font-semibold mb-2">
+                    Consignee Phone Number:
+                  </label>
+                  <div className="flex">
+                    <ConsigneePhoneNumberInput
+                      control={control}
+                      errors={errors}
+                      register={register}
+                    />
+                    <div className="w-full">
+                      <input
+                        type="text"
+                        placeholder="Enter number without country code"
+                        {...register("consigneephonenumber", {
+                          pattern: {
+                            value: /^[0-9]+$/,
+                            message: "Only digits are allowed",
+                          },
+                          minLength: {
+                            value: 6,
+                            message: "Must be at least 6 digits",
+                          },
+                          maxLength: {
+                            value: 15,
+                            message: "Must be at most 15 digits",
+                          },
+                        })}
+                        className={`w-[93%] border rounded-md ml-6 pl-2 py-2 ${
+                          errors.consigneephonenumber
+                            ? "border-red-500"
+                            : "border-gray-400"
+                        }`}
+                      />
+                      {errors.consigneephonenumber && (
+                        <p className="text-red-500 ml-6 mt-1 text-sm">
+                          {errors.consigneephonenumber.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
               <div className="mb-4">
                 <label className="block text-gray-700 font-semibold mb-2">
@@ -767,7 +815,7 @@ function PickupBooking() {
               )}
             </div>
             <div className="mb-4">
-              <div className="flex gap-2 items-center mb-3 ">
+              <div className="flex gap-2 items-center ">
                 <label className="block text-gray-700 font-semibold mb-2">
                   Latitude & Longitude
                 </label>

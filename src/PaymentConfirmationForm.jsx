@@ -20,6 +20,7 @@ import Lottie from "lottie-react";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import DB from "./DB/DB";
+import countryList from "./CountryDialCode.json";
 
 function PaymentConfirmationForm() {
   const [costKg, setcostKg] = useState(0);
@@ -112,7 +113,6 @@ function PaymentConfirmationForm() {
     const url = await getDownloadURL(storageRef);
     return url;
   };
-
   const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (file) {
@@ -392,6 +392,9 @@ function PaymentConfirmationForm() {
   }
 
   const onSubmit = async (data) => {
+    const temp = `${data.countrycode}${" "}${data.consigneenumber1}`;
+    let consigneenumber1 = !temp ? details.consigneephonenumber : temp;
+
     if (costKg < 500) {
       setError("costKg", {
         type: "manual",
@@ -449,9 +452,7 @@ function PaymentConfirmationForm() {
         consigneename: !data.consigneename1
           ? details.consigneename
           : data.consigneename1,
-        consigneephonenumber: !data.consigneenumber1
-          ? details.consigneephonenumber
-          : data.consigneenumber1,
+        consigneephonenumber: consigneenumber1,
         consigneelocation: !data.consigneelocation1
           ? details.consigneelocation
           : data.consigneelocation1,
@@ -592,6 +593,15 @@ function PaymentConfirmationForm() {
       utilityFunctions.ErrorNotify("An unexpected error occurred.");
     }
   };
+
+  useEffect(() => {
+    console.log(details?.destination);
+    const country = countryList.find((c) => c.name === details?.destination);
+    console.log("country", country);
+    if (country) {
+      setValue("countrycode", country.dialCode);
+    }
+  }, [details]);
 
   const resetForm = () => {
     setPaymentProof(null);
@@ -801,70 +811,83 @@ function PaymentConfirmationForm() {
           ) : (
             ""
           )}
+          {/* consigneenumber1 */}
           {details.consigneephonenumber == "" ? (
-            <>
-              <div className="mb-4">
-                <label className="block text-gray-700 font-semibold mb-2">
-                  Consignee Phone Number
-                </label>
-                <Controller
-                  name="consigneenumber1"
-                  control={control}
-                  rules={{
-                    required: "Country code and phone number are required",
-                    validate: (value) => {
-                      // if they haven't touched it at all
-                      if (!value) return false;
-
-                      // if they never picked a flag
-                      if (!dialCodeRef.current) {
-                        return "Please select a country code";
-                      }
-
-                      // strip non‑digits, then remove the dialCode length
-                      const digitsOnly = value.replace(/\D/g, "");
-                      const subscriber = digitsOnly.slice(
-                        dialCodeRef.current.length
-                      );
-                      const len = subscriber.length;
-
-                      if (len === 0) return "Please enter a phone number";
-                      if (len < 4) return "Phone number is too short";
-                      if (len > 15) return "Phone number is too long";
-
-                      return true;
-                    },
-                  }}
-                  render={({ field }) => (
-                    <PhoneInput
-                      enableSearch
-                      placeholder="Enter phone number"
-                      value={field.value}
-                      onChange={(value, data) => {
-                        dialCodeRef.current = data.dialCode; // store the code
-                        field.onChange(value);
-                      }}
-                      inputStyle={{
-                        width: "100%",
-                        padding: "12px 48px",
-                        borderColor: errors.consigneenumber1
-                          ? "#f87171"
-                          : "#d1d5db",
-                        borderRadius: "0.375rem",
-                        fontSize: "1rem",
-                      }}
-                      containerStyle={{ width: "100%" }}
-                      specialLabel=""
-                    />
+            <div className="flex flex-col">
+              <label className="block text-gray-700 font-semibold mb-2">
+                Consignee Phone Number
+              </label>
+              <div className="flex flex-row">
+                <div className="mb-4">
+                  <Controller
+                    name="countrycode"
+                    control={control}
+                    render={({ field }) => (
+                      <PhoneInput
+                        enableSearch
+                        value={field.value}
+                        onChange={(value) => field.onChange(value)}
+                        inputStyle={{
+                          width: "108px",
+                          height: "42px",
+                          borderColor: errors.countrycode
+                            ? "#f87171"
+                            : "#d1d5db",
+                          borderRadius: "0.375rem",
+                          fontSize: "1rem",
+                        }}
+                        inputProps={{
+                          readOnly: true,
+                          disabled: true,
+                        }}
+                        buttonStyle={{
+                          pointerEvents: "none", // disables flag click
+                          backgroundColor: "#f3f4f6",
+                          cursor: "not-allowed",
+                        }}
+                        specialLabel=""
+                      />
+                    )}
+                  />
+                  {errors.countrycode && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.countrycode.message}
+                    </p>
                   )}
-                />
-                {errors.consigneenumber1 && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.consigneenumber1.message}
-                  </p>
-                )}
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Enter number without country code"
+                    {...register("consigneenumber1", {
+                      required: "Enter consignee phone number",
+                      pattern: {
+                        value: /^[0-9]+$/,
+                        message: "Only digits are allowed",
+                      },
+                      minLength: {
+                        value: 6,
+                        message: "Must be at least 6 digits",
+                      },
+                      maxLength: {
+                        value: 15,
+                        message: "Must be at most 15 digits",
+                      },
+                    })}
+                    className={`w-full border rounded-md ml-6 pl-2 py-2 ${
+                      errors.consigneenumber1
+                        ? "border-red-500"
+                        : "border-gray-400"
+                    }`}
+                  />
+                  {errors.consigneenumber1 && (
+                    <p className="text-red-500 ml-6 mt-1 text-sm">
+                      {errors.consigneenumber1.message}
+                    </p>
+                  )}
+                </div>
               </div>
-            </>
+            </div>
           ) : (
             ""
           )}

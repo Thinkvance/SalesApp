@@ -40,7 +40,7 @@ function SalesReport() {
   const [GrowthPercentage, setGrowthPercentage] = useState("");
   const [filterOption, setFilterOption] = useState("this_month");
   const [customRange, setCustomRange] = useState({ from: "", to: "" });
-  const [selectedChart, setselectedChart] = useState("Chart For SE");
+  const [selectedChart, setselectedChart] = useState("Sales Executive Chart");
   const [selectedBookedBy, setSelectedBookedBy] = useState("All");
   const [SelectedCity, setSelectedCity] = useState("All");
   const [selectedSource, setselectedSource] = useState("All");
@@ -399,15 +399,17 @@ function SalesReport() {
           </div>
           <div className="w-fit col-span-1 md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Change By Chart
+              Select Chart Type
             </label>
             <select
               value={selectedChart}
               onChange={(e) => setselectedChart(e.target.value)}
               className="border rounded  input-style w-full"
             >
-              <option value="Chart For SE">Chart For SE</option>
-              <option value="Chart For City">Chart for City</option>
+              <option value="Sales Executive Chart">
+                Sales Executive Chart
+              </option>
+              <option value="City-wise Chart">City-wise Chart</option>
             </select>
           </div>
           {filterOption === "select_range" && (
@@ -453,7 +455,6 @@ function SalesReport() {
               </h2>
               <p className="text-2xl font-bold text-purple-900">{totalSales}</p>
             </div>
-
             <div className="bg-green-50 border border-green-200 rounded-xl p-6 shadow-md">
               <h2 className="text-lg font-semibold text-green-800 mb-2">
                 Total Logistic Cost
@@ -462,7 +463,6 @@ function SalesReport() {
                 {totalLogisticsCost}
               </p>
             </div>
-
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 shadow-md">
               <h2 className="text-lg font-semibold text-blue-800 mb-2">
                 Discounts Applied
@@ -471,7 +471,6 @@ function SalesReport() {
                 {totalDiscount}
               </p>
             </div>
-
             <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 shadow-md min-w-[200px] max-w-sm">
               <h2 className="text-lg font-semibold text-yellow-800 mb-2">
                 Growth
@@ -499,19 +498,17 @@ function SalesReport() {
               </p>
             </div>
           </div>
-
           {/* Bar Chart Section */}
           <div className="w-full sm:flex-1 bg-white border border-gray-200 rounded-xl p-4 shadow-md">
-            {selectedChart == "Chart For SE" ? (
+            {selectedChart == "Sales Executive Chart" ? (
               <SalesReportBarChart pickups={filteredPickups} />
-            ) : selectedChart == "Chart For City" ? (
+            ) : selectedChart == "City-wise Chart" ? (
               <SalesReportBarChartCity pickups={filteredPickups} />
             ) : (
               ""
             )}
           </div>
         </div>
-
         <div className="overflow-auto border scrollbar-hide">
           <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow overflow-hidden">
             <thead className="bg-purple-600 text-white sticky top-0">
