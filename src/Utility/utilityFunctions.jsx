@@ -149,6 +149,7 @@ async function fetchData(DateRange, startendrange) {
         : item.pickupDatetime.seconds >= startendrange?.start?.seconds &&
           item.pickupDatetime.seconds <= startendrange?.end?.seconds
     );
+
     return filteredData;
   } catch (error) {
     console.error("Error fetching pickup data:", error);
@@ -157,8 +158,6 @@ async function fetchData(DateRange, startendrange) {
 }
 
 async function getRevenue(DateRange, startendrange) {
-  console.log(DateRange);
-  console.log(startendrange);
   var Revenue = 0;
   await fetchData(DateRange, startendrange).then((d) => {
     d?.map((value) => {
@@ -773,18 +772,32 @@ function getEstimatedDate(packageConnectedDataTime, service) {
 async function growth() {
   const today = new Date();
 
-  // Current month date range
+  // Current month date range (start of month to today)
   const currentStartDate = new Date(today.getFullYear(), today.getMonth(), 1);
-  const currentEndDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  const currentEndDate = today; // Today's date
 
-  // Previous month date range
+  // Previous month date range (start of last month to the corresponding day of last month)
   const previousStartDate = new Date(
     today.getFullYear(),
     today.getMonth() - 1,
     1
   );
 
-  const previousEndDate = new Date(today.getFullYear(), today.getMonth(), 0);
+  // Calculate the corresponding day in the previous month
+  const previousEndDate = new Date(
+    today.getFullYear(),
+    today.getMonth() - 1,
+    today.getDate()
+  );
+
+  // Handle cases where today's date in the previous month might not exist (e.g., May 31st for April)
+  // If the calculated previousEndDate's month is not the previous month, set it to the last day of the previous month.
+  if (
+    previousEndDate.getMonth() !==
+    (today.getMonth() === 0 ? 11 : today.getMonth() - 1)
+  ) {
+    previousEndDate.setDate(0); // This sets it to the last day of the *previous* month
+  }
 
   const formatDate = (date) =>
     `${String(date.getDate()).padStart(2, "0")}-${String(
@@ -808,10 +821,6 @@ async function growth() {
           ((currentMonthSales - previousMonthSales) / previousMonthSales) *
           100
         ).toFixed(1);
-
-  console.log("currentMonthSales", currentMonthSales);
-  console.log("previousMonthSales", previousMonthSales);
-  console.log("growthPercentage", growthPercentage);
 
   return growthPercentage;
 }

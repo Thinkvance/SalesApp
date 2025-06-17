@@ -139,9 +139,10 @@ function Pickups() {
 
   const handleSave = async (value) => {
     setLoadingEdit(true);
+
     try {
       const q = query(
-        collection(db, "pickuptestdata"),
+        collection(db, "pickup"),
         where("awbNumber", "==", value.awbNumber)
       );
       const querySnapshot = await getDocs(q);

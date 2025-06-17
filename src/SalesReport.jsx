@@ -2,15 +2,7 @@ import { useEffect, useState } from "react";
 import positive_lottie from "./assets/positive_lottie.json"; // Replace with your animation JSON path
 import negative_lottie from "./assets/negative_lottie.json"; // Replace with your animation JSON path
 import Nav from "./Nav";
-import {
-  collection,
-  query,
-  onSnapshot,
-  where,
-  getDocs,
-  updateDoc,
-  doc,
-} from "firebase/firestore";
+import { collection, query, onSnapshot, where } from "firebase/firestore";
 import { db } from "./firebase";
 import collectionName_BaseAwb from "./functions/collectionName";
 import utilityFunctions from "./Utility/utilityFunctions";
@@ -22,6 +14,7 @@ import DB from "./DB/DB";
 import ShipmentDetails from "./ShipmentDetails";
 import SalesReportBarChart from "./Charts/SalesReportBarChart";
 import Lottie from "lottie-react";
+import salesreport from "./Utility/salesreport";
 
 dayjs.extend(customParseFormat);
 dayjs.extend(isBetween);
@@ -44,11 +37,20 @@ function SalesReport() {
   const [selectedBookedBy, setSelectedBookedBy] = useState("All");
   const [SelectedCity, setSelectedCity] = useState("All");
   const [selectedSource, setselectedSource] = useState("All");
-
   const [isModalOpen, setIsModalOpen] = useState(false); // State to control modal visibility
   const [selectedPickup, setSelectedPickup] = useState(null); // State to hold the selected pickup for modal
-
   const [pickupPersons, setPickupPersons] = useState([""]);
+
+  useEffect(() => {
+    salesreport
+      .growth()
+      .then((d) => {
+        console.log("Growth", d);
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
@@ -72,8 +74,6 @@ function SalesReport() {
     return () => unsubscribe();
   }, []);
 
-  console.log("pickupPersons", pickupPersons);
-
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedPickup(null); // Reset selected pickup when modal is closed
@@ -89,52 +89,6 @@ function SalesReport() {
     setUsername(storedUser?.name || "");
     setRole(storedUser?.role || "");
   }, []);
-
-  const handleBlur = async (pickupId, awbNumber, newVendorPayment) => {
-    if (newVendorPayment > 0) {
-      try {
-        const q = query(
-          collection(db, DB.db_collection),
-          where("awbNumber", "==", awbNumber)
-        );
-        const querySnapshot = await getDocs(q);
-        const updates = [];
-
-        querySnapshot.forEach((docSnap) => {
-          const data = docSnap.data();
-          const docRef = doc(db, DB.db_collection, docSnap.id);
-
-          if (data.vendorpayment !== newVendorPayment) {
-            const logisticCost = parseFloat(data.logisticCost) || 0;
-            const margin = Math.round(logisticCost - newVendorPayment);
-
-            updates.push(
-              updateDoc(docRef, {
-                vendorpayment: newVendorPayment,
-                margin: margin,
-              })
-            );
-
-            setPickups((prevPickups) =>
-              prevPickups.map((pickup) =>
-                pickup.id === pickupId
-                  ? {
-                      ...pickup,
-                      vendorpayment: newVendorPayment,
-                      margin: margin,
-                    }
-                  : pickup
-              )
-            );
-          }
-        });
-
-        await Promise.all(updates);
-      } catch (error) {
-        utilityFunctions.ErrorNotify("Error updating Firestore");
-      }
-    }
-  };
 
   const parseDate = (datetime) => {
     if (!datetime) return 0;
@@ -282,7 +236,6 @@ function SalesReport() {
   });
 
   const totalSales = filteredPickups.length;
-
   const totalLogisticsCost = filteredPickups.reduce(
     (sum, pickup) => sum + (pickup.logisticCost || 0),
     0
@@ -293,26 +246,10 @@ function SalesReport() {
     0
   );
 
-  const salesData = Object.values(
-    filteredPickups.reduce((acc, curr) => {
-      const name = curr.pickupBookedBy;
-      const margin = parseFloat(curr.margin);
-      const safeMargin = isNaN(margin) ? 0 : margin;
-
-      if (!acc[name]) {
-        acc[name] = { name, totalMargin: 0, color: "#9333ea" };
-      }
-      acc[name].totalMargin += safeMargin;
-      return acc;
-    }, {})
-  );
-
   useEffect(() => {
     async function getData() {
       try {
-        const [growthPercentage] = await Promise.all([
-          utilityFunctions.growth(),
-        ]);
+        const [growthPercentage] = await Promise.all([salesreport.growth()]);
         setGrowthPercentage(growthPercentage);
       } catch (error) {
         utilityFunctions.ErrorNotify("Data fetch failed. Please try again.");
@@ -494,7 +431,7 @@ function SalesReport() {
                 )}
               </p>
               <p className="text-sm text-yellow-700 mt-1">
-                Compared to last month
+                Compared to the same day last month
               </p>
             </div>
           </div>
