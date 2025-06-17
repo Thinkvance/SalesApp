@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import Nav from "./Nav";
 
 // Star rating component (for reusability)
@@ -23,26 +23,33 @@ function ReviewDashboard() {
       { star: 2, count: 200, color: "bg-orange-400" },
       { star: 1, count: 0, color: "bg-blue-400" },
     ],
+    reviews: [
+      {
+        name: "Towhidur Rahman",
+        PickupBookedBy: "mouli",
+        pickupExecutive: "sathish",
+        LogisticCost: "1000",
+        Tshirt: "Yes",
+        OnTime: "No",
+        rating: 2,
+        date: "24-10-2022",
+        comment:
+          "My first and only mala ordered on Etsy, and I'm beyond delighted! I requested a custom mala based on two stones I was called to invite together in this kind of creation. The fun and genuine joy.",
+      },
+      {
+        name: "Ayesha Siddique",
+        PickupBookedBy: "sana",
+        pickupExecutive: "sathish",
+        LogisticCost: "2000",
+        Tshirt: "No",
+        OnTime: "No",
+        rating: 2,
+        date: "12-08-2022",
+        comment:
+          "Superb service and prompt delivery. Loved the packaging and the behavior of the delivery team was professional.",
+      },
+    ],
   });
-
-  const [reviews, setReviews] = useState([
-    {
-      name: "Towhidur Rahman",
-      cost: "$200",
-      rating: 2,
-      date: "24-10-2022",
-      comment:
-        "My first and only mala ordered on Etsy, and I'm beyond delighted! I requested a custom mala based on two stones I was called to invite together in this kind of creation. The fun and genuine joy.",
-    },
-    {
-      name: "Ayesha Siddique",
-      cost: "$150",
-      rating: 5,
-      date: "12-08-2022",
-      comment:
-        "Superb service and prompt delivery. Loved the packaging and the behavior of the delivery team was professional.",
-    },
-  ]);
 
   const totalRatingCount = stats.ratingDistribution.reduce(
     (sum, r) => sum + r.count,
@@ -57,9 +64,6 @@ function ReviewDashboard() {
         {/* Top Header */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-purple-800">Reviews</h1>
-          <button className="px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium hover:bg-gray-50">
-            March 2021 - February 2022
-          </button>
         </div>
 
         {/* Stats Section */}
@@ -113,26 +117,66 @@ function ReviewDashboard() {
 
         {/* Reviews List */}
         <div className="space-y-6">
-          {reviews.map((review, idx) => (
-            <div key={idx} className="bg-white rounded-xl border p-6 shadow-sm">
-              <div className="grid grid-cols-1 md:grid-cols-12 mb-3">
-                <div className="md:col-span-3">
-                  <h3 className="text-lg font-bold text-purple-600">
+          {stats?.reviews?.map((review, idx) => (
+            <div
+              key={idx}
+              className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm mb-4"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                {/* Info Section */}
+                <div className="md:col-span-4 md:border-r-2 md:pr-4">
+                  <h3 className="text-xl font-bold text-purple-700 mb-4">
                     {review.name}
                   </h3>
-                  <p className="text-sm text-purple-600 mt-1 font-bold">
-                    Total Logistics Cost:{" "}
-                    <span className="font-medium text-gray-600">
-                      {review.cost}
-                    </span>
-                  </p>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">
+                        Total Logistics Cost
+                      </span>
+                      <span className="text-purple-600 font-semibold">
+                        Rs {review.LogisticCost}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">
+                        Pickup Booked By
+                      </span>
+                      <span className="text-purple-600 font-semibold">
+                        {review.PickupBookedBy}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">
+                        Pickup Executive
+                      </span>
+                      <span className="text-purple-600 font-semibold">
+                        {review.pickupExecutive}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">T-shirt</span>
+                      <span className="text-purple-600 font-semibold">
+                        {review.Tshirt}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">
+                        On Time ?
+                      </span>
+                      <span className="text-purple-600 font-semibold">
+                        {review.OnTime}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="md:col-span-9">
+
+                {/* Review Section */}
+                <div className="md:col-span-8 flex flex-col">
                   <div className="flex justify-between items-start">
                     <StarRating value={review.rating} />
-                    <div className="text-sm text-gray-500">{review.date}</div>
+                    <span className="text-sm text-gray-400">{review.date}</span>
                   </div>
-                  <p className="text-gray-700 text-sm leading-relaxed mt-2">
+                  <p className="mt-4 text-gray-700 text-sm leading-relaxed">
                     {review.comment}
                   </p>
                 </div>
