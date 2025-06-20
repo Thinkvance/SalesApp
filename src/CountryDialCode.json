@@ -1,11 +1,27 @@
 [
-  { "code": "AD", "name": "Andorra", "dialCode": "+376", "flag": "🇦🇩" },
   {
-    "code": "AE",
+    "code": "US",
+    "name": "USA",
+    "dialCode": "+1",
+    "flag": "🇺🇸"
+  },
+  { "code": "GB", "name": "United Kingdom", "dialCode": "+44", "flag": "GB" },
+  { "code": "CA", "name": "Canada", "dialCode": "+1", "flag": "🇨🇦" },
+  { "code": "EU", "name": "Singapore", "dialCode": "+65", "flag": "EU" },
+  {
+    "code": "UAE",
     "name": "United Arab Emirates",
     "dialCode": "+971",
-    "flag": "🇦🇪"
+    "flag": "UAE"
   },
+  { "code": "MY", "name": "Malaysia", "dialCode": "+60", "flag": "🇲🇾" },
+  { "code": "AU", "name": "Australia", "dialCode": "+61", "flag": "🇦🇺" },
+  { "code": "NZ", "name": "New Zealand", "dialCode": "+64", "flag": "🇳🇿" },
+  { "code": "CN", "name": "China", "dialCode": "+86", "flag": "🇨🇳" },
+  { "code": "DE", "name": "Germany", "dialCode": "+49", "flag": "🇩🇪" },
+  { "code": "FR", "name": "France", "dialCode": "+33", "flag": "🇫🇷" },
+
+  { "code": "AD", "name": "Andorra", "dialCode": "+376", "flag": "🇦🇩" },
   { "code": "AF", "name": "Afghanistan", "dialCode": "+93", "flag": "🇦🇫" },
   {
     "code": "AG",
@@ -26,7 +42,6 @@
     "flag": "🇦🇸"
   },
   { "code": "AT", "name": "Austria", "dialCode": "+43", "flag": "🇦🇹" },
-  { "code": "AU", "name": "Australia", "dialCode": "+61", "flag": "🇦🇺" },
   { "code": "AW", "name": "Aruba", "dialCode": "+297", "flag": "🇦🇼" },
   { "code": "AX", "name": "Åland Islands", "dialCode": "+358", "flag": "🇦🇽" },
   { "code": "AZ", "name": "Azerbaijan", "dialCode": "+994", "flag": "🇦🇿" },
@@ -76,7 +91,6 @@
   { "code": "BW", "name": "Botswana", "dialCode": "+267", "flag": "🇧🇼" },
   { "code": "BY", "name": "Belarus", "dialCode": "+375", "flag": "🇧🇾" },
   { "code": "BZ", "name": "Belize", "dialCode": "+501", "flag": "🇧🇿" },
-  { "code": "CA", "name": "Canada", "dialCode": "+1", "flag": "🇨🇦" },
   {
     "code": "CC",
     "name": "Cocos (Keeling) Islands",
@@ -101,7 +115,6 @@
   { "code": "CK", "name": "Cook Islands", "dialCode": "+682", "flag": "🇨🇰" },
   { "code": "CL", "name": "Chile", "dialCode": "+56", "flag": "🇨🇱" },
   { "code": "CM", "name": "Cameroon", "dialCode": "+237", "flag": "🇨🇲" },
-  { "code": "CN", "name": "China", "dialCode": "+86", "flag": "🇨🇳" },
   { "code": "CO", "name": "Colombia", "dialCode": "+57", "flag": "🇨🇴" },
   { "code": "CR", "name": "Costa Rica", "dialCode": "+506", "flag": "🇨🇷" },
   { "code": "CU", "name": "Cuba", "dialCode": "+53", "flag": "🇨🇺" },
@@ -110,7 +123,6 @@
   { "code": "CX", "name": "Christmas Island", "dialCode": "+61", "flag": "🇨🇽" },
   { "code": "CY", "name": "Cyprus", "dialCode": "+357", "flag": "🇨🇾" },
   { "code": "CZ", "name": "Czechia", "dialCode": "+420", "flag": "🇨🇿" },
-  { "code": "DE", "name": "Germany", "dialCode": "+49", "flag": "🇩🇪" },
   { "code": "DJ", "name": "Djibouti", "dialCode": "+253", "flag": "🇩🇯" },
   { "code": "DK", "name": "Denmark", "dialCode": "+45", "flag": "🇩🇰" },
   { "code": "DM", "name": "Dominica", "dialCode": "+1 767", "flag": "🇩🇲" },
@@ -143,7 +155,6 @@
     "flag": "🇫🇲"
   },
   { "code": "FO", "name": "Faroe Islands", "dialCode": "+298", "flag": "🇫🇴" },
-  { "code": "FR", "name": "France", "dialCode": "+33", "flag": "🇫🇷" },
   { "code": "GA", "name": "Gabon", "dialCode": "+241", "flag": "🇬🇦" },
   {
     "code": "GB",
@@ -301,7 +312,6 @@
   { "code": "MV", "name": "Maldives", "dialCode": "+960", "flag": "🇲🇻" },
   { "code": "MW", "name": "Malawi", "dialCode": "+265", "flag": "🇲🇼" },
   { "code": "MX", "name": "Mexico", "dialCode": "+52", "flag": "🇲🇽" },
-  { "code": "MY", "name": "Malaysia", "dialCode": "+60", "flag": "🇲🇾" },
   { "code": "MZ", "name": "Mozambique", "dialCode": "+258", "flag": "🇲🇿" },
   { "code": "NA", "name": "Namibia", "dialCode": "+264", "flag": "🇳🇦" },
   { "code": "NC", "name": "New Caledonia", "dialCode": "+687", "flag": "🇳🇨" },
@@ -314,7 +324,6 @@
   { "code": "NP", "name": "Nepal", "dialCode": "+977", "flag": "🇳🇵" },
   { "code": "NR", "name": "Nauru", "dialCode": "+674", "flag": "🇳🇷" },
   { "code": "NU", "name": "Niue", "dialCode": "+683", "flag": "🇳🇺" },
-  { "code": "NZ", "name": "New Zealand", "dialCode": "+64", "flag": "🇳🇿" },
   { "code": "OM", "name": "Oman", "dialCode": "+968", "flag": "🇴🇲" },
   { "code": "PA", "name": "Panama", "dialCode": "+507", "flag": "🇵🇦" },
   { "code": "PE", "name": "Peru", "dialCode": "+51", "flag": "🇵🇪" },
@@ -366,7 +375,6 @@
   { "code": "SC", "name": "Seychelles", "dialCode": "+248", "flag": "🇸🇨" },
   { "code": "SD", "name": "Sudan", "dialCode": "+249", "flag": "🇸🇩" },
   { "code": "SE", "name": "Sweden", "dialCode": "+46", "flag": "🇸🇪" },
-  { "code": "SG", "name": "Singapore", "dialCode": "+65", "flag": "🇸🇬" },
   {
     "code": "SH",
     "name": "Saint Helena, Ascension and Tristan da Cunha",
@@ -456,12 +464,7 @@
     "dialCode": "+1",
     "flag": "🇺🇲"
   },
-  {
-    "code": "US",
-    "name": "United States of America",
-    "dialCode": "+1",
-    "flag": "🇺🇸"
-  },
+
   { "code": "UY", "name": "Uruguay", "dialCode": "+598", "flag": "🇺🇾" },
   { "code": "UZ", "name": "Uzbekistan", "dialCode": "+998", "flag": "🇺🇿" },
   { "code": "VA", "name": "Holy See", "dialCode": "+379", "flag": "🇻🇦" },
