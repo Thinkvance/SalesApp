@@ -4,7 +4,14 @@ import { getData } from "country-list";
 import Nav from "./Nav";
 import { db, storage } from "./firebase";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
-import { addDoc, collection, getDocs, query, where } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  getDocs,
+  onSnapshot,
+  query,
+  where,
+} from "firebase/firestore";
 import axios from "axios";
 import collectionName_baseAwb from "./functions/collectionName";
 import utility from "./Utility/utilityFunctions";
@@ -43,6 +50,7 @@ function PickupBooking() {
   ]);
   const [city, setcity] = useState("");
   const [source, setsource] = useState("Select");
+  const [newAwbNumber, setnewAwbNumber] = useState();
 
   function splitLati_Logi(value) {
     const [lat, long] = value.split(",").map(Number);
@@ -53,12 +61,14 @@ function PickupBooking() {
   }
 
   useEffect(() => {
-    async function fetchData() {
-      const pickupsRef = collection(db, DB.db_collection);
-      const snapshot = await getDocs(pickupsRef);
-      let maxAwbNumber = collectionName_baseAwb.getFranchiseBasedAWb("CHENNAI"); // Initialize to 0
-      // testing
-      if (!snapshot.empty) {
+    const pickupsRef = collection(db, DB.db_collection);
+    let unsubscribe = null;
+
+    function subscribeToPickups() {
+      unsubscribe = onSnapshot(pickupsRef, (snapshot) => {
+        let maxAwbNumber =
+          collectionName_baseAwb.getFranchiseBasedAWb("CHENNAI");
+
         snapshot.forEach((doc) => {
           const pickupData = doc.data();
           if (pickupData.awbNumber) {
@@ -68,10 +78,18 @@ function PickupBooking() {
             );
           }
         });
-      }
-      console.log("maxAwbNumber", maxAwbNumber);
+
+        setnewAwbNumber(maxAwbNumber + 1);
+      });
     }
-    fetchData();
+
+    subscribeToPickups();
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe(); // Clean up the listener on unmount
+      }
+    };
   }, []);
 
   const {
@@ -502,9 +520,20 @@ function PickupBooking() {
           <h2 className="text-xl font-bold text-center mb-6 text-gray-800">
             Submit Pickup Details
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            {/* Consignee */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
             <div>
+              <div className="mb-4">
+                <label className="block text-gray-700 font-semibold mb-2">
+                  AWB Number:
+                </label>
+                <input
+                  type="text"
+                  value={newAwbNumber}
+                  placeholder="AWB Number"
+                  readOnly
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#8847D9]`}
+                />
+              </div>
               <div className="mb-4">
                 <label className="block text-gray-700 font-semibold mb-2">
                   Consignor Name:
@@ -698,291 +727,299 @@ function PickupBooking() {
                 )}
               </div>
             </div>
-
-            <div className="mb-4">
-              <label className="block text-gray-700 font-semibold mb-2">
-                Pickup Pincode:
-              </label>
-              <input
-                type="text"
-                placeholder="E.g. 560001 (6-digit pincode)"
-                {...register("pincode", { required: "Pincode is required" })}
-                className={`w-full px-3 py-2 border ${
-                  errors.pincode ? "border-red-500" : "border-gray-300"
-                } rounded-md focus:outline-none focus:border-[#8847D9]`}
-              />
-              {errors.pincode && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.pincode.message}
-                </p>
-              )}
+          </div>
+          <div>
+            <div className="grid grid-cols-3">
+              <div className="mb-4">
+                <label className="block text-gray-700 font-semibold mb-2">
+                  Pickup Pincode:
+                </label>
+                <input
+                  type="text"
+                  placeholder="E.g. 560001 (6-digits)"
+                  {...register("pincode", { required: "Pincode is required" })}
+                  className={`w-fit px-3 py-2 border ${
+                    errors.pincode ? "border-red-500" : "border-gray-300"
+                  } rounded-md focus:outline-none focus:border-[#8847D9]`}
+                />
+                {errors.pincode && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.pincode.message}
+                  </p>
+                )}
+              </div>
+              <div>
+                <p className="text-gray-700 font-semibold mb-2">City</p>
+                <select
+                  {...register("city", { required: "City is required" })}
+                  value={city} // Ensure correct value
+                  className="px-3 py-2 border rounded-md focus:outline-none focus:border-[#8847D9]"
+                  onChange={(e) => setcity(e.target.value)}
+                >
+                  <option value="">Select</option>
+                  {["Chennai", "Pondy", "Coimbatore", "Others"]?.map(
+                    (option, index) => (
+                      <option key={index} value={option}>
+                        {option}
+                      </option>
+                    )
+                  )}
+                </select>
+                {errors.city && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.city.message}
+                  </p>
+                )}
+              </div>
+              <div className="mb-4">
+                <label className="block text-gray-700 font-semibold mb-2">
+                  Pickup Area:
+                </label>
+                <input
+                  type="text"
+                  placeholder="E.g. Guindy, T. Nagar"
+                  {...register("pickuparea", {
+                    required: "Pickup area is required",
+                  })}
+                  className={`w-full px-3 py-2 border ${
+                    errors.pickuparea ? "border-red-500" : "border-gray-300"
+                  } rounded-md focus:outline-none focus:border-[#8847D9]`}
+                />
+                {errors.pickuparea && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.pickuparea.message}
+                  </p>
+                )}
+              </div>
             </div>
-
-            <div>
-              <p className="text-gray-700 font-semibold mb-2">City</p>
-              <select
-                {...register("city", { required: "City is required" })}
-                value={city} // Ensure correct value
-                className="w-1/2 px-3 py-2 border rounded-md focus:outline-none focus:border-[#8847D9]"
-                onChange={(e) => setcity(e.target.value)}
-              >
-                <option value="">Select</option>
-                {["Chennai", "Pondy", "Coimbatore", "Others"]?.map(
-                  (option, index) => (
+            <div className="grid grid-cols-3">
+              <div>
+                <p className="text-gray-700 font-semibold mb-2">Source</p>
+                <select
+                  {...register("source", { required: "Source is required" })}
+                  value={source} // Ensure correct value
+                  disabled={isSourceFixed} // Disable if auto-populated
+                  className={`px-3 py-2 border rounded-md focus:outline-none ${
+                    isSourceFixed
+                      ? "bg-gray-200 cursor-not-allowed"
+                      : "focus:border-[#8847D9]"
+                  }`}
+                  onChange={(e) => setsource(e.target.value)}
+                >
+                  <option value="">Select</option>
+                  {sourceOptions?.map((option, index) => (
                     <option key={index} value={option}>
                       {option}
                     </option>
-                  )
+                  ))}
+                </select>
+                {errors.source && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.source.message}
+                  </p>
                 )}
-              </select>
-              {errors.city && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.city.message}
-                </p>
-              )}
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-gray-700 font-semibold mb-2">
-                Pickup Area:
-              </label>
-              <input
-                type="text"
-                placeholder="E.g. Guindy, T. Nagar"
-                {...register("pickuparea", {
-                  required: "Pickup area is required",
-                })}
-                className={`w-full px-3 py-2 border ${
-                  errors.pickuparea ? "border-red-500" : "border-gray-300"
-                } rounded-md focus:outline-none focus:border-[#8847D9]`}
-              />
-              {errors.pickuparea && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.pickuparea.message}
-                </p>
-              )}
-            </div>
-            <div className="mb-6">
-              <label className="block text-gray-700 font-semibold mb-2">
-                Weight (approx):
-              </label>
-              <input
-                type="number"
-                placeholder="E.g. 25 (without units like kg, lbs)"
-                {...register("weight", {
-                  required: "Weight is required",
-                  valueAsNumber: true,
-                })}
-                className={`w-full px-3 py-2 border ${
-                  errors.weight ? "border-red-500" : "border-gray-300"
-                } rounded-md focus:outline-none focus:border-[#8847D9]`}
-              />
-              {errors.weight && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.weight.message}
-                </p>
-              )}
-            </div>
-            <div className="mb-6">
-              <label className="block text-gray-700 font-semibold mb-2">
-                Content (Products):
-              </label>
-              <input
-                type="text"
-                placeholder="E.g. Garments, Groceries, Handicrafts"
-                {...register("Content", {
-                  required: "list of products is required",
-                })}
-                className={`w-full px-3 py-2 border ${
-                  errors.Content ? "border-red-500" : "border-gray-300"
-                } rounded-md focus:outline-none focus:border-[#8847D9]`}
-              />
-              {errors.Content && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.Content.message}
-                </p>
-              )}
-            </div>
-            <div className="mb-4">
-              <label className="block text-gray-700 font-semibold mb-2">
-                Vendor:
-              </label>
-              <select
-                {...register("vendor", { required: "Vendor is required" })}
-                className={`w-full px-3 py-2 border ${
-                  errors.vendor ? "border-red-500" : "border-gray-300"
-                } rounded-md focus:outline-none focus:border-[#8847D9]`}
-              >
-                <option value="">Select a vendor</option>
-                <option value="DHL">DHL</option>
-                <option value="Aramex">ARAMEX</option>
-                <option value="UPS">UPS</option>
-                <option value="FedEx">FedEx</option>
-                <option value="DESK SELF">DESK SELF</option>
-                <option value="BOMBINO">BOMBINO</option>
-                <option value="ATLANTIC">ATLANTIC</option>
-              </select>
-              {errors.vendor && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.vendor.message}
-                </p>
-              )}
-            </div>
-            <div className="mb-4">
-              <div className="flex gap-2 items-center ">
+              </div>
+              <div>
+                <p className="text-gray-700 font-semibold mb-2">Service</p>
+                <select
+                  className="px-3 py-2 border rounded-md focus:outline-none focus:border-[#8847D9]"
+                  {...register("service", {
+                    required: "Service is required",
+                  })}
+                  onChange={(e) => {
+                    setservice(e.target.value);
+                  }}
+                >
+                  <option value="">Select</option>
+                  <option value="Express">Express</option>
+                  <option value="Economy">Economy</option>
+                  <option value="Duty Free">Duty Free</option>
+                </select>
+                {errors.service && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.service.message}
+                  </p>
+                )}
+              </div>
+              <div className="mb-6">
                 <label className="block text-gray-700 font-semibold mb-2">
-                  Latitude & Longitude
+                  Weight (approx):
                 </label>
-                {latitudelongitude ? (
-                  <div
-                    onClick={() => openMap()}
-                    className="px-3 py-1 rounded-sm text-white bg-red-500 cursor-pointer"
-                  >
-                    Check
-                  </div>
-                ) : (
-                  ""
+                <input
+                  type="number"
+                  placeholder="E.g. 25 (without units like kg, lbs)"
+                  {...register("weight", {
+                    required: "Weight is required",
+                    valueAsNumber: true,
+                  })}
+                  className={`w-full px-3 py-2 border ${
+                    errors.weight ? "border-red-500" : "border-gray-300"
+                  } rounded-md focus:outline-none focus:border-[#8847D9]`}
+                />
+                {errors.weight && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.weight.message}
+                  </p>
                 )}
               </div>
-              <input
-                type="text"
-                placeholder="E.g. 11.00000 , 12.00000"
-                className={`w-full px-3 py-2 border "border-gray-300 rounded-md focus:outline-none focus:border-[#8847D9]`}
-                onChange={(e) => setlatitudelongitude(e.target.value)}
-              />
-              {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
             </div>
-            <div className="mb-4">
-              <label className="block text-gray-700 font-semibold mb-2">
-                Pickup Date:
-              </label>
-              <input
-                type="date"
-                {...register("pickupDate", {
-                  required: "Pickup date is required",
-                })}
-                className={`w-full px-3 py-2 border ${
-                  errors.pickupDate ? "border-red-500" : "border-gray-300"
-                } rounded-md focus:outline-none focus:border-[#8847D9]`}
-              />
-              {errors.pickupDate && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.pickupDate.message}
-                </p>
-              )}
-            </div>
-            <div className="mb-4">
-              <label className="block text-gray-700 font-semibold mb-2">
-                Pickup Time:
-              </label>
-              <div className="flex space-x-2">
+            <div className="grid grid-cols-3">
+              <div className="mb-4">
+                <label className="block text-gray-700 font-semibold mb-2">
+                  Vendor:
+                </label>
                 <select
-                  {...register("pickupHour", {
-                    required: "Pickup hour is required",
-                  })}
-                  className={`w-1/2 px-3 py-2 border ${
-                    errors.pickupHour ? "border-red-500" : "border-gray-300"
+                  {...register("vendor", { required: "Vendor is required" })}
+                  className={`w-fit px-3 py-2 border ${
+                    errors.vendor ? "border-red-500" : "border-gray-300"
                   } rounded-md focus:outline-none focus:border-[#8847D9]`}
                 >
-                  <option value="">Select Hour</option>
-                  {[...Array(12).keys()].flatMap((hour) => [
-                    <option key={`${hour + 1}:00`} value={`${hour + 1}:00`}>
-                      {hour + 1}:00
-                    </option>,
-                    <option key={`${hour + 1}:30`} value={`${hour + 1}:30`}>
-                      {hour + 1}:30
-                    </option>,
-                  ])}
+                  <option value="">Select a vendor</option>
+                  <option value="DHL">DHL</option>
+                  <option value="Aramex">ARAMEX</option>
+                  <option value="UPS">UPS</option>
+                  <option value="FedEx">FedEx</option>
+                  <option value="DESK SELF">DESK SELF</option>
+                  <option value="BOMBINO">BOMBINO</option>
+                  <option value="ATLANTIC">ATLANTIC</option>
                 </select>
-                <select
-                  {...register("pickupPeriod", {
-                    required: "AM/PM is required",
-                  })}
-                  className={`w-1/2 px-3 py-2 border ${
-                    errors.pickupPeriod ? "border-red-500" : "border-gray-300"
-                  } rounded-md focus:outline-none focus:border-[#8847D9]`}
-                >
-                  <option value="">AM/PM</option>
-                  <option value="AM">AM</option>
-                  <option value="PM">PM</option>
-                </select>
+                {errors.vendor && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.vendor.message}
+                  </p>
+                )}
               </div>
+              <div className="mb-6">
+                <label className="block text-gray-700 font-semibold mb-2">
+                  Content (Products):
+                </label>
+                <textarea
+                  type="text"
+                  placeholder="E.g. Garments, Groceries, Handicrafts"
+                  {...register("Content", {
+                    required: "list of products is required",
+                  })}
+                  className={`w-10/12 px-3 py-2 border ${
+                    errors.Content ? "border-red-500" : "border-gray-300"
+                  } rounded-md focus:outline-none focus:border-[#8847D9]`}
+                />
+                {errors.Content && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.Content.message}
+                  </p>
+                )}
+              </div>
+              <div className="mb-4">
+                <label className="block text-gray-700 font-semibold mb-2">
+                  Special Instructions
+                </label>
+                <textarea
+                  placeholder="E.g. Take swiping machine, Bubble wrap, Take extra boxes"
+                  {...register("instructions", {
+                    required: "Source is required",
+                  })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#8847D9]"
+                ></textarea>
+                {errors.instructions && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.instructions.message}
+                  </p>
+                )}
+              </div>
+            </div>
 
-              {errors.pickupHour && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.pickupHour.message}
-                </p>
-              )}
-              {errors.pickupPeriod && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.pickupPeriod.message}
-                </p>
-              )}
-            </div>
-            <div>
-              <p className="text-gray-700 font-semibold mb-2">Service</p>
-              <select
-                className="w-1/2 px-3 py-2 border rounded-md focus:outline-none focus:border-[#8847D9]"
-                {...register("service", {
-                  required: "Service is required",
-                })}
-                onChange={(e) => {
-                  setservice(e.target.value);
-                }}
-              >
-                <option value="">Select</option>
-                <option value="Express">Express</option>
-                <option value="Economy">Economy</option>
-                <option value="Duty Free">Duty Free</option>
-              </select>
-              {errors.service && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.service.message}
-                </p>
-              )}
-            </div>
-            <div>
-              <p className="text-gray-700 font-semibold mb-2">Source</p>
-              <select
-                {...register("source", { required: "Source is required" })}
-                value={source} // Ensure correct value
-                disabled={isSourceFixed} // Disable if auto-populated
-                className={`w-1/2 px-3 py-2 border rounded-md focus:outline-none ${
-                  isSourceFixed
-                    ? "bg-gray-200 cursor-not-allowed"
-                    : "focus:border-[#8847D9]"
-                }`}
-                onChange={(e) => setsource(e.target.value)}
-              >
-                <option value="">Select</option>
-                {sourceOptions?.map((option, index) => (
-                  <option key={index} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-              {errors.source && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.source.message}
-                </p>
-              )}
-            </div>
-            <div className="mb-4">
-              <label className="block text-gray-700 font-semibold mb-2">
-                Special Instructions
-              </label>
-              <textarea
-                placeholder="E.g. Take swiping machine, Bubble wrap, Take extra boxes"
-                {...register("instructions", {
-                  required: "Source is required",
-                })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#8847D9]"
-              ></textarea>
-              {errors.instructions && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.instructions.message}
-                </p>
-              )}
+            <div className="grid grid-cols-3">
+              <div className="mb-4">
+                <div className="flex gap-2 items-center ">
+                  <label className="block text-gray-700 font-semibold mb-2">
+                    Latitude & Longitude
+                  </label>
+                  {latitudelongitude ? (
+                    <div
+                      onClick={() => openMap()}
+                      className="px-3 py-1 rounded-sm text-white bg-red-500 cursor-pointer"
+                    >
+                      Check
+                    </div>
+                  ) : (
+                    ""
+                  )}
+                </div>
+                <input
+                  type="text"
+                  placeholder="E.g. 11.00000 , 12.00000"
+                  className={`w-fit px-3 py-2 border "border-gray-300 rounded-md focus:outline-none focus:border-[#8847D9]`}
+                  onChange={(e) => setlatitudelongitude(e.target.value)}
+                />
+                {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+              </div>
+              <div className="mb-4">
+                <label className="block text-gray-700 font-semibold mb-2">
+                  Pickup Date:
+                </label>
+                <input
+                  type="date"
+                  {...register("pickupDate", {
+                    required: "Pickup date is required",
+                  })}
+                  className={`w-fit px-3 py-2 border ${
+                    errors.pickupDate ? "border-red-500" : "border-gray-300"
+                  } rounded-md focus:outline-none focus:border-[#8847D9]`}
+                />
+                {errors.pickupDate && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.pickupDate.message}
+                  </p>
+                )}
+              </div>
+              <div className="mb-4">
+                <label className="block text-gray-700 font-semibold mb-2">
+                  Pickup Time:
+                </label>
+                <div className="flex space-x-2">
+                  <select
+                    {...register("pickupHour", {
+                      required: "Pickup hour is required",
+                    })}
+                    className={`w-1/2 px-3 py-2 border ${
+                      errors.pickupHour ? "border-red-500" : "border-gray-300"
+                    } rounded-md focus:outline-none focus:border-[#8847D9]`}
+                  >
+                    <option value="">Select Hour</option>
+                    {[...Array(12).keys()].flatMap((hour) => [
+                      <option key={`${hour + 1}:00`} value={`${hour + 1}:00`}>
+                        {hour + 1}:00
+                      </option>,
+                      <option key={`${hour + 1}:30`} value={`${hour + 1}:30`}>
+                        {hour + 1}:30
+                      </option>,
+                    ])}
+                  </select>
+                  <select
+                    {...register("pickupPeriod", {
+                      required: "AM/PM is required",
+                    })}
+                    className={`w-1/2 px-3 py-2 border ${
+                      errors.pickupPeriod ? "border-red-500" : "border-gray-300"
+                    } rounded-md focus:outline-none focus:border-[#8847D9]`}
+                  >
+                    <option value="">AM/PM</option>
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                  </select>
+                </div>
+
+                {errors.pickupHour && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.pickupHour.message}
+                  </p>
+                )}
+                {errors.pickupPeriod && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.pickupPeriod.message}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
           <div className="mb-4">
