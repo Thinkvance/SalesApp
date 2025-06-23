@@ -10,7 +10,6 @@ import collectionName_baseAwb from "./functions/collectionName";
 import utility from "./Utility/utilityFunctions";
 import DB from "./DB/DB";
 import "react-phone-number-input/style.css";
-import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import sha256 from "crypto-js/sha256";
 import countryList from "../src/CountryDialCode.json";
@@ -52,6 +51,28 @@ function PickupBooking() {
     const formattedLong = long.toFixed(11);
     return { latitude: formattedLat, longitude: formattedLong };
   }
+
+  useEffect(() => {
+    async function fetchData() {
+      const pickupsRef = collection(db, DB.db_collection);
+      const snapshot = await getDocs(pickupsRef);
+      let maxAwbNumber = collectionName_baseAwb.getFranchiseBasedAWb("CHENNAI"); // Initialize to 0
+      // testing
+      if (!snapshot.empty) {
+        snapshot.forEach((doc) => {
+          const pickupData = doc.data();
+          if (pickupData.awbNumber) {
+            maxAwbNumber = Math.max(
+              maxAwbNumber,
+              parseInt(pickupData.awbNumber)
+            );
+          }
+        });
+      }
+      console.log("maxAwbNumber", maxAwbNumber);
+    }
+    fetchData();
+  }, []);
 
   const {
     control,
@@ -473,13 +494,6 @@ function PickupBooking() {
   return (
     <div className="">
       <Nav />
-      {/* <button
-        onClick={async () => {
-          utility.sendNotification();
-        }}
-      >
-        TEST
-      </button> */}
       <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4 flex-col gap-4">
         <form
           onSubmit={handleSubmit(onSubmit)}
