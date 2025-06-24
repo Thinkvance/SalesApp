@@ -15,6 +15,7 @@ import ShipmentDetails from "./ShipmentDetails";
 import SalesReportBarChart from "./Charts/SalesReportBarChart";
 import Lottie from "lottie-react";
 import salesreport from "./Utility/salesreport";
+import SalesReportBarChartSource from "./Charts/SalesReportBarChartSource";
 
 dayjs.extend(customParseFormat);
 dayjs.extend(isBetween);
@@ -31,6 +32,8 @@ function SalesReport() {
   const [pickupPersonName, setPickupPersonName] = useState("");
   const [location, setLocation] = useState("ALL");
   const [GrowthPercentage, setGrowthPercentage] = useState("");
+  const [lastMonthSales, setlastMonthSales] = useState("");
+  const [currentMonthSales, setcurrentMonthSales] = useState("");
   const [filterOption, setFilterOption] = useState("this_month");
   const [customRange, setCustomRange] = useState({ from: "", to: "" });
   const [selectedChart, setselectedChart] = useState("Sales Executive Chart");
@@ -249,8 +252,10 @@ function SalesReport() {
   useEffect(() => {
     async function getData() {
       try {
-        const [growthPercentage] = await Promise.all([salesreport.growth()]);
-        setGrowthPercentage(growthPercentage);
+        const [growth] = await Promise.all([salesreport.growth()]);
+        setGrowthPercentage(growth.growthPercentage);
+        setcurrentMonthSales(growth.currentMonthSales);
+        setlastMonthSales(growth.previousMonthSales);
       } catch (error) {
         utilityFunctions.ErrorNotify("Data fetch failed. Please try again.");
       }
@@ -312,7 +317,7 @@ function SalesReport() {
               <option value="COIMBATORE">Coimbatore</option>
             </select>
           </div> */}
-          <div className="w-fit col-span-1 md:col-span-2">
+          {/* <div className="w-fit col-span-1 md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Source
             </label>
@@ -333,7 +338,7 @@ function SalesReport() {
               <option value="Offline Ad">Offline Ad</option>
               <option value="GMB">GMB</option>
             </select>
-          </div>
+          </div> */}
           <div className="w-fit col-span-1 md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Select Chart Type
@@ -347,6 +352,7 @@ function SalesReport() {
                 Sales Executive Chart
               </option>
               <option value="City-wise Chart">City-wise Chart</option>
+              <option value="Source-wise Chart">Source-wise Chart</option>
             </select>
           </div>
           {filterOption === "select_range" && (
@@ -408,31 +414,40 @@ function SalesReport() {
                 {totalDiscount}
               </p>
             </div>
-            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 shadow-md min-w-[200px] max-w-sm">
-              <h2 className="text-lg font-semibold text-yellow-800 mb-2">
-                Growth
-              </h2>
-              <p className="text-2xl font-bold text-yellow-900 flex items-center gap-2">
-                {`${GrowthPercentage}%`}
-                {GrowthPercentage > 0 ? (
-                  <Lottie
-                    animationData={positive_lottie}
-                    loop={true}
-                    autoplay={true}
-                    style={{ width: 40, height: 40 }}
-                  />
-                ) : (
-                  <Lottie
-                    animationData={negative_lottie}
-                    loop={true}
-                    autoplay={true}
-                    style={{ width: 40, height: 40 }}
-                  />
-                )}
-              </p>
-              <p className="text-sm text-yellow-700 mt-1">
-                Compared to the same day last month
-              </p>
+            <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-4 shadow-sm transition-shadow duration-200 hover:shadow-md">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-base font-semibold text-gray-800">
+                  Growth
+                </h3>
+              </div>
+
+              <div className="flex gap-3">
+                <p className="text-2xl font-bold text-gray-900 mb-3">{`${GrowthPercentage}%`}</p>
+                <div className="w-8 h-8">
+                  {GrowthPercentage > 0 ? (
+                    <Lottie animationData={positive_lottie} loop autoplay />
+                  ) : (
+                    <Lottie animationData={negative_lottie} loop autoplay />
+                  )}
+                </div>
+              </div>
+
+              {/* Sales Info */}
+              <div className="text-sm space-y-1">
+                <p className="flex items-center gap-1">
+                  <span className="text-gray-600">This Month:</span>
+                  <span className="font-semibold text-blue-700">
+                    ₹{currentMonthSales.toLocaleString()}
+                  </span>
+                </p>
+                <p className="flex items-center gap-1">
+                  <span className="text-gray-600">Last Month:</span>
+                  <span className="font-semibold text-purple-800">
+                    ₹{lastMonthSales.toLocaleString()}
+                  </span>
+                </p>
+              </div>
             </div>
           </div>
           {/* Bar Chart Section */}
@@ -441,9 +456,9 @@ function SalesReport() {
               <SalesReportBarChart pickups={filteredPickups} />
             ) : selectedChart == "City-wise Chart" ? (
               <SalesReportBarChartCity pickups={filteredPickups} />
-            ) : (
-              ""
-            )}
+            ) : selectedChart == "Source-wise Chart" ? (
+              <SalesReportBarChartSource pickups={filteredPickups} />
+            ) : null}
           </div>
         </div>
         <div className="overflow-auto border scrollbar-hide">

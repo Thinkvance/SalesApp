@@ -49,6 +49,9 @@ export default function SalesReportBarChart({ pickups }) {
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={260}>
+          <h2 className="text-xl font-semibold text-center text-[#4c1d95] mb-4">
+            Sales Report by Source
+          </h2>
           <BarChart
             data={data}
             barGap={20}

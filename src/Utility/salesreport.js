@@ -133,9 +133,11 @@ async function growth() {
           ((currentMonthSales - previousMonthSales) / previousMonthSales) *
           100
         ).toFixed(1);
-  console.log(currentMonthSales);
-  console.log(previousMonthSales);
-  return growthPercentage;
+  return {
+    growthPercentage: growthPercentage,
+    currentMonthSales: currentMonthSales,
+    previousMonthSales: previousMonthSales,
+  };
 }
 export default {
   growth: growth,

@@ -392,8 +392,11 @@ function PaymentConfirmationForm() {
   }
 
   const onSubmit = async (data) => {
-    const temp = `${data.countrycode}${" "}${data.consigneenumber1}`;
-    let consigneenumber1 = !temp ? details.consigneephonenumber : temp;
+    const temp =
+      data.countrycode && data.consigneenumber1
+        ? `${data.countrycode}${" "}${data.consigneenumber1}`
+        : false;
+    let consigneenumber1 = temp ? temp : details.consigneephonenumber;
 
     if (costKg < 500) {
       setError("costKg", {
