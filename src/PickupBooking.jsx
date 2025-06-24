@@ -638,6 +638,11 @@ function PickupBooking() {
                       </option>
                     ))}
                   </select>
+                  {errors.country && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.country.message}
+                    </p>
+                  )}
                 </div>
                 <div className="mb-4">
                   <label className="block text-gray-700 font-semibold mb-2">
@@ -729,7 +734,7 @@ function PickupBooking() {
             </div>
           </div>
           <div>
-            <div className="grid grid-cols-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="mb-4">
                 <label className="block text-gray-700 font-semibold mb-2">
                   Pickup Pincode:
@@ -792,7 +797,7 @@ function PickupBooking() {
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <p className="text-gray-700 font-semibold mb-2">Source</p>
                 <select
@@ -863,7 +868,7 @@ function PickupBooking() {
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="mb-4">
                 <label className="block text-gray-700 font-semibold mb-2">
                   Vendor:
@@ -882,6 +887,7 @@ function PickupBooking() {
                   <option value="DESK SELF">DESK SELF</option>
                   <option value="BOMBINO">BOMBINO</option>
                   <option value="ATLANTIC">ATLANTIC</option>
+                  <option value="ExPlus">ExPlus</option>
                 </select>
                 {errors.vendor && (
                   <p className="text-red-500 text-sm mt-1">
@@ -927,8 +933,7 @@ function PickupBooking() {
                 )}
               </div>
             </div>
-
-            <div className="grid grid-cols-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="mb-4">
                 <div className="flex gap-2 items-center ">
                   <label className="block text-gray-700 font-semibold mb-2">
@@ -1063,7 +1068,7 @@ function PickupBooking() {
           <div className="flex justify-center">
             <button
               type="submit"
-              className={`bg-[#8847D9] text-white font-semibold py-2 px-4 rounded-md transition duration-300 ${
+              className={`bg-[#8847D9]  text-white font-semibold py-2 px-4 rounded-md transition duration-300 ${
                 loading ? "opacity-50 cursor-not-allowed" : ""
               }`}
               disabled={loading}
