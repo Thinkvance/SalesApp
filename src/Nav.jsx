@@ -112,7 +112,9 @@ function Nav() {
                 ))}
               </Menu>
             </li>
-            {user?.role == "Manager" || user?.role == "sales admin" ? (
+            {user?.role == "Manager" ||
+            user?.role == "sales admin" ||
+            user?.role == "sales associate" ? (
               <li>
                 <button
                   onClick={handleReportsMenuOpen}
@@ -229,7 +231,9 @@ function Nav() {
                 </Link>
               </li>
             ))}
-            {user?.role == "Manager" || user?.role == "sales admin"
+            {user?.role == "Manager" ||
+            user?.role == "sales admin" ||
+            user?.role == "sales associate"
               ? RoleBasedScreens?.Reports?.map((d) => (
                   <li>
                     <Link

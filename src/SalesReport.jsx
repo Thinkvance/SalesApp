@@ -22,6 +22,7 @@ dayjs.extend(isBetween);
 
 function SalesReport() {
   const [username, setUsername] = useState(null);
+  const [user, setUser] = useState({});
   const [role, setRole] = useState("");
   const [pickups, setPickups] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +44,12 @@ function SalesReport() {
   const [isModalOpen, setIsModalOpen] = useState(false); // State to control modal visibility
   const [selectedPickup, setSelectedPickup] = useState(null); // State to hold the selected pickup for modal
   const [pickupPersons, setPickupPersons] = useState([""]);
+
+  useEffect(() => {
+    setUser(JSON.parse(localStorage.getItem("LoginCredentials")));
+  }, []);
+
+  console.log("user", user);
 
   useEffect(() => {
     salesreport
@@ -124,14 +131,23 @@ function SalesReport() {
             ];
 
       const unsubscribes = [];
-      where("status", "in", ["SHIPMENT CONNECTED", "PAYMENT DONE"]);
 
       Promise.all(
         collectionNames.map((name) => {
-          const q = query(
-            collection(db, name),
-            where("status", "in", ["SHIPMENT CONNECTED", "PAYMENT DONE"])
-          );
+          let q;
+
+          if (["sales associate"].includes(user.role)) {
+            q = query(
+              collection(db, name),
+              where("status", "in", ["SHIPMENT CONNECTED", "PAYMENT DONE"]),
+              where("pickupBookedBy", "==", user.name)
+            );
+          } else {
+            q = query(
+              collection(db, name),
+              where("status", "in", ["SHIPMENT CONNECTED", "PAYMENT DONE"])
+            );
+          }
           return new Promise((resolve) => {
             const unsubscribe = onSnapshot(q, (snapshot) => {
               const data = snapshot.docs.map((doc) => ({
@@ -287,21 +303,26 @@ function SalesReport() {
               <option value="select_range">Select Range</option>
             </select>
           </div>
-          <div className=" w-fit col-span-1 md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Sales Representative
-            </label>
-            <select
-              value={selectedBookedBy}
-              onChange={(e) => setSelectedBookedBy(e.target.value)}
-              className="border rounded  input-style w-full"
-            >
-              <option value="All"> Select Sales Representative</option>
-              {pickupPersons.map((d) => (
-                <option value={d}>{d}</option>
-              ))}
-            </select>
-          </div>
+          {["sales associate"].includes(user.role) ? (
+            ""
+          ) : (
+            <div className=" w-fit col-span-1 md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Sales Representative
+              </label>
+              <select
+                value={selectedBookedBy}
+                onChange={(e) => setSelectedBookedBy(e.target.value)}
+                className="border rounded  input-style w-full"
+              >
+                <option value="All"> Select Sales Representative</option>
+                {pickupPersons.map((d) => (
+                  <option value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* <div className="w-fit col-span-1 md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Area
@@ -414,7 +435,7 @@ function SalesReport() {
                 {totalDiscount}
               </p>
             </div>
-            <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-4 shadow-sm transition-shadow duration-200 hover:shadow-md">
+            <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-4 shadow-md transition-shadow duration-200 hover:shadow-md">
               {/* Header */}
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-base font-semibold text-gray-800">
