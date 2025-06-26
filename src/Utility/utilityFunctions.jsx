@@ -474,6 +474,7 @@ function rolesPermissions() {
         "Payment-confirm",
       ],
       RateManagement: ["Sale-rates"],
+      Reports: ["Sales-Report"],
     };
   }
   if (role == "sales admin") {
