@@ -762,13 +762,17 @@ function PickupBooking() {
                   onChange={(e) => setcity(e.target.value)}
                 >
                   <option value="">Select</option>
-                  {["Chennai", "Pondy", "Coimbatore", "Others"]?.map(
-                    (option, index) => (
-                      <option key={index} value={option}>
-                        {option}
-                      </option>
-                    )
-                  )}
+                  {[
+                    "Chennai",
+                    "Pondy",
+                    "Coimbatore",
+                    "mayiladuthurai",
+                    "Others",
+                  ]?.map((option, index) => (
+                    <option key={index} value={option}>
+                      {option}
+                    </option>
+                  ))}
                 </select>
                 {errors.city && (
                   <p className="text-red-500 text-sm mt-1">

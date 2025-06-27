@@ -344,7 +344,7 @@ function Accounts() {
           </div>
           <div className="w-fit col-span-1 md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Area
+              City
             </label>
             <select
               value={SelectedCity}
@@ -355,6 +355,7 @@ function Accounts() {
               <option value="CHENNAI">Chennai</option>
               <option value="PONDY">Pondy</option>
               <option value="COIMBATORE">Coimbatore</option>
+              <option value="MAYILADUTHURAI">mayiladuthurai</option>
             </select>
           </div>
           <div className="w-fit col-span-1 md:col-span-2">

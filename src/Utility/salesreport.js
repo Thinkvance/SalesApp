@@ -24,25 +24,23 @@ function convertDateToTimestamp(dateString) {
     // console.log(error);
   }
 }
-async function fetchData(DateRange, startendrange) {
+
+async function fetchData(DateRange, startendrange, user) {
   try {
     let queryRef = collection(db, DB.db_collection);
-    // Conditional query based on selected DateRange
-    if (DateRange === "This Week") {
-      queryRef = query(
-        collection(db, DB.db_collection),
-        where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"])
-      );
-    } else if (DateRange === "Last Week") {
-      queryRef = query(
-        collection(db, DB.db_collection),
-        where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"])
-      );
-    } else if (DateRange == "Select range") {
-      queryRef = query(
-        collection(db, DB.db_collection),
-        where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"])
-      );
+    if (DateRange == "Select range") {
+      if (user?.role == "Manager") {
+        queryRef = query(
+          collection(db, DB.db_collection),
+          where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"])
+        );
+      } else {
+        queryRef = query(
+          collection(db, DB.db_collection),
+          where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"]),
+          where("pickupBookedBy", "==", user?.name)
+        );
+      }
     }
 
     const querySnapshot = await getDocs(queryRef);
@@ -50,6 +48,7 @@ async function fetchData(DateRange, startendrange) {
       const data = doc.data();
       return { ...data }; // Attach the parsed data
     });
+
     // Update the fetched data by converting PaymentComfirmedDate to Timestamp
     const updatedData = fetchedData.map((item) => ({
       ...item,
@@ -63,7 +62,7 @@ async function fetchData(DateRange, startendrange) {
         : item.PaymentComfirmedDate?.seconds >= startendrange?.start?.seconds &&
           item.PaymentComfirmedDate?.seconds <= startendrange?.end?.seconds
     );
-    console.log("filteredData", filteredData);
+    console.log("filteredData", DateRange, filteredData);
     return filteredData;
   } catch (error) {
     console.error("Error fetching pickup data:", error);
@@ -71,17 +70,21 @@ async function fetchData(DateRange, startendrange) {
   }
 }
 
-async function getRevenue(DateRange, startendrange) {
+var shipmentCount = [{ currentMonthSales: 0, previousMonthSales: 0 }];
+
+async function getRevenue(DateRange, startendrange, user, period) {
   var Revenue = 0;
-  await fetchData(DateRange, startendrange).then((d) => {
+
+  await fetchData(DateRange, startendrange, user).then((d) => {
     d?.map((value) => {
       Revenue += value.logisticCost;
     });
+    shipmentCount[period] = d.length;
   });
   return Revenue.toFixed(2);
 }
 
-async function growth() {
+async function growth(user) {
   const today = new Date();
 
   // Current month date range (start of month to today)
@@ -102,7 +105,6 @@ async function growth() {
     today.getDate()
   );
 
-  // Handle cases where today's date in the previous month might not exist (e.g., May 31st for April)
   // If the calculated previousEndDate's month is not the previous month, set it to the last day of the previous month.
   if (
     previousEndDate.getMonth() !==
@@ -116,27 +118,42 @@ async function growth() {
       date.getMonth() + 1
     ).padStart(2, "0")}-${date.getFullYear()}`;
 
-  const currentMonthSales = await getRevenue("Select range", {
-    start: convertDateToTimestamp(formatDate(currentStartDate)),
-    end: convertDateToTimestamp(formatDate(currentEndDate)),
-  });
+  const currentMonthSales = await getRevenue(
+    "Select range",
+    {
+      start: convertDateToTimestamp(formatDate(currentStartDate)),
+      end: convertDateToTimestamp(formatDate(currentEndDate)),
+    },
+    user,
+    "currentMonthSales"
+  );
 
-  const previousMonthSales = await getRevenue("Select range", {
-    start: convertDateToTimestamp(formatDate(previousStartDate)),
-    end: convertDateToTimestamp(formatDate(previousEndDate)),
-  });
+  const previousMonthSales = await getRevenue(
+    "Select range",
+    {
+      start: convertDateToTimestamp(formatDate(previousStartDate)),
+      end: convertDateToTimestamp(formatDate(previousEndDate)),
+    },
+    user,
+    "previousMonthSales"
+  );
 
   const growthPercentage =
-    previousMonthSales === 0
-      ? 0
-      : (
+    previousMonthSales > 0.0
+      ? // normal % change
+        (
           ((currentMonthSales - previousMonthSales) / previousMonthSales) *
           100
-        ).toFixed(1);
+        ).toFixed(1)
+      : // if no base but some new sales, count it as “full” growth
+      currentMonthSales > 0
+      ? "100.0"
+      : "0.0";
   return {
     growthPercentage: growthPercentage,
     currentMonthSales: currentMonthSales,
     previousMonthSales: previousMonthSales,
+    shipmentCount: shipmentCount,
   };
 }
 export default {
