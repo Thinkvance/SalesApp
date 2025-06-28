@@ -14,6 +14,7 @@ import utilityFunctions from "./Utility/utilityFunctions";
 import ShipmentDetails from "./ShipmentDetails";
 import EditShipmentModal from "./EditShipmentModal";
 import { FiEdit } from "react-icons/fi";
+import DB from "./DB/DB";
 
 function Pickups() {
   const [username, setUsername] = useState(null);
@@ -128,6 +129,10 @@ function Pickups() {
     return awbMatch && dateMatch && consignorPhoneMatch && PhonesearchItem; // Use AND logic to filter
   });
 
+  function formatString(input) {
+    return input.trim().replace(/\s+/g, " ");
+  }
+
   const [editPickup, setEditPickup] = useState(null);
   const [isModalOpenEdit, setModalOpenEdit] = useState(false);
   const [Editedvalue, setEditedvalue] = useState(null);
@@ -138,11 +143,12 @@ function Pickups() {
   };
 
   const handleSave = async (value) => {
+    console.log("value", value);
     setLoadingEdit(true);
 
     try {
       const q = query(
-        collection(db, "pickup"),
+        collection(db, DB.db_collection),
         where("awbNumber", "==", value.awbNumber)
       );
       const querySnapshot = await getDocs(q);
@@ -151,9 +157,8 @@ function Pickups() {
         await updateDoc(docRef, {
           vendorName: value.vendorName,
           consignorname: value.consignorname,
-          consignorphonenumber: value.consignorphonenumber,
-          consignorlocation: value.consignorlocation,
           service: value.service,
+          actualWeight: formatString(value.actualWeight),
         });
         console.log("Document successfully updated!");
       } else {
@@ -175,6 +180,7 @@ function Pickups() {
     return <div className="text-center text-red-600">{error}</div>;
   }
 
+  console.log(pickups);
   return (
     <>
       <Nav />

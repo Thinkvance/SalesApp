@@ -54,10 +54,9 @@ const EditShipmentModal = ({
   } = useForm({
     defaultValues: {
       consignorname: pickup?.consignorname || "",
-      consignorphonenumber: pickup?.consignorphonenumber || "",
-      consignorlocation: pickup?.consignorlocation || "",
       service: pickup?.service || "",
       vendorName: pickup?.vendorName || "",
+      actualWeight: pickup?.actualWeight || "",
     },
   });
   const onSubmit = (data) => {
@@ -82,26 +81,7 @@ const EditShipmentModal = ({
               rules={{ required: "Consignor name is required." }}
               error={errors.consignorname}
             />
-            <InputField
-              label="Consignor Phone"
-              name="consignorphonenumber"
-              register={register}
-              rules={{
-                required: "Phone number is required.",
-                pattern: {
-                  value: /^[0-9]{10}$/,
-                  message: "Enter a valid 10-digit phone number.",
-                },
-              }}
-              error={errors.consignorphonenumber}
-            />
-            <InputField
-              label="Consignor Location"
-              name="consignorlocation"
-              register={register}
-              rules={{ required: "Location is required." }}
-              error={errors.consignorlocation}
-            />
+
             <SelectField
               label="Service"
               name="service"
@@ -126,8 +106,18 @@ const EditShipmentModal = ({
               ]}
               error={errors.vendorName}
             />
+            {pickup.actualWeight ? (
+              <InputField
+                label="Final Weight"
+                name="actualWeight"
+                register={register}
+                rules={{ required: "Final weight is required." }}
+                error={errors.actualWeight}
+              />
+            ) : (
+              ""
+            )}
           </div>
-
           <div className="mt-6 flex justify-end space-x-3">
             <button
               type="button"
