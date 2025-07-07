@@ -1,11 +1,19 @@
 import { useEffect, useState } from "react";
 import Nav from "./Nav";
-import { collection, query, onSnapshot } from "firebase/firestore";
+import {
+  collection,
+  query,
+  onSnapshot,
+  where,
+  getDocs,
+  updateDoc,
+} from "firebase/firestore";
 import { db } from "./firebase";
 import collectionName_BaseAwb from "./functions/collectionName";
 import utilityFunctions from "./Utility/utilityFunctions";
 import DB from "./DB/DB";
 import ShipmentDetails from "./ShipmentDetails";
+import EditShipmentModal from "./EditShipmentModal";
 
 function Pickups() {
   const [username, setUsername] = useState(null);
@@ -21,6 +29,7 @@ function Pickups() {
   const [isModalOpen, setIsModalOpen] = useState(false); // State to control modal visibility
   const [selectedPickup, setSelectedPickup] = useState(null); // State to hold the selected pickup for modal
   const [pickupPersons, setPickupPersons] = useState(["Unassigned"]);
+  const [loadingEdit, setLoadingEdit] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
@@ -59,6 +68,48 @@ function Pickups() {
   const handleMoreIconClick = (pickup) => {
     setSelectedPickup(pickup);
     setIsModalOpen(true); // Open the modal
+  };
+
+  const [editPickup, setEditPickup] = useState(null);
+  const [isModalOpenEdit, setModalOpenEdit] = useState(false);
+  const [Editedvalue, setEditedvalue] = useState(null);
+
+  const handleEditClick = (pickup) => {
+    setEditPickup({ ...pickup });
+    setModalOpenEdit(true);
+  };
+
+  function formatString(input) {
+    return input.trim().replace(/\s+/g, " ");
+  }
+
+  const handleSave = async (value) => {
+    setLoadingEdit(true);
+    console.log("value", typeof value.logisticCost);
+    try {
+      const q = query(
+        collection(db, DB.db_collection),
+        where("awbNumber", "==", value.awbNumber)
+      );
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        const docRef = querySnapshot.docs[0].ref;
+        await updateDoc(docRef, {
+          vendorName: value.vendorName,
+          consignorname: value.consignorname,
+          service: value.service,
+          actualWeight: formatString(value.actualWeight),
+          logisticCost: parseInt(value.logisticCost),
+        });
+      } else {
+        console.error("No document found with the given AWB number.");
+      }
+    } catch (error) {
+      console.log("error", error);
+    } finally {
+      setLoadingEdit(false);
+      setModalOpenEdit(false);
+    }
   };
 
   // Fetch pickup data from Firestore and filter based on the username
@@ -304,6 +355,7 @@ function Pickups() {
                 <th className="py-3 px-4  border">Pickup Date & Time</th>
                 <th className="py-3 px-4 border"> Pickup Booked by</th>
                 <th className="py-3 px-4 border">PickUp Person</th>
+                <th className="py-3 px-4 border">Edit Shipment</th>
               </tr>
             </thead>
             <tbody>
@@ -344,6 +396,14 @@ function Pickups() {
                         onClick={() => handleMoreIconClick(pickup)} // On click, show details in modal
                       />
                     </td>
+                    <td className="p-4 border text-center align-middle">
+                      <button
+                        onClick={() => handleEditClick(pickup)}
+                        className="text-purple-600 hover:underline text-[16px]  font-medium"
+                      >
+                        Edit
+                      </button>
+                    </td>
                   </tr>
                 ))
               ) : (
@@ -363,6 +423,15 @@ function Pickups() {
           <ShipmentDetails
             selectedPickup={selectedPickup}
             closeModal={closeModal}
+          />
+        )}
+        {isModalOpenEdit && (
+          <EditShipmentModal
+            pickup={editPickup}
+            onChange={setEditedvalue}
+            onClose={() => setModalOpenEdit(false)}
+            onSave={handleSave}
+            loadingEdit={loadingEdit}
           />
         )}
       </div>

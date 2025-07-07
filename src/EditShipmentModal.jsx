@@ -57,6 +57,7 @@ const EditShipmentModal = ({
       service: pickup?.service || "",
       vendorName: pickup?.vendorName || "",
       actualWeight: pickup?.actualWeight || "",
+      logisticCost: pickup?.logisticCost || "",
     },
   });
   const onSubmit = (data) => {
@@ -64,6 +65,7 @@ const EditShipmentModal = ({
     onSave({ ...data, awbNumber: pickup.awbNumber });
   };
 
+  console.log("pickup", pickup?.logisticCost);
   if (!pickup) return null;
 
   return (
@@ -103,6 +105,7 @@ const EditShipmentModal = ({
                 "DESK SELF",
                 "BOMBINO",
                 "ATLANTIC",
+                "ExPlus",
               ]}
               error={errors.vendorName}
             />
@@ -113,6 +116,17 @@ const EditShipmentModal = ({
                 register={register}
                 rules={{ required: "Final weight is required." }}
                 error={errors.actualWeight}
+              />
+            ) : (
+              ""
+            )}
+            {pickup.actualWeight ? (
+              <InputField
+                label="Logistic Cost"
+                name="logisticCost"
+                register={register}
+                rules={{ required: "Logistic Cost is required." }}
+                error={errors.logisticCost}
               />
             ) : (
               ""
