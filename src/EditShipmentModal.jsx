@@ -58,6 +58,7 @@ const EditShipmentModal = ({
       vendorName: pickup?.vendorName || "",
       actualWeight: pickup?.actualWeight || "",
       logisticCost: pickup?.logisticCost || "",
+      vendorAwbnumber: pickup?.vendorAwbnumber || "",
     },
   });
   const onSubmit = (data) => {
@@ -120,7 +121,18 @@ const EditShipmentModal = ({
             ) : (
               ""
             )}
-            {pickup.actualWeight ? (
+            {pickup.vendorAwbnumber ? (
+              <InputField
+                label="vendorAwbnumber"
+                name="vendorAwbnumber"
+                register={register}
+                rules={{ required: "vendorAwbnumber required." }}
+                error={errors.vendorAwbnumber}
+              />
+            ) : (
+              ""
+            )}
+            {pickup.logisticCost ? (
               <InputField
                 label="Logistic Cost"
                 name="logisticCost"

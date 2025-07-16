@@ -13,7 +13,6 @@ import collectionName_BaseAwb from "./functions/collectionName";
 import utilityFunctions from "./Utility/utilityFunctions";
 import ShipmentDetails from "./ShipmentDetails";
 import EditShipmentModal from "./EditShipmentModal";
-import { FiEdit } from "react-icons/fi";
 import DB from "./DB/DB";
 
 function Pickups() {
@@ -29,7 +28,7 @@ function Pickups() {
   const [isModalOpen, setIsModalOpen] = useState(false); // State to control modal visibility
   const [selectedPickup, setSelectedPickup] = useState(null); // State to hold the selected pickup for modal
   const [loadingEdit, setLoadingEdit] = useState(false);
-  // Fetch user info from localStorage
+
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("LoginCredentials"));
     setUsername(storedUser?.name);
@@ -46,7 +45,6 @@ function Pickups() {
     setSelectedPickup(null); // Reset selected pickup when modal is closed
   };
 
-  // Fetch pickup data from Firestore and filter based on the username
   useEffect(() => {
     if (username) {
       const fetchData = () => {
@@ -143,7 +141,6 @@ function Pickups() {
   };
 
   const handleSave = async (value) => {
-    console.log("value", value);
     setLoadingEdit(true);
 
     try {
@@ -159,6 +156,7 @@ function Pickups() {
           consignorname: value.consignorname,
           service: value.service,
           actualWeight: formatString(value.actualWeight),
+          vendorAwbnumber: value.vendorAwbnumber,
         });
         console.log("Document successfully updated!");
       } else {
@@ -181,6 +179,7 @@ function Pickups() {
   }
 
   console.log(pickups);
+
   return (
     <>
       <Nav />

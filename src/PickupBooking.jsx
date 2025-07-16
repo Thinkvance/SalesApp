@@ -926,7 +926,7 @@ function PickupBooking() {
                 <textarea
                   placeholder="E.g. Take swiping machine, Bubble wrap, Take extra boxes"
                   {...register("instructions", {
-                    required: "Source is required",
+                    // required: "Source is required",
                   })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#8847D9]"
                 ></textarea>
