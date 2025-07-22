@@ -21,6 +21,7 @@ import "react-phone-input-2/lib/style.css";
 import sha256 from "crypto-js/sha256";
 import countryList from "../src/CountryDialCode.json";
 import ConsigneePhoneNumberInput from "./ConsigneePhoneNumberInput";
+import utilityFunctions from "./Utility/utilityFunctions";
 
 function PickupBooking() {
   const [loading, setLoading] = useState(false);
@@ -68,7 +69,6 @@ function PickupBooking() {
       unsubscribe = onSnapshot(pickupsRef, (snapshot) => {
         let maxAwbNumber =
           collectionName_baseAwb.getFranchiseBasedAWb("CHENNAI");
-
         snapshot.forEach((doc) => {
           const pickupData = doc.data();
           if (pickupData.awbNumber) {
@@ -371,7 +371,7 @@ function PickupBooking() {
           headers: {
             accept: "application/json",
             "content-type": "application/json",
-            Authorization: "key_z6hIuLo8GC", // Add your authorization token here
+            Authorization: "key_z6hIuLo8GC",
           },
           data: {
             messages: [
@@ -402,7 +402,6 @@ function PickupBooking() {
           }
         );
       } else {
-        // Example:
         const options = {
           method: "POST",
           headers: {
@@ -443,13 +442,12 @@ function PickupBooking() {
       setFiles([]);
       setIsSourceFixed(false);
       setsource("");
-      reset();
+      // reset();
       setShowModal(true);
       setTimeout(() => {
         setShowModal(false);
       }, 1000);
-      // await utility.sendNotification();
-      // utility.SuccessNotify("Pickup request submitted successfully.");
+      await utilityFunctions.sendNotification(city);
     } catch (error) {
       utility.ErrorNotify("Failed to book the pickup. Please try again.");
       console.log("error", error);

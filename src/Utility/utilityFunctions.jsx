@@ -491,6 +491,18 @@ function rolesPermissions() {
       Reports: ["Sales-Report", "Sales-Incentive", "Pickup-Incentive"],
     };
   }
+  if (role == "Ops Head") {
+    return {
+      PickupManagement: [
+        "Pickup-Booking",
+        "Pickups",
+        "Cancel-or-reschedule",
+        "Payment-confirm",
+      ],
+      RateManagement: ["Sale-rates"],
+      Reports: ["Sales-Report"],
+    };
+  }
 }
 
 function formatRouteName(route) {
@@ -673,28 +685,47 @@ async function fetchLoginedUserName() {
   return JSON.parse(localStorage.getItem("LoginCredentials")).name;
 }
 
-const sendNotification = async () => {
+async function getOpsHeadUserId() {
+  try {
+    const querySnapshot = await getDocs(
+      collection(db, "OpsPickupLoginCredentials")
+    );
+    let Email;
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      for (const [email, details] of Object.entries(data)) {
+        const [name, userEmail, role, area] = details;
+
+        if (
+          role.toLowerCase() === "admin" &&
+          area.toUpperCase() === "CHENNAI"
+        ) {
+          Email = userEmail;
+        }
+      }
+    });
+    return Email;
+  } catch (error) {
+    console.error("Error fetching Ops Head user:", error);
+  }
+}
+
+const sendNotification = async (city) => {
   await fetchAndStoreToken(await fetchLoginedUserEmail());
   const userData = await LoginCredentials();
-  const currentUserCre = await fetchLoginedUserEmail();
-
-  const admin_token = await fetchNotificationToken(userData[0].email);
-  const currentUserToken = await fetchNotificationToken(currentUserCre);
-
-  const notificationPayload1 = {
-    to: currentUserToken,
-    title: "Pickup Request Confirmed",
-    body: "A pickup has been scheduled. Review the details to coordinate smoothly.",
-    image: "https://www.shiphit.in/images/logo.png",
-    link: "",
-  };
+  const email = await getOpsHeadUserId();
+  console.log("email", email);
+  getOpsHeadUserId();
+  const admin_token = await fetchNotificationToken(email);
 
   const notificationPayload2 = {
     to: admin_token,
     title: "📦 New Pickup Request Booked!",
     body: `
-A new pickup request has been successfully booked by **${await fetchLoginedUserName()}**.  
-Please review the details and proceed accordingly.  
+Booked By: ${await fetchLoginedUserName()}
+Pickup Area: Bangalore
+Please review the request details and take the necessary actions.
 `,
     image: "",
     link: "",
@@ -705,10 +736,6 @@ Please review the details and proceed accordingly.
     await Promise.all([
       axios.post(
         "https://shiphit-backend.onrender.com/sendNotification",
-        notificationPayload1
-      ),
-      axios.post(
-        "https://shiphit-backend.onrender.com/sendNotification",
         notificationPayload2
       ),
     ]);
@@ -716,6 +743,7 @@ Please review the details and proceed accordingly.
     ErrorNotify("Error sending notification");
   }
 };
+
 function addWeekdays(dateString, daysToAdd) {
   const [day, month, year] = dateString.split("/").map(Number);
   let date = new Date(year, month - 1, day);

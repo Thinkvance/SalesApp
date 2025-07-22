@@ -94,12 +94,10 @@ function App() {
       <div>
         <Toaster />
         <Routes>
-          {/* If user is not present, redirect to SignIn */}
           <Route
             path="/"
             element={user ? <PickupBooking /> : <Navigate to="/signin" />}
           />
-          {/* Only allow access to other routes if user is logged in */}
           <Route
             path="/Pickup-Booking"
             element={user ? <PickupBooking /> : <Navigate to="/signin" />}
