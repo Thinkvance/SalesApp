@@ -5,18 +5,36 @@ import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "./firebase";
 import collectionName_BaseAwb from "./functions/collectionName";
 import utilityFunctions from "./Utility/utilityFunctions";
+
+// ✅ Parse "20-10-2025 &10 AM" to a Date object
+const parseDate = (datetime) => {
+  const [datePart, timePartRaw] = datetime.split(" &");
+  const [day, month, year] = datePart.split("-").map(Number);
+
+  const [timePart, period] = timePartRaw.trim().split(" ");
+  let [hour, minute] = timePart.includes(":")
+    ? timePart.split(":").map(Number)
+    : [Number(timePart), 0]; // default to 0 minutes if missing
+
+  // Convert to 24-hour format
+  if (period === "PM" && hour !== 12) hour += 12;
+  if (period === "AM" && hour === 12) hour = 0;
+
+  return new Date(year, month - 1, day, hour, minute).getTime();
+};
+
 function PaymentConfirm() {
   const [data, setData] = useState([]);
   const [activeTab, setActiveTab] = useState("PAYMENT PENDING");
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    // Parse LoginCredentials from localStorage
     const loginCredentials = JSON.parse(
       localStorage.getItem("LoginCredentials")
     );
     const { role, Location, name } = loginCredentials;
 
-    // Determine the Firestore query based on the role
     const collectionRef = collection(
       db,
       collectionName_BaseAwb.getCollection(Location)
@@ -26,7 +44,6 @@ function PaymentConfirm() {
         ? query(collectionRef)
         : query(collectionRef, where("pickupBookedBy", "==", name));
 
-    // Set up the Firestore real-time listener
     const unsubscribe = onSnapshot(
       baseQuery,
       (snapshot) => {
@@ -34,29 +51,49 @@ function PaymentConfirm() {
           id: doc.id,
           ...doc.data(),
         }));
-        setData(documents); // Update the state with the latest data from Firestore
+
+        // ✅ Sort based on pickupDatetime descending
+        documents.sort((a, b) => {
+          const dateA = parseDate(a.pickupDatetime);
+          const dateB = parseDate(b.pickupDatetime);
+          return dateB - dateA;
+        });
+
+        setData(documents);
+        setLoading(false);
       },
       (error) => {
         utilityFunctions.ErrorNotify(
           "Data retrieval failed. Please try again."
         );
+        setLoading(false);
       }
     );
 
-    // Cleanup listener on component unmount to prevent memory leaks
     return () => unsubscribe();
   }, []);
 
-  const allowedStatuses = ["PAYMENT DONE", "SHIPMENT CONNECTED"];
+  const handleSearchChange = (event) => {
+    setSearchTerm(event.target.value);
+  };
 
-  const filteredData = data.filter((item) => item.status === activeTab);
+  const allowedStatusesPending = ["PAYMENT PENDING", "PAYMENT REQUESTED"];
+  const allowedStatusesDone = [
+    "PAYMENT DONE",
+    "SHIPMENT CONNECTED",
+    "PAYMENT REQUESTED",
+  ];
 
-  const paymentdone = data.filter((item) =>
-    allowedStatuses.includes(item.status)
+  const filteredData = data.filter(
+    (item) =>
+      (activeTab === "PAYMENT PENDING"
+        ? allowedStatusesPending.includes(item.status)
+        : allowedStatusesDone.includes(item.status)) &&
+      String(item.awbNumber).includes(searchTerm)
   );
 
   return (
-    <div className="min-h-screen bg-gray-10q0">
+    <div className="min-h-screen bg-gray-100">
       <Nav />
       <div className="max-w-screen-xl mx-auto p-5">
         <div className="flex justify-center space-x-4 mt-5">
@@ -81,10 +118,26 @@ function PaymentConfirm() {
             Payment Done
           </button>
         </div>
-        {activeTab == "PAYMENT PENDING" ? (
+
+        <p className="font-medium text-lg mt-6">Awb number</p>
+        <input
+          type="text"
+          placeholder="Search by AWB Number"
+          value={searchTerm}
+          onChange={handleSearchChange}
+          className="mt-1 p-2 px-4 border border-gray-300 rounded-lg w-60"
+        />
+
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <p className="text-lg font-semibold text-gray-600">
+              Loading data...
+            </p>
+          </div>
+        ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pt-10">
             {filteredData.length === 0 ? (
-              <div className="flex flex-col items-center justify-center w-full h-64  bg-white rounded-lg shadow-md">
+              <div className="flex flex-col items-center justify-center w-fit h-64 bg-white rounded-lg shadow-md">
                 <p className="text-lg font-semibold text-gray-600">
                   No records found
                 </p>
@@ -98,25 +151,6 @@ function PaymentConfirm() {
               ))
             )}
           </div>
-        ) : activeTab == "PAYMENT DONE" ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pt-10">
-            {paymentdone.length === 0 ? (
-              <div className="flex flex-col items-center justify-center w-full h-64  bg-white rounded-lg shadow-md">
-                <p className="text-lg font-semibold text-gray-600">
-                  No records found
-                </p>
-                <p className="text-sm text-gray-400">
-                  There are no payments to display for the selected status.
-                </p>
-              </div>
-            ) : (
-              paymentdone.map((item, index) => (
-                <PaymentConfirmCard key={index} item={item} index={index} />
-              ))
-            )}
-          </div>
-        ) : (
-          <p>ERROR</p>
         )}
       </div>
     </div>
