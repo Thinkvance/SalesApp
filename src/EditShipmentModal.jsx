@@ -1,6 +1,8 @@
 import { useForm } from "react-hook-form";
 import Lottie from "lottie-react";
 import loadingAnimation from "./assets/loading_animation.json";
+import { useEffect, useState } from "react";
+import utilityFunctions from "./Utility/utilityFunctions";
 
 // Reusable InputField component
 const InputField = ({ label, name, register, error, rules }) => (
@@ -69,6 +71,14 @@ const EditShipmentModal = ({
   console.log("pickup", pickup?.logisticCost);
   if (!pickup) return null;
 
+  const [user, setUser] = useState({});
+  const [RoleBasedScreens, setRoleBasedScreens] = useState({});
+
+  useEffect(() => {
+    setUser(JSON.parse(localStorage.getItem("LoginCredentials")));
+    setRoleBasedScreens(utilityFunctions.rolesPermissions());
+  }, []);
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
       <div className="bg-white w-full max-w-2xl rounded-lg p-6 shadow-lg relative">
@@ -84,7 +94,6 @@ const EditShipmentModal = ({
               rules={{ required: "Consignor name is required." }}
               error={errors.consignorname}
             />
-
             <SelectField
               label="Service"
               name="service"
@@ -110,7 +119,7 @@ const EditShipmentModal = ({
               ]}
               error={errors.vendorName}
             />
-            {pickup.actualWeight ? (
+            {pickup.actualWeight && user?.role == "sales admin" ? (
               <InputField
                 label="Final Weight"
                 name="actualWeight"
@@ -121,7 +130,7 @@ const EditShipmentModal = ({
             ) : (
               ""
             )}
-            {pickup.vendorAwbnumber ? (
+            {pickup.vendorAwbnumber && user?.role == "OPS Head" ? (
               <InputField
                 label="vendorAwbnumber"
                 name="vendorAwbnumber"
@@ -132,7 +141,7 @@ const EditShipmentModal = ({
             ) : (
               ""
             )}
-            {pickup.logisticCost ? (
+            {pickup.logisticCost && user?.role == "sales admin" ? (
               <InputField
                 label="Logistic Cost"
                 name="logisticCost"

@@ -10,6 +10,7 @@ import {
   getDocs,
   onSnapshot,
   query,
+  Timestamp,
   where,
 } from "firebase/firestore";
 import axios from "axios";
@@ -105,13 +106,20 @@ function PickupBooking() {
   });
   const barcodeRef = useRef(null);
   console.log(errors);
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const day = date.getDate(); // Gets the day (1-31)
-    const month = date.getMonth() + 1; // Gets the month (0-11), so add 1
-    const year = date.getFullYear(); // Gets the full year
-    return `${day}-${month}-${year}`; // Format as "DD-M"
-  };
+
+  function convertToFirebaseTimestamp(dateString) {
+    console.log("dateString", dateString);
+    const [datePart, timePart, meridian] = dateString.split(" ");
+    const [year, month, day] = datePart.split("-").map(Number);
+    let [hours, minutes] = timePart.split(":").map(Number);
+
+    if (meridian === "PM" && hours !== 12) hours += 12;
+    if (meridian === "AM" && hours === 12) hours = 0;
+
+    const jsDate = new Date(year, month - 1, day, hours, minutes);
+
+    return Timestamp.fromDate(jsDate);
+  }
 
   // Example usage
   useEffect(() => {
@@ -213,7 +221,8 @@ function PickupBooking() {
       setIsSourceFixed(false);
     }
   };
-  function truncateDate(dateStr) {
+
+  function truncateDate(timestamp) {
     const months = [
       "Jan",
       "Feb",
@@ -229,11 +238,12 @@ function PickupBooking() {
       "Dec",
     ];
 
-    // Extract just the date part (before any extra characters like '&')
-    const rawDate = dateStr.split(" ")[0]; // "3-12-2024"
-    const [day, month, year] = rawDate.split("-");
+    // Convert Firestore Timestamp to JavaScript Date
+    const date = new Date(timestamp.seconds * 1000);
 
-    const shortMonth = months[parseInt(month, 10) - 1];
+    const day = String(date.getDate()).padStart(2, "0");
+    const shortMonth = months[date.getMonth()];
+    const year = date.getFullYear();
 
     return `${day}-${shortMonth}-${year}`;
   }
@@ -333,13 +343,9 @@ function PickupBooking() {
         destination: destinationCountryName, // Use full country name here
         pickupInstructions: data.instructions,
         weightapx: data.weight + " KG",
-        pickupDatetime:
-          formatDate(data.pickupDate) +
-          " " +
-          "&" +
-          data.pickupHour +
-          " " +
-          data.pickupPeriod,
+        pickupDatetime: convertToFirebaseTimestamp(
+          `${data.pickupDate + " " + data.pickupHour + " " + data.pickupPeriod}`
+        ),
         franchise: frachise,
         awbNumber: newAwbNumber, // Add the new awbNumber here
         vendorName: data.vendor,
@@ -439,6 +445,7 @@ function PickupBooking() {
           }
         );
       }
+
       setFiles([]);
       setIsSourceFixed(false);
       setsource("");

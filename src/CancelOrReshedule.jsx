@@ -2,9 +2,16 @@ import { useState, useEffect } from "react";
 import Nav from "./Nav";
 import ResheduleCard from "./ResheduleCard";
 import CancelCard from "./CancelCard";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import {
+  collection,
+  onSnapshot,
+  query,
+  Timestamp,
+  where,
+} from "firebase/firestore";
 import { db } from "./firebase";
 import DB from "./DB/DB";
+import oneMonthAgo from "./Utility/oneMonthAgo";
 function CancelOrReschedule() {
   const [data, setData] = useState([]);
   const [activeTab, setActiveTab] = useState("CANCEL");
@@ -36,13 +43,16 @@ function CancelOrReschedule() {
     );
     const { role, Location, name } = loginCredentials;
 
-    // Determine the Firestore query based on the role
     const collectionRef = collection(db, DB.db_collection);
-    // Real-time listener for Firestore data using onSnapshot
+
     const baseQuery =
       role === "Manager" || role === "sales admin"
         ? query(collectionRef)
-        : query(collectionRef, where("pickupBookedBy", "==", name));
+        : query(
+            collectionRef,
+            where("pickupBookedBy", "==", name),
+            where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo))
+          );
 
     const unsubscribe = onSnapshot(
       query(
@@ -54,11 +64,12 @@ function CancelOrReschedule() {
           ...doc.data(),
         }));
 
-        documents.sort((a, b) => {
-          const dateA = parseDate(a.pickupDatetime);
-          const dateB = parseDate(b.pickupDatetime);
-          return dateB - dateA;
-        });
+        console.log("documents", documents);
+        // documents.sort((a, b) => {
+        //   const dateA = parseDate(a.pickupDatetime);
+        //   const dateB = parseDate(b.pickupDatetime);
+        //   return dateB - dateA;
+        // });
 
         setData(documents); // Update the state with real-time Firestore data
       },

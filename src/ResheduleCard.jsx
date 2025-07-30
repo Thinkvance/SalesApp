@@ -8,9 +8,11 @@ import {
   where,
   updateDoc,
   doc,
+  Timestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import collectionName_BaseAwb from "./functions/collectionName";
+import formatFirestoreTimestamp from "./Utility/formatFirestoreTimestamp";
 function CancelCard({ item, index }) {
   const API_URL = apiURL.CHENNAI;
   const [isModalOpen, setIsModalOpen] = useState(false); // Modal state
@@ -18,6 +20,20 @@ function CancelCard({ item, index }) {
   const [loading, setloading] = useState(false);
   const [Hour, setHour] = useState(""); // DateTime state
   const [Timeperiod, setTimeperiod] = useState(""); // DateTime state
+
+  function convertToFirebaseTimestamp(dateString) {
+    console.log("dateString", dateString);
+    const [datePart, timePart, meridian] = dateString.split(" ");
+    const [year, month, day] = datePart.split("-").map(Number);
+    let [hours, minutes] = timePart.split(":").map(Number);
+
+    if (meridian === "PM" && hours !== 12) hours += 12;
+    if (meridian === "AM" && hours === 12) hours = 0;
+
+    const jsDate = new Date(year, month - 1, day, hours, minutes);
+
+    return Timestamp.fromDate(jsDate);
+  }
 
   // Handle reschedule click
   const handleAcceptClick = async (awbNumber) => {
@@ -49,8 +65,15 @@ function CancelCard({ item, index }) {
       final_result[0].id
     ); // db is your Firestore instance
 
+    console.log(
+      convertToFirebaseTimestamp(
+        `${selectedDate + " " + Hour + " " + Timeperiod}`
+      )
+    );
     const updatedFields = {
-      pickupDatetime: selectedDate + " " + "&" + Hour + " " + Timeperiod,
+      pickupDatetime: convertToFirebaseTimestamp(
+        `${selectedDate + " " + Hour + " " + Timeperiod}`
+      ),
     };
 
     updateDoc(docRef, updatedFields);
@@ -121,7 +144,7 @@ function CancelCard({ item, index }) {
         {item.pickupDatetime && (
           <p className="text-base font-medium text-gray-800">
             <strong className="text-gray-900">Pickup Booked At:</strong>{" "}
-            {item.pickupDatetime || "-"}
+            {formatFirestoreTimestamp(item.pickupDatetime) || "-"}
           </p>
         )}
         {item.rtoIfAny && (
@@ -200,7 +223,7 @@ function CancelCard({ item, index }) {
               <strong className="text-gray-800">
                 Current Pickup Date and Time:
               </strong>{" "}
-              {item.pickupDatetime.toLocaleString()}
+              {formatFirestoreTimestamp(item.pickupDatetime)}
             </p>
 
             {/* Date Picker */}
@@ -216,7 +239,7 @@ function CancelCard({ item, index }) {
                   const day = date.getDate(); // Get day without leading zero
                   const month = date.getMonth() + 1; // Get month (0-indexed, so +1) without leading zero
                   const year = date.getFullYear(); // Full year
-                  setSelectedDate(`${day}-${month}-${year}`);
+                  setSelectedDate(`${year}-${month}-${day}`);
                 }}
               />
             </div>
@@ -235,11 +258,17 @@ function CancelCard({ item, index }) {
                   onChange={(e) => setHour(e.target.value)}
                 >
                   <option value="">Select Hour</option>
-                  {[...Array(12).keys()].map((hour) => (
-                    <option key={hour + 1} value={hour + 1}>
-                      {hour + 1}:00
-                    </option>
-                  ))}
+                  {[...Array(12)].flatMap((_, i) => {
+                    const hour = i + 1;
+                    return [
+                      <option key={`${hour}:00`} value={`${hour}:00`}>
+                        {hour}:00
+                      </option>,
+                      <option key={`${hour}:30`} value={`${hour}:30`}>
+                        {hour}:30
+                      </option>,
+                    ];
+                  })}
                 </select>
 
                 {/* AM/PM Dropdown */}

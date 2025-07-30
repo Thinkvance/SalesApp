@@ -482,8 +482,6 @@ function rolesPermissions() {
       PickupManagement: [
         "Pickup-Booking",
         "Pickups",
-        "Sales-Incentive",
-        "Pickup-Incentive",
         "Cancel-or-reschedule",
         "Payment-confirm",
       ],
@@ -491,7 +489,8 @@ function rolesPermissions() {
       Reports: ["Sales-Report", "Sales-Incentive", "Pickup-Incentive"],
     };
   }
-  if (role == "Ops Head") {
+
+  if (role == "OPS Head") {
     return {
       PickupManagement: [
         "Pickup-Booking",
@@ -500,7 +499,6 @@ function rolesPermissions() {
         "Payment-confirm",
       ],
       RateManagement: ["Sale-rates"],
-      Reports: ["Sales-Report"],
     };
   }
 }
@@ -881,3 +879,4 @@ export default {
   formateFirebaseTimestamp: formateFirebaseTimestamp,
   growth: growth,
 };
+

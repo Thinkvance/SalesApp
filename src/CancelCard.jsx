@@ -12,6 +12,7 @@ import {
 import { db } from "./firebase";
 import collectionName_BaseAwb from "./functions/collectionName";
 import utilityFunctions from "./Utility/utilityFunctions";
+import formatFirestoreTimestamp from "./Utility/formatFirestoreTimestamp";
 
 function CancelCard({ item, index }) {
   // const [details, setDetails] = useState(null);
@@ -159,7 +160,7 @@ function CancelCard({ item, index }) {
         {item.pickupDatetime && (
           <p className="text-base font-medium text-gray-800">
             <strong className="text-gray-900">Pickup Booked At:</strong>{" "}
-            {item.pickupDatetime || "-"}
+            {formatFirestoreTimestamp(item.pickupDatetime) || "-"}
           </p>
         )}
         {item.rtoIfAny && (

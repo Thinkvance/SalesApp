@@ -42,7 +42,11 @@ function PaymentConfirm() {
     const baseQuery =
       role === "Manager" || role === "sales admin"
         ? query(collectionRef)
-        : query(collectionRef, where("pickupBookedBy", "==", name));
+        : query(
+            collectionRef,
+            where("pickupBookedBy", "==", name),
+            where("pickupBookedBy", "==", name)
+          );
 
     const unsubscribe = onSnapshot(
       baseQuery,
@@ -51,13 +55,6 @@ function PaymentConfirm() {
           id: doc.id,
           ...doc.data(),
         }));
-
-        // ✅ Sort based on pickupDatetime descending
-        documents.sort((a, b) => {
-          const dateA = parseDate(a.pickupDatetime);
-          const dateB = parseDate(b.pickupDatetime);
-          return dateB - dateA;
-        });
 
         setData(documents);
         setLoading(false);

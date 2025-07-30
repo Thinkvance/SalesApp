@@ -4,6 +4,20 @@ import { FiClipboard, FiCheck } from "react-icons/fi";
 function ShipmentDetails({ selectedPickup, closeModal }) {
   const [copied, setCopied] = useState(false);
 
+  function formatFirestoreTimestamp(timestamp) {
+    if (!timestamp || !timestamp.seconds) return "";
+    const date = new Date(timestamp.seconds * 1000);
+    return date.toLocaleString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+      hour12: true,
+    });
+  }
+
   const handleCopy = () => {
     navigator.clipboard.writeText(selectedPickup.vendorAwbnumber);
     setCopied(true);
@@ -166,7 +180,7 @@ function ShipmentDetails({ selectedPickup, closeModal }) {
               <span className="font-semibold text-purple-700">
                 Pickup Date & Time:
               </span>{" "}
-              {selectedPickup.pickupDatetime || "NA"}
+              {formatFirestoreTimestamp(selectedPickup.pickupDatetime) || "NA"}
             </p>
 
             <p className="flex items-center gap-2 bg-gradient-to-r from-purple-100 to-purple-200 p-3 rounded-lg shadow-lg border-l-4 border-purple-700">
