@@ -29,6 +29,8 @@ function Pickups() {
   const [selectedPickup, setSelectedPickup] = useState(null); // State to hold the selected pickup for modal
   const [loadingEdit, setLoadingEdit] = useState(false);
 
+  console.log("role", role);
+
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("LoginCredentials"));
     setUsername(storedUser?.name);
@@ -50,7 +52,7 @@ function Pickups() {
       const fetchData = () => {
         try {
           const q =
-            role === "sales admin" || role === "Manager"
+            role === "sales admin" || role === "Manager" || role == "OPS Head"
               ? query(
                   collection(
                     db,

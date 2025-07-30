@@ -482,13 +482,23 @@ function rolesPermissions() {
       PickupManagement: [
         "Pickup-Booking",
         "Pickups",
-        "Sales-Incentive",
-        "Pickup-Incentive",
         "Cancel-or-reschedule",
         "Payment-confirm",
       ],
       RateManagement: ["Sale-rates"],
       Reports: ["Sales-Report", "Sales-Incentive", "Pickup-Incentive"],
+    };
+  }
+
+  if (role == "OPS Head") {
+    return {
+      PickupManagement: [
+        "Pickup-Booking",
+        "Pickups",
+        "Cancel-or-reschedule",
+        "Payment-confirm",
+      ],
+      RateManagement: ["Sale-rates"],
     };
   }
 }
