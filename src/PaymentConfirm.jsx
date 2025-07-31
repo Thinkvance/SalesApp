@@ -5,7 +5,7 @@ import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "./firebase";
 import collectionName_BaseAwb from "./functions/collectionName";
 import utilityFunctions from "./Utility/utilityFunctions";
-
+import oneMonthAgo from "./Utility/oneMonthAgo.js";
 // ✅ Parse "20-10-2025 &10 AM" to a Date object
 const parseDate = (datetime) => {
   const [datePart, timePartRaw] = datetime.split(" &");
@@ -44,8 +44,8 @@ function PaymentConfirm() {
         ? query(collectionRef)
         : query(
             collectionRef,
-            where("pickupBookedBy", "==", name),
             where("pickupBookedBy", "==", name)
+            // where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo))
           );
 
     const unsubscribe = onSnapshot(

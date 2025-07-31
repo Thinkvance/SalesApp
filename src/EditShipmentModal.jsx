@@ -109,7 +109,7 @@ const EditShipmentModal = ({
               rules={{ required: "Please select a vendor." }}
               options={[
                 "DHL",
-                "ARAMEX",
+                "Aramex",
                 "UPS",
                 "FedEx",
                 "DESK SELF",

@@ -1,9 +1,9 @@
 [
   {
-    "code": "US",
-    "name": "USA",
+    "code": "United States of America",
+    "name": "United States of America",
     "dialCode": "+1",
-    "flag": "🇺🇸"
+    "flag": "USA"
   },
   { "code": "GB", "name": "United Kingdom", "dialCode": "+44", "flag": "GB" },
   { "code": "CA", "name": "Canada", "dialCode": "+1", "flag": "🇨🇦" },

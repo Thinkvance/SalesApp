@@ -8,6 +8,7 @@ import utilityFunctions from "./Utility/utilityFunctions";
 import axios from "axios";
 import { doc, updateDoc } from "firebase/firestore";
 import Lottie from "lottie-react";
+import formatFirestoreTimestamp from "./Utility/formatFirestoreTimestamp";
 
 function PaymentConfirmCard({ item, index }) {
   const navigate = useNavigate();
@@ -391,7 +392,7 @@ function PaymentConfirmCard({ item, index }) {
         </p>
         <p className="text-base font-medium text-gray-800">
           <strong className="text-gray-900">Pickup Datetime:</strong>{" "}
-          {item.pickupDatetime || "-"}
+          {formatFirestoreTimestamp(item.pickupDatetime) || "-"}
         </p>
         {item.rtoIfAny && (
           <p className="text-base font-medium text-red-600">

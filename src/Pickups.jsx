@@ -48,6 +48,7 @@ function Pickups() {
   };
 
   useEffect(() => {
+    console.log("dateSearchTerm", dateSearchTerm);
     if (username) {
       const fetchData = () => {
         try {
