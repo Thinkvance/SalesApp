@@ -26,6 +26,11 @@ function convertDateToTimestamp(dateString) {
   const date = new Date(year, month - 1, day);
   const seconds = Math.floor(date.getTime() / 1000);
   const nanoseconds = (date.getTime() % 1000) * 1e6;
+
+  console.log("test", {
+    seconds,
+    nanoseconds,
+  });
   return {
     seconds,
     nanoseconds,
@@ -108,12 +113,12 @@ async function fetchData(DateRange, startendrange) {
         where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"])
       );
     }
-
     const querySnapshot = await getDocs(queryRef);
     const fetchedData = querySnapshot.docs.map((doc) => {
       const data = doc.data();
       return { ...data }; // Attach the parsed data
     });
+    console.log("fetchedData", fetchedData);
     // Update the fetched data by converting pickupDatetime to Timestamp
     const updatedData = fetchedData.map((item) => ({
       ...item,
@@ -135,6 +140,7 @@ async function fetchData(DateRange, startendrange) {
 }
 
 async function getRevenue(DateRange, startendrange) {
+  console.log("getRevenue!");
   var Revenue = 0;
   await fetchData(DateRange, startendrange).then((d) => {
     d?.map((value) => {
@@ -428,17 +434,28 @@ function rolesPermissions() {
       PickupManagement: [
         "Pickup-Booking",
         "all-pickups",
-        "logistics-Dashboard",
-        "Sales-Incentive",
-        "Pickup-Incentive",
+        // "logistics-Dashboard",
+        "Cancel-or-reschedule",
+        "Payment-confirm",
       ],
       RateManagement: ["Sale-rates", "vendor-rates"],
-      Reports: ["Sales-Report", "accounts"],
+      Reports: [
+        "Sales-Report",
+        "accounts",
+        "Sales-Incentive",
+        "Pickup-Incentive",
+        "review-management",
+      ],
     };
   }
   if (role == "sales associate") {
     return {
-      PickupManagement: ["Pickup-Booking", "Pickups"],
+      PickupManagement: [
+        "Pickup-Booking",
+        "Pickups",
+        "Cancel-or-reschedule",
+        "Payment-confirm",
+      ],
       RateManagement: ["Sale-rates"],
       Reports: ["Sales-Report"],
     };
@@ -448,8 +465,21 @@ function rolesPermissions() {
       PickupManagement: [
         "Pickup-Booking",
         "Pickups",
-        "Sales-Incentive",
-        "Pickup-Incentive",
+        "Cancel-or-reschedule",
+        "Payment-confirm",
+      ],
+      RateManagement: ["Sale-rates"],
+      Reports: ["Sales-Report", "Sales-Incentive", "Pickup-Incentive"],
+    };
+  }
+
+  if (role == "OPS Head") {
+    return {
+      PickupManagement: [
+        "Pickup-Booking",
+        "Pickups",
+        "Cancel-or-reschedule",
+        "Payment-confirm",
       ],
       RateManagement: ["Sale-rates"],
     };

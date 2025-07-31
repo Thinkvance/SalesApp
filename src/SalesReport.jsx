@@ -206,7 +206,6 @@ function SalesReport() {
 
     const dayjsDate = dayjs(dateStr, "DD-MM-YYYY h:mm:ss A");
     if (!dayjsDate.isValid()) {
-      // console.warn("Invalid date format:", pickup.awbNumber);
       return false;
     }
 
@@ -261,8 +260,6 @@ function SalesReport() {
         setcurrentMonthSales(growth.currentMonthSales);
         setlastMonthSales(growth.previousMonthSales);
         setshipmentCount(growth.shipmentCount);
-        console.log("growth.shipmentCount", growth.shipmentCount);
-        console.log("growth.growthPercentage", growth.growthPercentage);
       } catch (error) {
         utilityFunctions.ErrorNotify("Data fetch failed. Please try again.");
       }
@@ -313,7 +310,6 @@ function SalesReport() {
               </select>
             </div>
           )}
-
           {/* <div className="w-fit col-span-1 md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Area

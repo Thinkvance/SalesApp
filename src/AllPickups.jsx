@@ -118,8 +118,6 @@ function Pickups() {
   useEffect(() => {
     if (!username) return;
 
-    console.log("dateSearchTerm", dateSearchTerm);
-
     const unsubscribes = [];
 
     const fetchData = async () => {
