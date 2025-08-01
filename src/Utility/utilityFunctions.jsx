@@ -13,20 +13,41 @@ import { db, messaging } from "../firebase";
 import toast from "react-hot-toast";
 import axios from "axios";
 import { getToken } from "firebase/messaging";
+import { revokeAccessToken } from "firebase/auth";
 import DB from "../DB/DB";
 
+function formateFirebaseTimestamp(isoString) {
+  if (isoString) {
+    const date = new Date(isoString);
+    // Options for formatting
+    const options = {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: "Asia/Kolkata", // Optional: Set your local timezone
+    };
+
+    const formattedDate = date.toLocaleString("en-US", options);
+    return formattedDate;
+  } else {
+    return "null";
+  }
+}
+
 function extractDate(dateString) {
+  // Split the string at the '&' character and return the first part (the date)
   const datePart = dateString.split(" &")[0];
   return datePart;
 }
 function convertDateToTimestamp(dateString) {
-  console.log("dateString", dateString);
   const result = extractDate(dateString);
   const [day, month, year] = result.split("-").map(Number);
   const date = new Date(year, month - 1, day);
   const seconds = Math.floor(date.getTime() / 1000);
   const nanoseconds = (date.getTime() % 1000) * 1e6;
-
   return {
     seconds,
     nanoseconds,
@@ -92,6 +113,7 @@ async function fetchStartEndDate(DateRange, startendrange) {
 async function fetchData(DateRange, startendrange) {
   try {
     let queryRef = collection(db, DB.db_collection);
+    // Conditional query based on selected DateRange
     if (DateRange === "This Week") {
       queryRef = query(
         collection(db, DB.db_collection),
@@ -108,12 +130,12 @@ async function fetchData(DateRange, startendrange) {
         where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"])
       );
     }
+
     const querySnapshot = await getDocs(queryRef);
     const fetchedData = querySnapshot.docs.map((doc) => {
       const data = doc.data();
-      return { ...data };
+      return { ...data }; // Attach the parsed data
     });
-    console.log("fetchedData", fetchedData);
     // Update the fetched data by converting pickupDatetime to Timestamp
     const updatedData = fetchedData.map((item) => ({
       ...item,
@@ -127,6 +149,7 @@ async function fetchData(DateRange, startendrange) {
         : item.pickupDatetime.seconds >= startendrange?.start?.seconds &&
           item.pickupDatetime.seconds <= startendrange?.end?.seconds
     );
+
     return filteredData;
   } catch (error) {
     console.error("Error fetching pickup data:", error);
@@ -163,6 +186,7 @@ async function fetchLoginCredentials() {
     id: doc.id, // Include the document ID if needed
     ...doc.data(), // Spread the document fields
   }));
+
   const finalLoginCre = Object.entries(loginData[0])
     .filter(([email, details]) => {
       return (
@@ -420,7 +444,6 @@ function calculateCost(country, weight, data) {
   }
   return weightData[weightKey][countryIndex];
 }
-
 function rolesPermissions() {
   let { role } = JSON.parse(localStorage.getItem("LoginCredentials"));
   if (role == "Manager") {
@@ -428,7 +451,6 @@ function rolesPermissions() {
       PickupManagement: [
         "Pickup-Booking",
         "all-pickups",
-        // "logistics-Dashboard",
         "Cancel-or-reschedule",
         "Payment-confirm",
       ],
@@ -622,13 +644,13 @@ async function getTokenService() {
       if (currentToken) {
         return currentToken;
       } else {
-        ErrorNotify(
-          "No registration token available. Request permission to generate one."
-        );
+        // ErrorNotify(
+        //   "No registration token available. Request permission to generate one."
+        // );
       }
     })
     .catch((err) => {
-      ErrorNotify("An error occurred while retrieving token!");
+      // ErrorNotify("An error occurred while retrieving token!");
     });
 
   return token;
@@ -642,7 +664,7 @@ async function fetchAndStoreToken(username) {
       token: token, // Store the token under the user's username
     });
   } catch (error) {
-    ErrorNotify("Error storing token in Firestore");
+    // ErrorNotify("Error storing token in Firestore");
   }
 }
 
@@ -697,6 +719,115 @@ Please review the details and proceed accordingly.
     ErrorNotify("Error sending notification");
   }
 };
+function addWeekdays(dateString, daysToAdd) {
+  const [day, month, year] = dateString.split("/").map(Number);
+  let date = new Date(year, month - 1, day);
+
+  let addedDays = 0;
+  while (addedDays < daysToAdd) {
+    date.setDate(date.getDate() + 1);
+    const dayOfWeek = date.getDay();
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      // Skip Sundays and Saturdays
+      addedDays++;
+    }
+  }
+
+  return date;
+}
+
+function convertToFullDate(input) {
+  const [datePart] = input.split("&");
+  const trimmedDate = datePart.trim();
+  return `${trimmedDate}/2025`;
+}
+
+function formatReadableDate(date) {
+  const options = { day: "numeric", month: "long" };
+  return date.toLocaleDateString("en-US", options);
+}
+
+function getEstimatedDate(packageConnectedDataTime, service) {
+  if (!packageConnectedDataTime) return "-";
+
+  const estimatedDays =
+    service === "Express"
+      ? { start: 3, end: 4 }
+      : service === "Economy"
+      ? { start: 5, end: 7 }
+      : service === "Duty Free"
+      ? { start: 10, end: 14 }
+      : null;
+
+  if (!estimatedDays) return "-";
+
+  const baseDate = convertToFullDate(packageConnectedDataTime);
+
+  const startDate = addWeekdays(baseDate, estimatedDays.start);
+  const endDate = addWeekdays(baseDate, estimatedDays.end);
+
+  const formattedStart = formatReadableDate(startDate);
+  const formattedEnd = formatReadableDate(endDate);
+  const year = endDate.getFullYear();
+
+  return `${formattedStart} – ${formattedEnd}, ${year}`;
+}
+
+async function growth() {
+  const today = new Date();
+
+  // Current month date range (start of month to today)
+  const currentStartDate = new Date(today.getFullYear(), today.getMonth(), 1);
+  const currentEndDate = today; // Today's date
+
+  // Previous month date range (start of last month to the corresponding day of last month)
+  const previousStartDate = new Date(
+    today.getFullYear(),
+    today.getMonth() - 1,
+    1
+  );
+
+  // Calculate the corresponding day in the previous month
+  const previousEndDate = new Date(
+    today.getFullYear(),
+    today.getMonth() - 1,
+    today.getDate()
+  );
+
+  // Handle cases where today's date in the previous month might not exist (e.g., May 31st for April)
+  // If the calculated previousEndDate's month is not the previous month, set it to the last day of the previous month.
+  if (
+    previousEndDate.getMonth() !==
+    (today.getMonth() === 0 ? 11 : today.getMonth() - 1)
+  ) {
+    previousEndDate.setDate(0); // This sets it to the last day of the *previous* month
+  }
+
+  const formatDate = (date) =>
+    `${String(date.getDate()).padStart(2, "0")}-${String(
+      date.getMonth() + 1
+    ).padStart(2, "0")}-${date.getFullYear()}`;
+
+  const currentMonthSales = await getRevenue("Select range", {
+    start: convertDateToTimestamp(formatDate(currentStartDate)),
+    end: convertDateToTimestamp(formatDate(currentEndDate)),
+  });
+
+  const previousMonthSales = await getRevenue("Select range", {
+    start: convertDateToTimestamp(formatDate(previousStartDate)),
+    end: convertDateToTimestamp(formatDate(previousEndDate)),
+  });
+
+  const growthPercentage =
+    previousMonthSales === 0
+      ? 0
+      : (
+          ((currentMonthSales - previousMonthSales) / previousMonthSales) *
+          100
+        ).toFixed(1);
+
+  return growthPercentage;
+}
 
 export default {
   getRevenue: getRevenue,
@@ -721,4 +852,7 @@ export default {
   sendNotification: sendNotification,
   foregroundNotification: foregroundNotification,
   fetchAndStoreToken: fetchAndStoreToken,
+  getEstimatedDate: getEstimatedDate,
+  formateFirebaseTimestamp: formateFirebaseTimestamp,
+  growth: growth,
 };

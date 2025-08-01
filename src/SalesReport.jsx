@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import positive_lottie from "./assets/positive_lottie.json"; // Replace with your animation JSON path
-import negative_lottie from "./assets/negative_lottie.json"; // Replace with your animation JSON path
+import positive_lottie from "./assets/positive_lottie.json";
+import negative_lottie from "./assets/negative_lottie.json";
 import Nav from "./Nav";
 import { collection, query, onSnapshot, where } from "firebase/firestore";
 import { db } from "./firebase";

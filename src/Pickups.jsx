@@ -8,6 +8,7 @@ import {
   getDocs,
   updateDoc,
   Timestamp,
+  orderBy,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import collectionName_BaseAwb from "./functions/collectionName";
@@ -21,7 +22,7 @@ function Pickups() {
   const [username, setUsername] = useState(null);
   const [role, setRole] = useState("");
   const [pickups, setPickups] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [awbSearchTerm, setAwbSearchTerm] = useState("");
   const [dateSearchTerm, setDateSearchTerm] = useState(null);
@@ -48,7 +49,6 @@ function Pickups() {
   };
 
   useEffect(() => {
-    console.log("dateSearchTerm", dateSearchTerm);
     if (username) {
       const fetchData = () => {
         try {
@@ -79,7 +79,8 @@ function Pickups() {
                     where(
                       "pickupDatetime",
                       ">=",
-                      Timestamp.fromDate(oneMonthAgo)
+                      Timestamp.fromDate(oneMonthAgo),
+                      orderBy("pickupDatetime", "desc")
                     )
                   )
                 : query(
@@ -91,7 +92,8 @@ function Pickups() {
                       "pickupDatetime",
                       ">=",
                       Timestamp.fromDate(oneMonthAgo)
-                    )
+                    ),
+                    orderBy("pickupDatetime", "desc")
                   );
           } else {
             q =
@@ -104,23 +106,23 @@ function Pickups() {
                       "pickupDatetime",
                       ">=",
                       Timestamp.fromDate(oneMonthAgo)
-                    )
+                    ),
+                    orderBy("pickupDatetime", "desc")
                   );
           }
-
           const unsubscribe = onSnapshot(q, (snapshot) => {
             const filteredData = snapshot.docs.map((doc) => ({
               ...doc.data(),
               id: doc.id,
             }));
+            console.log("filteredData", filteredData);
             setPickups(filteredData);
-            setLoading(false);
           });
 
           return () => unsubscribe();
         } catch (error) {
+          console.log("error", error);
           utilityFunctions.ErrorNotify("Data fetch failed. Please try again.");
-          setLoading(false);
         }
       };
       fetchData();

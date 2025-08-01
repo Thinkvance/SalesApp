@@ -141,13 +141,11 @@ async function growth(user) {
 
   const growthPercentage =
     previousMonthSales > 0.0
-      ? // normal % change
-        (
+      ? (
           ((currentMonthSales - previousMonthSales) / previousMonthSales) *
           100
         ).toFixed(1)
-      : // if no base but some new sales, count it as “full” growth
-      currentMonthSales > 0
+      : currentMonthSales > 0
       ? "100.0"
       : "0.0";
   return {

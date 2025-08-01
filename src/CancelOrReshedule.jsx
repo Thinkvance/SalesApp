@@ -5,6 +5,7 @@ import CancelCard from "./CancelCard";
 import {
   collection,
   onSnapshot,
+  orderBy,
   query,
   Timestamp,
   where,
@@ -47,38 +48,32 @@ function CancelOrReschedule() {
 
     const baseQuery =
       role === "Manager" || role === "sales admin"
-        ? query(collectionRef)
+        ? query(
+            collectionRef,
+            where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo)),
+            orderBy("pickupDatetime", "desc")
+          )
         : query(
             collectionRef,
             where("pickupBookedBy", "==", name),
-            where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo))
+            where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo)),
+            orderBy("pickupDatetime", "desc")
           );
 
     const unsubscribe = onSnapshot(
-      query(
-        baseQuery // Apply the where filter
-      ),
+      query(baseQuery),
       (snapshot) => {
         const documents = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
-
-        console.log("documents", documents);
-        // documents.sort((a, b) => {
-        //   const dateA = parseDate(a.pickupDatetime);
-        //   const dateB = parseDate(b.pickupDatetime);
-        //   return dateB - dateA;
-        // });
-
-        setData(documents); // Update the state with real-time Firestore data
+        setData(documents);
       },
       (error) => {
         console.error("Error fetching Firestore data: ", error);
       }
     );
 
-    // Cleanup the listener on component unmount
     return () => unsubscribe();
   }, []);
 
