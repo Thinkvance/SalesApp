@@ -5,7 +5,6 @@ import Nav from "./Nav";
 import { collection, query, onSnapshot, where } from "firebase/firestore";
 import { db } from "./firebase";
 import collectionName_BaseAwb from "./functions/collectionName";
-import utilityFunctions from "./Utility/utilityFunctions";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import customParseFormat from "dayjs/plugin/customParseFormat";
@@ -153,13 +152,13 @@ function SalesReport() {
           setLoading(false);
         })
         .catch(() => {
-          utilityFunctions.ErrorNotify("Unable to retrieve data.");
+          salesreport.ErrorNotify("Unable to retrieve data.");
           setLoading(false);
         });
 
       return () => unsubscribes.forEach((u) => u());
     } catch {
-      utilityFunctions.ErrorNotify("Error fetching pickups.");
+      salesreport.ErrorNotify("Error fetching pickups.");
       setLoading(false);
     }
   };
@@ -261,7 +260,7 @@ function SalesReport() {
         setlastMonthSales(growth.previousMonthSales);
         setshipmentCount(growth.shipmentCount);
       } catch (error) {
-        utilityFunctions.ErrorNotify("Data fetch failed. Please try again.");
+        salesreport.ErrorNotify("Data fetch failed. Please try again.");
       }
     }
     getData();

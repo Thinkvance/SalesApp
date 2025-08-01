@@ -1,6 +1,7 @@
 import { collection, getDocs, query, where } from "firebase/firestore";
 import DB from "../DB/DB";
 import { db } from "../firebase";
+import toast from "react-hot-toast";
 
 function extractDate(dateString) {
   const datePart = dateString.split(" ")[0];
@@ -156,6 +157,26 @@ async function growth(user) {
     shipmentCount: shipmentCount,
   };
 }
+
+function ErrorNotify(value) {
+  playNotificationSound("/errorNotification.mp3");
+  toast.error(value, {
+    duration: 4000,
+    position: "top-right",
+    icon: "❌", // Change icon to represent an error
+    iconTheme: {
+      primary: "#ff0000", // Red for error
+      secondary: "#fff", // White for contrast
+    },
+    ariaProps: {
+      role: "alert", // Role for error message
+      "aria-live": "assertive", // More urgent for errors
+    },
+    removeDelay: 1000,
+  });
+}
+
 export default {
   growth: growth,
+  ErrorNotify: ErrorNotify,
 };

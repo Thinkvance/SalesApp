@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import utility from "./Utility/utilityFunctions";
 import { Avatar } from "@mui/material";
 import Nav from "./Nav";
 import { format, startOfWeek, addDays, subWeeks } from "date-fns";
 import { Timestamp } from "firebase/firestore";
+
 function SalesIncentive() {
   const [DateRange, setDateRange] = useState("Last Week"); // Default value set to "This Week"
   const [data, setData] = useState({

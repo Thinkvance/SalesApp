@@ -72,12 +72,12 @@ function Accounts() {
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setSelectedPickup(null); // Reset selected pickup when modal is closed
+    setSelectedPickup(null);
   };
 
   const handleMoreIconClick = (pickup) => {
     setSelectedPickup(pickup);
-    setIsModalOpen(true); // Open the modal
+    setIsModalOpen(true);
   };
 
   useEffect(() => {

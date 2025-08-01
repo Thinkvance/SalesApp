@@ -13,24 +13,20 @@ import { db, messaging } from "../firebase";
 import toast from "react-hot-toast";
 import axios from "axios";
 import { getToken } from "firebase/messaging";
-import { revokeAccessToken } from "firebase/auth";
+import DB from "../DB/DB";
 
 function extractDate(dateString) {
-  // Split the string at the '&' character and return the first part (the date)
   const datePart = dateString.split(" &")[0];
   return datePart;
 }
 function convertDateToTimestamp(dateString) {
+  console.log("dateString", dateString);
   const result = extractDate(dateString);
   const [day, month, year] = result.split("-").map(Number);
   const date = new Date(year, month - 1, day);
   const seconds = Math.floor(date.getTime() / 1000);
   const nanoseconds = (date.getTime() % 1000) * 1e6;
 
-  console.log("test", {
-    seconds,
-    nanoseconds,
-  });
   return {
     seconds,
     nanoseconds,
@@ -95,34 +91,33 @@ async function fetchStartEndDate(DateRange, startendrange) {
 
 async function fetchData(DateRange, startendrange) {
   try {
-    let queryRef = collection(db, "pickup");
-    // Conditional query based on selected DateRange
+    let queryRef = collection(db, DB.db_collection);
     if (DateRange === "This Week") {
       queryRef = query(
-        collection(db, "pickup"),
+        collection(db, DB.db_collection),
         where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"])
       );
     } else if (DateRange === "Last Week") {
       queryRef = query(
-        collection(db, "pickup"),
+        collection(db, DB.db_collection),
         where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"])
       );
     } else if (DateRange == "Select range") {
       queryRef = query(
-        collection(db, "pickup"),
+        collection(db, DB.db_collection),
         where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"])
       );
     }
     const querySnapshot = await getDocs(queryRef);
     const fetchedData = querySnapshot.docs.map((doc) => {
       const data = doc.data();
-      return { ...data }; // Attach the parsed data
+      return { ...data };
     });
     console.log("fetchedData", fetchedData);
     // Update the fetched data by converting pickupDatetime to Timestamp
     const updatedData = fetchedData.map((item) => ({
       ...item,
-      pickupDatetime: convertDateToTimestamp(item.pickupDatetime),
+      pickupDatetime: item.pickupDatetime,
     }));
     // Filter based on the selected DateRange
     const filteredData = updatedData.filter((item) =>
@@ -140,7 +135,6 @@ async function fetchData(DateRange, startendrange) {
 }
 
 async function getRevenue(DateRange, startendrange) {
-  console.log("getRevenue!");
   var Revenue = 0;
   await fetchData(DateRange, startendrange).then((d) => {
     d?.map((value) => {
@@ -439,13 +433,7 @@ function rolesPermissions() {
         "Payment-confirm",
       ],
       RateManagement: ["Sale-rates", "vendor-rates"],
-      Reports: [
-        "Sales-Report",
-        "accounts",
-        "Sales-Incentive",
-        "Pickup-Incentive",
-        "review-management",
-      ],
+      Reports: ["Sales-Report", "accounts", "review-management"],
     };
   }
   if (role == "sales associate") {
@@ -469,7 +457,7 @@ function rolesPermissions() {
         "Payment-confirm",
       ],
       RateManagement: ["Sale-rates"],
-      Reports: ["Sales-Report", "Sales-Incentive", "Pickup-Incentive"],
+      Reports: ["Sales-Report"],
     };
   }
 
