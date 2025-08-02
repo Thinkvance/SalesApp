@@ -42,7 +42,8 @@ function CancelOrReschedule() {
     const loginCredentials = JSON.parse(
       localStorage.getItem("LoginCredentials")
     );
-    const { role, Location, name } = loginCredentials;
+
+    const { role, name } = loginCredentials;
 
     const collectionRef = collection(db, DB.db_collection);
 

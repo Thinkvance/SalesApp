@@ -1,27 +1,17 @@
 import { useState, useEffect } from "react";
 import Nav from "./Nav";
 import PaymentConfirmCard from "./PaymentConfirmCard";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import {
+  collection,
+  onSnapshot,
+  query,
+  Timestamp,
+  where,
+} from "firebase/firestore";
 import { db } from "./firebase";
 import collectionName_BaseAwb from "./functions/collectionName";
 import utilityFunctions from "./Utility/utilityFunctions";
 import oneMonthAgo from "./Utility/oneMonthAgo.js";
-// ✅ Parse "20-10-2025 &10 AM" to a Date object
-const parseDate = (datetime) => {
-  const [datePart, timePartRaw] = datetime.split(" &");
-  const [day, month, year] = datePart.split("-").map(Number);
-
-  const [timePart, period] = timePartRaw.trim().split(" ");
-  let [hour, minute] = timePart.includes(":")
-    ? timePart.split(":").map(Number)
-    : [Number(timePart), 0]; // default to 0 minutes if missing
-
-  // Convert to 24-hour format
-  if (period === "PM" && hour !== 12) hour += 12;
-  if (period === "AM" && hour === 12) hour = 0;
-
-  return new Date(year, month - 1, day, hour, minute).getTime();
-};
 
 function PaymentConfirm() {
   const [data, setData] = useState([]);
@@ -41,11 +31,14 @@ function PaymentConfirm() {
     );
     const baseQuery =
       role === "Manager" || role === "sales admin"
-        ? query(collectionRef)
+        ? query(
+            collectionRef,
+            where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo))
+          )
         : query(
             collectionRef,
-            where("pickupBookedBy", "==", name)
-            // where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo))
+            where("pickupBookedBy", "==", name),
+            where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo))
           );
 
     const unsubscribe = onSnapshot(

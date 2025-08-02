@@ -121,7 +121,8 @@ export default function Myshipments() {
       q = query(
         collection(db, DB.db_collection),
         where("pickupBookedBy", "==", username),
-        orderBy("pickupDatetime", "desc")
+        orderBy("pickupDatetime", "desc"),
+        where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo))
       );
     }
 
