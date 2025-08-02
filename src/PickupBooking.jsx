@@ -105,10 +105,8 @@ function PickupBooking() {
     defaultValues: {},
   });
   const barcodeRef = useRef(null);
-  console.log(errors);
 
   function convertToFirebaseTimestamp(dateString) {
-    console.log("dateString", dateString);
     const [datePart, timePart, meridian] = dateString.split(" ");
     const [year, month, day] = datePart.split("-").map(Number);
     let [hours, minutes] = timePart.split(":").map(Number);
@@ -121,7 +119,6 @@ function PickupBooking() {
     return Timestamp.fromDate(jsDate);
   }
 
-  // Example usage
   useEffect(() => {
     const data = JSON.parse(localStorage.getItem("LoginCredentials")).name;
     setUsername(data);
