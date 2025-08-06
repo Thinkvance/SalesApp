@@ -123,8 +123,6 @@ function PickupBooking() {
     var countryData = getData();
     const updatedCountryData = countryData.map(({ name }) => ({ name }));
     countryData.push({ code: "UAE", name: "United Arab Emirates" });
-    countryData.push({ code: "EU", name: "Singapore" });
-    countryData.push({ code: "US", name: "USA" });
 
     countryData = countryData.map((country) =>
       country.code == "GB" ? { ...country, name: "United Kingdom" } : country
@@ -502,7 +500,7 @@ function PickupBooking() {
 
   useEffect(() => {
     if (selectedCountryCode) {
-      const country = countryList.find((c) => c.code === selectedCountryCode);
+      const country = countryList.find((c) => c.name === selectedCountryCode);
       if (country) {
         setValue("countrycode", country.dialCode);
       }
@@ -633,7 +631,7 @@ function PickupBooking() {
                   >
                     <option value="">Select Destination country</option>
                     {countryList.map((country) => (
-                      <option key={country.code} value={country.code}>
+                      <option key={country.code} value={country.name}>
                         {country.name} {country.dial_code}
                       </option>
                     ))}
