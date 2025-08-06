@@ -7,8 +7,8 @@
   },
 
   { "code": "GB", "name": "United Kingdom", "dialCode": "+44", "flag": "GB" },
-  { "code": "CA", "name": "Canada", "dialCode": "+1", "flag": "🇨🇦" },
-  { "code": "EU", "name": "Singapore", "dialCode": "+65", "flag": "EU" },
+  { "code": "Canada", "name": "Canada", "dialCode": "+1", "flag": "🇨🇦" },
+  { "code": "Singapore", "name": "Singapore", "dialCode": "+65", "flag": "EU" },
   {
     "code": "UAE",
     "name": "United Arab Emirates",
