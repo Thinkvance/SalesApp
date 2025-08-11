@@ -37,6 +37,8 @@ function PickupBooking() {
   const [isSourceFixed, setIsSourceFixed] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [sourceOptions, setSourceOptions] = useState([
+    "B To C",
+    "B To B",
     "FB Ad",
     "Google Ad",
     "Website Ad",
