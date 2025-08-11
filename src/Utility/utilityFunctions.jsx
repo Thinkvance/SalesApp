@@ -680,7 +680,9 @@ async function fetchLoginedUserEmail() {
 }
 
 async function fetchLoginedUserName() {
-  return JSON.parse(localStorage.getItem("LoginCredentials")).name;
+  return JSON.parse(
+    localStorage.getItem("LoginCredentials")
+  ).name.toUpperCase();
 }
 
 const sendNotification = async () => {
@@ -701,11 +703,8 @@ const sendNotification = async () => {
 
   const notificationPayload2 = {
     to: admin_token,
-    title: "📦 New Pickup Request Booked!",
-    body: `
-A new pickup request has been successfully booked by **${await fetchLoginedUserName()}**.  
-Please review the details and proceed accordingly.  
-`,
+    title: "Pickup Request Confirmed",
+    body: `${await fetchLoginedUserName()} booked a pickup request. Please review and proceed.`,
     image: "",
     link: "",
   };

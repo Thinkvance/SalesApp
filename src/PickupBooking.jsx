@@ -448,8 +448,8 @@ function PickupBooking() {
       setTimeout(() => {
         setShowModal(false);
       }, 1000);
-      // await utility.sendNotification();
-      // utility.SuccessNotify("Pickup request submitted successfully.");
+      await utility.sendNotification();
+      utility.SuccessNotify("Pickup request submitted successfully.");
     } catch (error) {
       utility.ErrorNotify("Failed to book the pickup. Please try again.");
       console.log("error", error);
