@@ -1,7 +1,6 @@
 import { collection, getDocs, query, where } from "firebase/firestore";
 import DB from "../DB/DB";
 import { db } from "../firebase";
-import toast from "react-hot-toast";
 
 function extractDate(dateString) {
   const datePart = dateString.split(" ")[0];
@@ -26,15 +25,24 @@ function convertDateToTimestamp(dateString) {
   }
 }
 
-async function fetchData(DateRange, startendrange, user) {
+async function fetchData(DateRange, startendrange, user, selectedBookedBy) {
+  console.log("selectedBookedBy", selectedBookedBy);
   try {
     let queryRef = collection(db, DB.db_collection);
     if (DateRange == "Select range") {
       if (user?.role == "Manager") {
-        queryRef = query(
-          collection(db, DB.db_collection),
-          where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"])
-        );
+        if (selectedBookedBy == "All") {
+          queryRef = query(
+            collection(db, DB.db_collection),
+            where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"])
+          );
+        } else {
+          queryRef = query(
+            collection(db, DB.db_collection),
+            where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"]),
+            where("pickupBookedBy", "==", selectedBookedBy)
+          );
+        }
       } else {
         queryRef = query(
           collection(db, DB.db_collection),
@@ -73,19 +81,27 @@ async function fetchData(DateRange, startendrange, user) {
 
 var shipmentCount = [{ currentMonthSales: 0, previousMonthSales: 0 }];
 
-async function getRevenue(DateRange, startendrange, user, period) {
+async function getRevenue(
+  DateRange,
+  startendrange,
+  user,
+  period,
+  selectedBookedBy
+) {
   var Revenue = 0;
 
-  await fetchData(DateRange, startendrange, user).then((d) => {
-    d?.map((value) => {
-      Revenue += value.logisticCost;
-    });
-    shipmentCount[period] = d.length;
-  });
+  await fetchData(DateRange, startendrange, user, selectedBookedBy).then(
+    (d) => {
+      d?.map((value) => {
+        Revenue += value.logisticCost;
+      });
+      shipmentCount[period] = d.length;
+    }
+  );
   return Revenue.toFixed(2);
 }
 
-async function growth(user) {
+async function growth(user, selectedBookedBy) {
   const today = new Date();
 
   // Current month date range (start of month to today)
@@ -126,7 +142,8 @@ async function growth(user) {
       end: convertDateToTimestamp(formatDate(currentEndDate)),
     },
     user,
-    "currentMonthSales"
+    "currentMonthSales",
+    selectedBookedBy
   );
 
   const previousMonthSales = await getRevenue(
@@ -136,16 +153,19 @@ async function growth(user) {
       end: convertDateToTimestamp(formatDate(previousEndDate)),
     },
     user,
-    "previousMonthSales"
+    "previousMonthSales",
+    selectedBookedBy
   );
 
   const growthPercentage =
     previousMonthSales > 0.0
-      ? (
+      ? // normal % change
+        (
           ((currentMonthSales - previousMonthSales) / previousMonthSales) *
           100
         ).toFixed(1)
-      : currentMonthSales > 0
+      : // if no base but some new sales, count it as “full” growth
+      currentMonthSales > 0
       ? "100.0"
       : "0.0";
   return {
@@ -155,26 +175,6 @@ async function growth(user) {
     shipmentCount: shipmentCount,
   };
 }
-
-function ErrorNotify(value) {
-  playNotificationSound("/errorNotification.mp3");
-  toast.error(value, {
-    duration: 4000,
-    position: "top-right",
-    icon: "❌", // Change icon to represent an error
-    iconTheme: {
-      primary: "#ff0000", // Red for error
-      secondary: "#fff", // White for contrast
-    },
-    ariaProps: {
-      role: "alert", // Role for error message
-      "aria-live": "assertive", // More urgent for errors
-    },
-    removeDelay: 1000,
-  });
-}
-
 export default {
   growth: growth,
-  ErrorNotify: ErrorNotify,
 };
