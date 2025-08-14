@@ -25,15 +25,24 @@ function convertDateToTimestamp(dateString) {
   }
 }
 
-async function fetchData(DateRange, startendrange, user) {
+async function fetchData(DateRange, startendrange, user, selectedBookedBy) {
+  console.log("selectedBookedBy", selectedBookedBy);
   try {
     let queryRef = collection(db, DB.db_collection);
     if (DateRange == "Select range") {
       if (user?.role == "Manager") {
-        queryRef = query(
-          collection(db, DB.db_collection),
-          where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"])
-        );
+        if (selectedBookedBy == "All") {
+          queryRef = query(
+            collection(db, DB.db_collection),
+            where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"])
+          );
+        } else {
+          queryRef = query(
+            collection(db, DB.db_collection),
+            where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"]),
+            where("pickupBookedBy", "==", selectedBookedBy)
+          );
+        }
       } else {
         queryRef = query(
           collection(db, DB.db_collection),
@@ -72,19 +81,27 @@ async function fetchData(DateRange, startendrange, user) {
 
 var shipmentCount = [{ currentMonthSales: 0, previousMonthSales: 0 }];
 
-async function getRevenue(DateRange, startendrange, user, period) {
+async function getRevenue(
+  DateRange,
+  startendrange,
+  user,
+  period,
+  selectedBookedBy
+) {
   var Revenue = 0;
 
-  await fetchData(DateRange, startendrange, user).then((d) => {
-    d?.map((value) => {
-      Revenue += value.logisticCost;
-    });
-    shipmentCount[period] = d.length;
-  });
+  await fetchData(DateRange, startendrange, user, selectedBookedBy).then(
+    (d) => {
+      d?.map((value) => {
+        Revenue += value.logisticCost;
+      });
+      shipmentCount[period] = d.length;
+    }
+  );
   return Revenue.toFixed(2);
 }
 
-async function growth(user) {
+async function growth(user, selectedBookedBy) {
   const today = new Date();
 
   // Current month date range (start of month to today)
@@ -125,7 +142,8 @@ async function growth(user) {
       end: convertDateToTimestamp(formatDate(currentEndDate)),
     },
     user,
-    "currentMonthSales"
+    "currentMonthSales",
+    selectedBookedBy
   );
 
   const previousMonthSales = await getRevenue(
@@ -135,7 +153,8 @@ async function growth(user) {
       end: convertDateToTimestamp(formatDate(previousEndDate)),
     },
     user,
-    "previousMonthSales"
+    "previousMonthSales",
+    selectedBookedBy
   );
 
   const growthPercentage =

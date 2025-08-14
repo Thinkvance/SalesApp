@@ -256,19 +256,19 @@ function SalesReport() {
   useEffect(() => {
     async function getData() {
       try {
-        const [growth] = await Promise.all([salesreport.growth(user)]);
+        const [growth] = await Promise.all([
+          salesreport.growth(user, selectedBookedBy),
+        ]);
         setGrowthPercentage(growth.growthPercentage);
         setcurrentMonthSales(growth.currentMonthSales);
         setlastMonthSales(growth.previousMonthSales);
         setshipmentCount(growth.shipmentCount);
-        console.log("growth.shipmentCount", growth.shipmentCount);
-        console.log("growth.growthPercentage", growth.growthPercentage);
       } catch (error) {
         utilityFunctions.ErrorNotify("Data fetch failed. Please try again.");
       }
     }
     getData();
-  }, [filteredPickups]); // Trigger fetch when startendrange updates
+  }, [filteredPickups]);
 
   return (
     <>
@@ -306,7 +306,7 @@ function SalesReport() {
                 onChange={(e) => setSelectedBookedBy(e.target.value)}
                 className="border rounded  input-style w-full"
               >
-                <option value="All"> Select Sales Representative</option>
+                <option value="All">Select Sales Representative</option>
                 {pickupPersons.map((d) => (
                   <option value={d}>{d}</option>
                 ))}
@@ -434,15 +434,32 @@ function SalesReport() {
 
             {/* RIGHT COLUMN: full-height Growth card */}
             <div className="bg-slate-50 border border-slate-200 rounded-xl px-6 py-3 shadow-lg transition-shadow duration-200 hover:shadow-2xl flex flex-col justify-between">
-              {/* Header */}
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-lg font-semibold text-teal-700">
                     Growth
                   </h3>
+                  {["sales associate"].includes(user.role) ? (
+                    ""
+                  ) : (
+                    <div className=" w-fit col-span-1 md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Sales Executive
+                      </label>
+                      <select
+                        value={selectedBookedBy}
+                        onChange={(e) => setSelectedBookedBy(e.target.value)}
+                        className="border rounded  input-style w-full"
+                      >
+                        <option value="All">All</option>
+                        {pickupPersons.map((d) => (
+                          <option value={d}>{d}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
 
-                {/* Growth Percentage + Animation */}
                 <div className="flex items-center gap-3 mb-4">
                   <p
                     className={`text-3xl font-bold ${
@@ -459,9 +476,6 @@ function SalesReport() {
                     )}
                   </div>
                 </div>
-
-                {/* Sales + Counts */}
-                {/* Sales + Counts */}
                 <div className="text-sm space-y-2 mb-3">
                   <p className="flex items-center gap-2">
                     <span className="text-slate-600 text-nowrap">
@@ -497,7 +511,6 @@ function SalesReport() {
                   </p>
                 </div>
               </div>
-              {/* Footer Text */}
               <p className="text-xs text-slate-500 mt-4">
                 Comparing current date with same date last month.
               </p>
