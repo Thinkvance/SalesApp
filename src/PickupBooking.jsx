@@ -165,7 +165,6 @@ function PickupBooking() {
 
     setCountries(orderedCountries);
 
-    console.log("orderedCountries", orderedCountries);
     // Create a map of country codes to names
     const codeToNameMap = orderedCountries.reduce((acc, country) => {
       acc[country.code] = country.name;
@@ -451,7 +450,6 @@ function PickupBooking() {
       await utility.sendNotification();
       utility.SuccessNotify("Pickup request submitted successfully.");
     } catch (error) {
-      utility.ErrorNotify("Failed to book the pickup. Please try again.");
       console.log("error", error);
     } finally {
       setLoading(false);
