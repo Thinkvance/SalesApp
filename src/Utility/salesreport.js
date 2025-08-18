@@ -26,6 +26,8 @@ function convertDateToTimestamp(dateString) {
 }
 
 async function fetchData(DateRange, startendrange, user, selectedBookedBy) {
+  console.log("selectedBookedBy", selectedBookedBy);
+  console.log("user", user);
   try {
     let queryRef = collection(db, DB.db_collection);
     if (DateRange == "Select range") {
@@ -36,6 +38,7 @@ async function fetchData(DateRange, startendrange, user, selectedBookedBy) {
             where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"])
           );
         } else {
+          console.log();
           queryRef = query(
             collection(db, DB.db_collection),
             where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"]),

@@ -258,20 +258,24 @@ function SalesReport() {
     async function getData() {
       try {
         setLoading(true);
+        console.log("Test1");
+        console.log("selectedBookedBy", selectedBookedBy);
         const [growth] = await Promise.all([
           salesreport.growth(user, selectedBookedBy),
         ]);
+        console.log("Test2");
         setGrowthPercentage(growth.growthPercentage);
         setcurrentMonthSales(growth.currentMonthSales);
         setlastMonthSales(growth.previousMonthSales);
         setshipmentCount(growth.shipmentCount);
+        console.log("growth", growth);
         setLoading(false);
       } catch (error) {
         utilityFunctions.ErrorNotify("Data fetch failed. Please try again.");
       }
     }
     getData();
-  }, [selectedBookedBy]);
+  }, [selectedBookedBy, user]);
 
   return (
     <>
