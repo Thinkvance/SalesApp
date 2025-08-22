@@ -15,6 +15,7 @@ import SalesReportBarChart from "./Charts/SalesReportBarChart";
 import Lottie from "lottie-react";
 import salesreport from "./Utility/salesreport";
 import SalesReportBarChartSource from "./Charts/SalesReportBarChartSource";
+import loadingAnimation from "./assets/loadingLottie.json";
 
 dayjs.extend(customParseFormat);
 dayjs.extend(isBetween);
@@ -38,6 +39,7 @@ function SalesReport() {
   const [customRange, setCustomRange] = useState({ from: "", to: "" });
   const [selectedChart, setselectedChart] = useState("Sales Executive Chart");
   const [selectedBookedBy, setSelectedBookedBy] = useState("All");
+  const [GrowthselectedBookedBy, setGrowthSelectedBookedBy] = useState("All");
   const [SelectedCity, setSelectedCity] = useState("All");
   const [selectedSource, setselectedSource] = useState("All");
   const [isModalOpen, setIsModalOpen] = useState(false); // State to control modal visibility
@@ -106,7 +108,6 @@ function SalesReport() {
     return new Date(year, month - 1, day, hour, minute, second).getTime();
   };
   const fetchPickups = () => {
-    setLoading(true);
     try {
       const collectionNames =
         location === "ALL"
@@ -254,17 +255,25 @@ function SalesReport() {
   useEffect(() => {
     async function getData() {
       try {
-        const [growth] = await Promise.all([salesreport.growth(user)]);
+        setLoading(true);
+        console.log("Test1");
+        console.log("selectedBookedBy", selectedBookedBy);
+        const [growth] = await Promise.all([
+          salesreport.growth(user, selectedBookedBy),
+        ]);
+        console.log("Test2");
         setGrowthPercentage(growth.growthPercentage);
         setcurrentMonthSales(growth.currentMonthSales);
         setlastMonthSales(growth.previousMonthSales);
         setshipmentCount(growth.shipmentCount);
+        console.log("growth", growth);
+        setLoading(false);
       } catch (error) {
         salesreport.ErrorNotify("Data fetch failed. Please try again.");
       }
     }
     getData();
-  }, [filteredPickups]); // Trigger fetch when startendrange updates
+  }, [selectedBookedBy, user]);
 
   return (
     <>
@@ -290,9 +299,7 @@ function SalesReport() {
               <option value="select_range">Select Range</option>
             </select>
           </div>
-          {["sales associate"].includes(user.role) ? (
-            ""
-          ) : (
+          {["Manager", "sales admin"].includes(user.role) ? (
             <div className=" w-fit col-span-1 md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Sales Representative
@@ -302,12 +309,14 @@ function SalesReport() {
                 onChange={(e) => setSelectedBookedBy(e.target.value)}
                 className="border rounded  input-style w-full"
               >
-                <option value="All"> Select Sales Representative</option>
+                <option value="All">Select Sales Representative</option>
                 {pickupPersons.map((d) => (
                   <option value={d}>{d}</option>
                 ))}
               </select>
             </div>
+          ) : (
+            ""
           )}
           {/* <div className="w-fit col-span-1 md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -428,74 +437,94 @@ function SalesReport() {
             </div>
 
             {/* RIGHT COLUMN: full-height Growth card */}
-            <div className="bg-slate-50 border border-slate-200 rounded-xl px-6 py-3 shadow-lg transition-shadow duration-200 hover:shadow-2xl flex flex-col justify-between">
-              {/* Header */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-semibold text-teal-700">
-                    Growth
-                  </h3>
+            <div className="bg-[#f7fafc] border border-slate-200 rounded-xl px-6 py-3 shadow-lg transition-shadow duration-200 hover:shadow-2xl flex flex-col justify-between">
+              {loading ? (
+                <div className="h-full  flex justify-center items-center">
+                  <Lottie
+                    animationData={loadingAnimation}
+                    loop
+                    autoplay
+                    style={{ height: 100, width: 100 }}
+                  />
                 </div>
-
-                {/* Growth Percentage + Animation */}
-                <div className="flex items-center gap-3 mb-4">
-                  <p
-                    className={`text-3xl font-bold ${
-                      GrowthPercentage > 0 ? "text-teal-600" : "text-orange-600"
-                    }`}
-                  >
-                    {`${GrowthPercentage}%`}
-                  </p>
-                  <div className="w-8 h-8">
-                    {GrowthPercentage > 0 ? (
-                      <Lottie animationData={positive_lottie} loop autoplay />
-                    ) : (
-                      <Lottie animationData={negative_lottie} loop autoplay />
-                    )}
+              ) : (
+                <div>
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-lg font-semibold text-teal-700">
+                        Growth
+                      </h3>
+                      <p className="text-lg font-bold">
+                        {selectedBookedBy.charAt(0).toUpperCase() +
+                          selectedBookedBy.slice(1).toLowerCase()}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <p
+                        className={`text-3xl font-bold ${
+                          GrowthPercentage > 0
+                            ? "text-teal-600"
+                            : "text-orange-600"
+                        }`}
+                      >
+                        {`${GrowthPercentage}%`}
+                      </p>
+                      <div className="w-8 h-8">
+                        {GrowthPercentage > 0 ? (
+                          <Lottie
+                            animationData={positive_lottie}
+                            loop
+                            autoplay
+                          />
+                        ) : (
+                          <Lottie
+                            animationData={negative_lottie}
+                            loop
+                            autoplay
+                          />
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-sm space-y-2 mb-3">
+                      <p className="flex items-center gap-2">
+                        <span className="text-slate-600 text-nowrap">
+                          This Month Sales:
+                        </span>
+                        <span className="bg-blue-100 text-blue-800 font-semibold px-2 py-0.5 rounded">
+                          ₹{currentMonthSales.toLocaleString()}
+                        </span>
+                      </p>
+                      <p className="flex items-center gap-2">
+                        <span className="text-slate-600 text-nowrap">
+                          Last Month Sales:
+                        </span>
+                        <span className="bg-purple-100 text-purple-800 font-semibold px-2 py-0.5 rounded">
+                          ₹{lastMonthSales.toLocaleString()}
+                        </span>
+                      </p>
+                      <p className="flex items-center gap-2">
+                        <span className="text-slate-600 text-nowrap">
+                          This Month Count:
+                        </span>
+                        <span className="bg-teal-100 text-teal-800 font-semibold px-2 py-0.5 rounded">
+                          {shipmentCount?.currentMonthSales}
+                        </span>
+                      </p>
+                      <p className="flex items-center gap-2">
+                        <span className="text-slate-600 text-nowrap">
+                          Last Month Count:
+                        </span>
+                        <span className="bg-orange-100 text-orange-800 font-semibold px-2 py-0.5 rounded">
+                          {shipmentCount?.previousMonthSales}
+                        </span>
+                      </p>
+                    </div>
                   </div>
-                </div>
-
-                {/* Sales + Counts */}
-                {/* Sales + Counts */}
-                <div className="text-sm space-y-2 mb-3">
-                  <p className="flex items-center gap-2">
-                    <span className="text-slate-600 text-nowrap">
-                      This Month Sales:
-                    </span>
-                    <span className="bg-blue-100 text-blue-800 font-semibold px-2 py-0.5 rounded">
-                      ₹{currentMonthSales.toLocaleString()}
-                    </span>
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <span className="text-slate-600 text-nowrap">
-                      Last Month Sales:
-                    </span>
-                    <span className="bg-purple-100 text-purple-800 font-semibold px-2 py-0.5 rounded">
-                      ₹{lastMonthSales.toLocaleString()}
-                    </span>
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <span className="text-slate-600 text-nowrap">
-                      This Month Count:
-                    </span>
-                    <span className="bg-teal-100 text-teal-800 font-semibold px-2 py-0.5 rounded">
-                      {shipmentCount?.currentMonthSales}
-                    </span>
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <span className="text-slate-600 text-nowrap">
-                      Last Month Count:
-                    </span>
-                    <span className="bg-orange-100 text-orange-800 font-semibold px-2 py-0.5 rounded">
-                      {shipmentCount?.previousMonthSales}
-                    </span>
+                  <p className="text-xs text-red-500 mt-4">
+                    Comparing current date with same date last month.
                   </p>
                 </div>
-              </div>
-              {/* Footer Text */}
-              <p className="text-xs text-slate-500 mt-4">
-                Comparing current date with same date last month.
-              </p>
+              )}
             </div>
           </div>
           {/* Bar Chart Section */}

@@ -26,11 +26,10 @@ function convertDateToTimestamp(dateString) {
 }
 
 async function fetchData(DateRange, startendrange, user, selectedBookedBy) {
-  console.log("selectedBookedBy", selectedBookedBy);
   try {
     let queryRef = collection(db, DB.db_collection);
     if (DateRange == "Select range") {
-      if (user?.role == "Manager") {
+      if (user?.role == "Manager" || user?.role == "sales admin") {
         if (selectedBookedBy == "All") {
           queryRef = query(
             collection(db, DB.db_collection),

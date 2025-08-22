@@ -130,8 +130,6 @@ function PickupBooking() {
     var countryData = getData();
     const updatedCountryData = countryData.map(({ name }) => ({ name }));
     countryData.push({ code: "UAE", name: "United Arab Emirates" });
-    countryData.push({ code: "EU", name: "Singapore" });
-    countryData.push({ code: "US", name: "USA" });
 
     countryData = countryData.map((country) =>
       country.code == "GB" ? { ...country, name: "United Kingdom" } : country
@@ -172,7 +170,6 @@ function PickupBooking() {
 
     setCountries(orderedCountries);
 
-    console.log("orderedCountries", orderedCountries);
     // Create a map of country codes to names
     const codeToNameMap = orderedCountries.reduce((acc, country) => {
       acc[country.code] = country.name;
@@ -453,9 +450,9 @@ function PickupBooking() {
       setTimeout(() => {
         setShowModal(false);
       }, 1000);
-      await utilityFunctions.sendNotification(city);
+      await utility.sendNotification();
+      utility.SuccessNotify("Pickup request submitted successfully.");
     } catch (error) {
-      utility.ErrorNotify("Failed to book the pickup. Please try again.");
       console.log("error", error);
     } finally {
       setLoading(false);
@@ -506,7 +503,7 @@ function PickupBooking() {
 
   useEffect(() => {
     if (selectedCountryCode) {
-      const country = countryList.find((c) => c.code === selectedCountryCode);
+      const country = countryList.find((c) => c.name === selectedCountryCode);
       if (country) {
         setValue("countrycode", country.dialCode);
       }
@@ -637,7 +634,7 @@ function PickupBooking() {
                   >
                     <option value="">Select Destination country</option>
                     {countryList.map((country) => (
-                      <option key={country.code} value={country.code}>
+                      <option key={country.code} value={country.name}>
                         {country.name} {country.dial_code}
                       </option>
                     ))}

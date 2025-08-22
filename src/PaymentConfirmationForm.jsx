@@ -398,13 +398,13 @@ function PaymentConfirmationForm() {
         : false;
     let consigneenumber1 = temp ? temp : details.consigneephonenumber;
 
-    if (costKg < 500) {
-      setError("costKg", {
-        type: "manual",
-        message: "Cost/KG must be at least 500",
-      });
-      return;
-    }
+    // if (costKg < 500) {
+    //   setError("costKg", {
+    //     type: "manual",
+    //     message: "Cost/KG must be at least 500",
+    //   });
+    //   return;
+    // }
 
     setSubmitLoading(true);
     try {
