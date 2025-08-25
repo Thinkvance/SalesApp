@@ -7,8 +7,6 @@ import {
   where,
   getDocs,
   updateDoc,
-  Timestamp,
-  orderBy,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import collectionName_BaseAwb from "./functions/collectionName";
@@ -16,16 +14,15 @@ import utilityFunctions from "./Utility/utilityFunctions";
 import DB from "./DB/DB";
 import ShipmentDetails from "./ShipmentDetails";
 import EditShipmentModal from "./EditShipmentModal";
-import formatFirestoreTimestamp from "./Utility/formatFirestoreTimestamp";
 
 function Pickups() {
   const [username, setUsername] = useState(null);
   const [role, setRole] = useState("");
   const [pickups, setPickups] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [awbSearchTerm, setAwbSearchTerm] = useState("");
-  const [dateSearchTerm, setDateSearchTerm] = useState(null);
+  const [dateSearchTerm, setDateSearchTerm] = useState("");
   const [consignorPhoneSearchTerm, setConsignorPhoneSearchTerm] = useState("");
   const [PickupPersonName, setPickUpPersonName] = useState("");
   const [Location, setLocation] = useState("ALL");
@@ -115,107 +112,162 @@ function Pickups() {
     }
   };
 
+  // Fetch pickup data from Firestore and filter based on the username
   useEffect(() => {
-    if (!username) return;
+    if (Location == "ALL") {
+      if (username) {
+        const fetchData = () => {
+          try {
+            const collectionNames = [
+              DB.db_collection,
+              "franchise_pondy",
+              "franchise_coimbatore",
+            ];
+            // Create an array of queries for each collection
+            const queries = collectionNames.map((collec) =>
+              query(collection(db, collec))
+            );
+            // Use Promise.all to fetch data from all queries
+            const unsubscribes = [];
+            Promise.all(
+              queries.map(
+                (q) =>
+                  new Promise((resolve) => {
+                    const unsubscribe = onSnapshot(q, (snapshot) => {
+                      const data = snapshot.docs
+                        .map((doc) => ({
+                          ...doc.data(),
+                          id: doc.id,
+                        }))
+                        .filter((doc) => doc.currentStatus !== "DELIVERED");
+                      resolve(data);
+                    });
+                    unsubscribes.push(unsubscribe);
+                  })
+              )
+            )
+              .then((results) => {
+                const combinedData = results.flat();
+                const sortedData = combinedData.sort((a, b) => {
+                  const parseDate = (datetime) => {
+                    const [datePart, timePartRaw] = datetime.split(" &");
 
-    const unsubscribes = [];
+                    const [day, month, year] = datePart.split("-").map(Number);
 
-    const fetchData = async () => {
-      try {
-        const collectionNames =
-          Location === "ALL"
-            ? [DB.db_collection, "franchise_pondy", "franchise_coimbatore"]
-            : [
-                collectionName_BaseAwb.getCollection(
-                  Location === "HQ CHENNAI" ? "CHENNAI" : Location
-                ),
-              ];
+                    const [timePart, period] = timePartRaw.trim().split(" ");
+                    let [hour, minute] = timePart.includes(":")
+                      ? timePart.split(":").map(Number)
+                      : [Number(timePart), 0]; // default to 0 minutes if not provided
 
-        let startTimestamp = null;
-        let endTimestamp = null;
+                    if (period === "PM" && hour !== 12) hour += 12;
+                    if (period === "AM" && hour === 12) hour = 0;
 
-        if (dateSearchTerm) {
-          const dateObj = new Date(dateSearchTerm);
-          const startDate = new Date(dateObj.setHours(0, 0, 0, 0));
-          const endDate = new Date(dateObj.setHours(23, 59, 59, 999));
-          startTimestamp = Timestamp.fromDate(startDate);
-          endTimestamp = Timestamp.fromDate(endDate);
-        } else {
-          const oneMonthAgo = new Date();
-          oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-          startTimestamp = Timestamp.fromDate(oneMonthAgo);
-        }
+                    return new Date(
+                      year,
+                      month - 1,
+                      day,
+                      hour,
+                      minute
+                    ).getTime();
+                  };
 
-        const results = await Promise.all(
-          collectionNames.map(
-            (collec) =>
-              new Promise((resolve, reject) => {
-                const baseCollection = collection(db, collec);
-                let q;
+                  return (
+                    parseDate(b.pickupDatetime) - parseDate(a.pickupDatetime)
+                  ); // descending order
+                });
 
-                if (dateSearchTerm) {
-                  q = query(
-                    baseCollection,
-                    where("pickupDatetime", ">=", startTimestamp),
-                    where("pickupDatetime", "<=", endTimestamp),
-                    orderBy("pickupDatetime", "desc")
-                  );
-                } else {
-                  q = query(
-                    baseCollection,
-                    where("pickupDatetime", ">=", startTimestamp),
-                    orderBy("pickupDatetime", "desc")
-                  );
-                }
-
-                const unsubscribe = onSnapshot(
-                  q,
-                  (snapshot) => {
-                    const data = snapshot.docs.map((doc) => ({
-                      ...doc.data(),
-                      id: doc.id,
-                    }));
-                    resolve(data);
-                  },
-                  (error) => {
-                    reject(error);
-                  }
-                );
-
-                unsubscribes.push(unsubscribe);
+                setPickups(sortedData);
+                setLoading(false);
               })
-          )
-        );
+              .catch((error) => {
+                utilityFunctions.ErrorNotify(
+                  "Unable to retrieve data. Please try again later."
+                );
+                setLoading(false);
+              });
+            // Cleanup subscription on unmount
+            return () => unsubscribes.forEach((unsubscribe) => unsubscribe());
+          } catch (error) {
+            console.log(error);
+            utilityFunctions.ErrorNotify(
+              "Unable to retrieve data. Please try again later."
+            );
+            setLoading(false);
+          }
+        };
 
-        const combinedData = results.flat();
-        setPickups(combinedData);
-      } catch (error) {
-        console.error(error);
-        utilityFunctions.ErrorNotify(
-          "Unable to retrieve data. Please try again later."
-        );
+        fetchData();
       }
-    };
+    } else {
+      const fetchData = () => {
+        try {
+          const q = query(
+            collection(
+              db,
+              collectionName_BaseAwb.getCollection(
+                Location == "HQ CHENNAI" ? "CHENNAI" : Location
+              )
+            )
+          ); // Fetch all pickups for sales admin
+          // Fetch only user's pickups
 
-    fetchData();
+          const unsubscribe = onSnapshot(q, (snapshot) => {
+            const filteredData = snapshot.docs.map((doc) => ({
+              ...doc.data(),
+              id: doc.id,
+            }));
 
-    return () => {
-      unsubscribes.forEach((unsubscribe) => unsubscribe());
-    };
-  }, [username, role, Location, dateSearchTerm]);
+            const sortedData = filteredData.sort((a, b) => {
+              const parseDate = (datetime) => {
+                const [datePart, timePartRaw] = datetime.split(" &");
+
+                const [day, month, year] = datePart.split("-").map(Number);
+
+                const [timePart, period] = timePartRaw.trim().split(" ");
+                let [hour, minute] = timePart.includes(":")
+                  ? timePart.split(":").map(Number)
+                  : [Number(timePart), 0]; // assume 0 minutes if missing
+
+                if (period === "PM" && hour !== 12) hour += 12;
+                if (period === "AM" && hour === 12) hour = 0;
+
+                return new Date(year, month - 1, day, hour, minute).getTime();
+              };
+
+              return parseDate(b.pickupDatetime) - parseDate(a.pickupDatetime); // descending order
+            });
+
+            setPickups(sortedData);
+            setLoading(false);
+          });
+          return () => unsubscribe();
+        } catch (error) {
+          console.log(error);
+          utilityFunctions.ErrorNotify(
+            "Unable to retrieve data. Please try again later."
+          );
+          setLoading(false);
+        }
+      };
+      fetchData();
+    }
+  }, [username, role, Location]);
 
   // Filter pickups based on search terms
   const filteredPickups = pickups.filter((pickup) => {
     const awbMatch = String(pickup.awbNumber)
       .toLowerCase()
       .includes(awbSearchTerm.toLowerCase());
+    const dateMatch = pickup.pickupDatetime
+      .split("&")[0]
+      .startsWith(dateSearchTerm); // Check if the date starts with the input
     const consignorPhoneMatch = pickup.consignorphonenumber
       .toLowerCase()
       .includes(consignorPhoneSearchTerm.toLowerCase());
     const PhonesearchItem = pickup.pickUpPersonName
       .toLowerCase()
       .includes(PickupPersonName.toLowerCase());
-    return awbMatch && consignorPhoneMatch && PhonesearchItem; // Use AND logic to filter
+    return awbMatch && dateMatch && consignorPhoneMatch && PhonesearchItem; // Use AND logic to filter
   });
 
   if (loading) {
@@ -260,23 +312,21 @@ function Pickups() {
             type="date"
             placeholder="Search by Date (YYYY-MM-DD)"
             onChange={(e) => {
-              const dateStr = e.target.value;
-              if (!dateStr) {
-                setDateSearchTerm(null);
-                return;
-              }
-              const selectedDate = new Date(dateStr);
-              selectedDate.setHours(0, 0, 0, 0);
-              setDateSearchTerm(selectedDate);
+              const dateValue = e.target.value; // e.g., "2024-10-07"
+              const [year, month, day] = dateValue.split("-");
+              const result = `${parseInt(day)}-${parseInt(month)}-${parseInt(
+                year
+              )}`;
+              setDateSearchTerm(result);
             }}
-            className="border border-gray-300 rounded py-2 px-4 w-fit mb-2 focus:outline-none focus:ring-2 focus:ring-purple-600"
+            className="border w-fit border-gray-300 rounded py-2 px-4 mb-2 focus:outline-none focus:ring-2 focus:ring-purple-600"
           />
           <input
             type="text"
             placeholder="Consignor Phone Number"
             value={consignorPhoneSearchTerm}
             onChange={(e) => setConsignorPhoneSearchTerm(e.target.value)}
-            className="border border-gray-300 rounded py-2 px-4 w-[220px] mb-2 focus:outline-none focus:ring-2 focus:ring-purple-600"
+            className="border border-gray-300 rounded py-2 px-4 w-fit mb-2 focus:outline-none focus:ring-2 focus:ring-purple-600"
           />
           <select
             onChange={(e) => setPickUpPersonName(e.target.value)}
@@ -333,7 +383,7 @@ function Pickups() {
                         : pickup.pickUpPersonNameStatus}
                     </td>
                     <td className="py-10 px-4 border text-nowrap">
-                      {formatFirestoreTimestamp(pickup.pickupDatetime)}
+                      {pickup.pickupDatetime}
                     </td>
                     <td className="py-10 px-4 border">
                       {pickup.pickupBookedBy}
