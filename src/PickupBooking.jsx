@@ -328,7 +328,7 @@ function PickupBooking() {
         });
       }
       // Step 2: Increment awbNumber
-      const newAwbNumber = await getNextAwbNumber(db, "CHENNAI");
+      const newAwbNumber = maxAwbNumber + 1;
       const uploadedImageURLs = await uploadImages(files, newAwbNumber);
       const isRepeated = await checkRepeatedCustomer(data.Consignornumber);
       const sinceDate = await sinceDatefun(data.Consignornumber); // Output: 08-Apr-2025
