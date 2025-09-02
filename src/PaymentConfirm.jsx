@@ -32,8 +32,8 @@ function PaymentConfirm() {
     const baseQuery =
       role === "Manager" || role === "sales admin"
         ? query(
-            collectionRef,
-            where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo))
+            collectionRef
+            // where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo))
           )
         : query(
             collectionRef,

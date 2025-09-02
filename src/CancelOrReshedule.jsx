@@ -49,11 +49,7 @@ function CancelOrReschedule() {
 
     const baseQuery =
       role === "Manager" || role === "sales admin"
-        ? query(
-            collectionRef,
-            where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo)),
-            orderBy("pickupDatetime", "desc")
-          )
+        ? query(collectionRef, orderBy("pickupDatetime", "desc"))
         : query(
             collectionRef,
             where("pickupBookedBy", "==", name),
