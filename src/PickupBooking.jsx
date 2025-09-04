@@ -7,10 +7,12 @@ import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
 import {
   addDoc,
   collection,
+  doc,
   getDocs,
   onSnapshot,
   query,
   Timestamp,
+  runTransaction,
   where,
 } from "firebase/firestore";
 import axios from "axios";
@@ -218,6 +220,21 @@ function PickupBooking() {
     }
   };
 
+  async function getNextAwbNumber(db, franchise = "CHENNAI") {
+    const counterRef = doc(db, "awbCounters", franchise);
+    return await runTransaction(db, async (transaction) => {
+      const counterDoc = await transaction.get(counterRef);
+      if (!counterDoc.exists()) {
+        const baseAwb = collectionName_baseAwb.getFranchiseBasedAWb(franchise);
+        transaction.set(counterRef, { current: baseAwb });
+        return baseAwb;
+      }
+      const newAwb = counterDoc.data().current + 1;
+      transaction.update(counterRef, { current: newAwb });
+      return newAwb;
+    });
+  }
+
   function truncateDate(timestamp) {
     const months = [
       "Jan",
@@ -266,7 +283,6 @@ function PickupBooking() {
     const querySnapshot = await getDocs(q);
     if (!querySnapshot.empty) {
       const allDocs = querySnapshot.docs.map((doc) => doc.data());
-      // Sort manually by awbNumber descending (most recent first)
       allDocs.sort((a, b) => b.awbNumber - a.awbNumber);
       const mostRecent = allDocs[0];
       return truncateDate(mostRecent.pickupDatetime);
@@ -323,6 +339,7 @@ function PickupBooking() {
       const isRepeated = await checkRepeatedCustomer(data.Consignornumber);
       const sinceDate = await sinceDatefun(data.Consignornumber); // Output: 08-Apr-2025
       await addDoc(pickupsRef, {
+        WHReached: false,
         // Consignor Data
         consignorname: data.Consignorname,
         consignorphonenumber: data.Consignornumber,
@@ -445,7 +462,7 @@ function PickupBooking() {
       setFiles([]);
       setIsSourceFixed(false);
       setsource("");
-      // reset();
+      reset();
       setShowModal(true);
       setTimeout(() => {
         setShowModal(false);

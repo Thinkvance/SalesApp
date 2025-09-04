@@ -68,7 +68,6 @@ const EditShipmentModal = ({
     onSave({ ...data, awbNumber: pickup.awbNumber });
   };
 
-  console.log("pickup", pickup?.logisticCost);
   if (!pickup) return null;
 
   const [user, setUser] = useState({});

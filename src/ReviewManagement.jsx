@@ -88,7 +88,6 @@ function ReviewDashboard() {
                   {star}
                 </span>
                 <div className="flex-1 h-1 rounded-full bg-white overflow-hidden">
-                  {console.log((count / totalRatingCount) * 100)}
                   <div
                     className={`${color} h-1`}
                     style={{

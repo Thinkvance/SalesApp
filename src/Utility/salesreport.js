@@ -33,19 +33,31 @@ async function fetchData(DateRange, startendrange, user, selectedBookedBy) {
         if (selectedBookedBy == "All") {
           queryRef = query(
             collection(db, DB.db_collection),
-            where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"])
+            where("status", "in", [
+              "PAYMENT DONE",
+              "PAYMENT REQUESTED",
+              "SHIPMENT CONNECTED",
+            ])
           );
         } else {
           queryRef = query(
             collection(db, DB.db_collection),
-            where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"]),
+            where("status", "in", [
+              "PAYMENT DONE",
+              "PAYMENT REQUESTED",
+              "SHIPMENT CONNECTED",
+            ]),
             where("pickupBookedBy", "==", selectedBookedBy)
           );
         }
       } else {
         queryRef = query(
           collection(db, DB.db_collection),
-          where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"]),
+          where("status", "in", [
+            "PAYMENT DONE",
+            "PAYMENT REQUESTED",
+            "SHIPMENT CONNECTED",
+          ]),
           where("pickupBookedBy", "==", user?.name)
         );
       }
@@ -70,7 +82,6 @@ async function fetchData(DateRange, startendrange, user, selectedBookedBy) {
         : item.PaymentComfirmedDate?.seconds >= startendrange?.start?.seconds &&
           item.PaymentComfirmedDate?.seconds <= startendrange?.end?.seconds
     );
-    console.log("filteredData", DateRange, filteredData);
     return filteredData;
   } catch (error) {
     console.error("Error fetching pickup data:", error);

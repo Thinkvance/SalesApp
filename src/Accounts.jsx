@@ -68,7 +68,6 @@ function Accounts() {
     return () => unsubscribe();
   }, []);
 
-  console.log("pickupPersons", pickupPersons);
 
   const closeModal = () => {
     setIsModalOpen(false);

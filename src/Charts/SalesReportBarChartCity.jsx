@@ -28,7 +28,6 @@ export default function SalesReportBarChartCity({ pickups }) {
   }, {});
 
   const data = Object.values(grouped);
-  console.log("data", data);
   return (
     <div
       style={{
