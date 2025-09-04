@@ -18,6 +18,7 @@ import EditShipmentModal from "./EditShipmentModal";
 import DB from "./DB/DB";
 import formatFirestoreTimestamp from "./Utility/formatFirestoreTimestamp.js";
 import oneMonthAgo from "./Utility/oneMonthAgo.js";
+
 function Pickups() {
   const [username, setUsername] = useState(null);
   const [role, setRole] = useState("");
@@ -47,7 +48,6 @@ function Pickups() {
     setIsModalOpen(false);
     setSelectedPickup(null);
   };
-
   useEffect(() => {
     if (username) {
       const fetchData = () => {
@@ -61,7 +61,9 @@ function Pickups() {
           );
 
           let q;
+
           if (dateSearchTerm) {
+            // If user searches by date
             const startDate = new Date(dateSearchTerm);
             startDate.setHours(0, 0, 0, 0);
             const endDate = new Date(dateSearchTerm);
@@ -79,9 +81,9 @@ function Pickups() {
                     where(
                       "pickupDatetime",
                       ">=",
-                      Timestamp.fromDate(oneMonthAgo),
-                      orderBy("pickupDatetime", "desc")
-                    )
+                      Timestamp.fromDate(oneMonthAgo)
+                    ),
+                    orderBy("pickupDatetime", "desc")
                   )
                 : query(
                     baseCollection,
@@ -96,9 +98,18 @@ function Pickups() {
                     orderBy("pickupDatetime", "desc")
                   );
           } else {
+            // Default -> last 1 month data
             q =
               role === "sales admin" || role === "OPS Head"
-                ? query(baseCollection)
+                ? query(
+                    baseCollection,
+                    where(
+                      "pickupDatetime",
+                      ">=",
+                      Timestamp.fromDate(oneMonthAgo)
+                    ),
+                    orderBy("pickupDatetime", "desc")
+                  )
                 : query(
                     baseCollection,
                     where("pickupBookedBy", "==", username),
@@ -110,6 +121,7 @@ function Pickups() {
                     orderBy("pickupDatetime", "desc")
                   );
           }
+
           const unsubscribe = onSnapshot(q, (snapshot) => {
             const filteredData = snapshot.docs.map((doc) => ({
               ...doc.data(),

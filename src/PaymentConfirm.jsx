@@ -4,6 +4,7 @@ import PaymentConfirmCard from "./PaymentConfirmCard";
 import {
   collection,
   onSnapshot,
+  orderBy,
   query,
   Timestamp,
   where,
@@ -23,22 +24,23 @@ function PaymentConfirm() {
     const loginCredentials = JSON.parse(
       localStorage.getItem("LoginCredentials")
     );
+    if (!loginCredentials) return;
+
     const { role, Location, name } = loginCredentials;
 
     const collectionRef = collection(
       db,
       collectionName_BaseAwb.getCollection(Location)
     );
+
     const baseQuery =
       role === "Manager" || role === "sales admin"
-        ? query(
-            collectionRef
-            // where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo))
-          )
+        ? query(collectionRef, orderBy("pickupDatetime", "desc"))
         : query(
             collectionRef,
             where("pickupBookedBy", "==", name),
-            where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo))
+            where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo)),
+            orderBy("pickupDatetime", "desc")
           );
 
     const unsubscribe = onSnapshot(

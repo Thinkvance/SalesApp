@@ -31,9 +31,8 @@ function CancelCard({ item, index }) {
       return;
     }
     seterror("");
-    setIsSubmitting(true); // Start loading when submitting
+    setIsSubmitting(true);
     try {
-      // Step 1: Query the "pickups" collection to get the document that matches the awbNumber
       const q = query(
         collection(
           db,

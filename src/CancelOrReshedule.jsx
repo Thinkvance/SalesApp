@@ -18,22 +18,6 @@ function CancelOrReschedule() {
   const [activeTab, setActiveTab] = useState("CANCEL");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const parseDate = (datetime) => {
-    const [datePart, timePartRaw] = datetime.split(" &");
-    const [day, month, year] = datePart.split("-").map(Number);
-
-    const [timePart, period] = timePartRaw.trim().split(" ");
-    let [hour, minute] = timePart.includes(":")
-      ? timePart.split(":").map(Number)
-      : [Number(timePart), 0]; // default to 0 minutes if missing
-
-    // Convert to 24-hour format
-    if (period === "PM" && hour !== 12) hour += 12;
-    if (period === "AM" && hour === 12) hour = 0;
-
-    return new Date(year, month - 1, day, hour, minute).getTime();
-  };
-
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);
   };
@@ -42,11 +26,9 @@ function CancelOrReschedule() {
     const loginCredentials = JSON.parse(
       localStorage.getItem("LoginCredentials")
     );
-
+    if (!loginCredentials) return;
     const { role, name } = loginCredentials;
-
     const collectionRef = collection(db, DB.db_collection);
-
     const baseQuery =
       role === "Manager" || role === "sales admin"
         ? query(collectionRef, orderBy("pickupDatetime", "desc"))
@@ -56,9 +38,8 @@ function CancelOrReschedule() {
             where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo)),
             orderBy("pickupDatetime", "desc")
           );
-
     const unsubscribe = onSnapshot(
-      query(baseQuery),
+      baseQuery,
       (snapshot) => {
         const documents = snapshot.docs.map((doc) => ({
           id: doc.id,
@@ -70,7 +51,6 @@ function CancelOrReschedule() {
         console.error("Error fetching Firestore data: ", error);
       }
     );
-
     return () => unsubscribe();
   }, []);
 

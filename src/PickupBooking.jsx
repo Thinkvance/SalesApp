@@ -220,7 +220,7 @@ function PickupBooking() {
     }
   };
 
-  async function getNextAwbNumber(db, franchise = "CHENNAI") {
+  async function getNextAwbNumber(franchise = "CHENNAI") {
     const counterRef = doc(db, "awbCounters", franchise);
     return await runTransaction(db, async (transaction) => {
       const counterDoc = await transaction.get(counterRef);
@@ -231,6 +231,7 @@ function PickupBooking() {
       }
       const newAwb = counterDoc.data().current + 1;
       transaction.update(counterRef, { current: newAwb });
+      console.log("newAwb", newAwb);
       return newAwb;
     });
   }
@@ -334,7 +335,7 @@ function PickupBooking() {
         });
       }
       // Step 2: Increment awbNumber
-      const newAwbNumber = getNextAwbNumber(db);
+      const newAwbNumber = await getNextAwbNumber();
       const uploadedImageURLs = await uploadImages(files, newAwbNumber);
       const isRepeated = await checkRepeatedCustomer(data.Consignornumber);
       const sinceDate = await sinceDatefun(data.Consignornumber); // Output: 08-Apr-2025
