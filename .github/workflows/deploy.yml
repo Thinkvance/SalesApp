@@ -29,7 +29,7 @@ jobs:
         with:
           host: ${{ secrets.HOSTINGER_HOST }}
           username: u331486718
-          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /home/u331486718/domains/shiphit.com/public_html/sales
             rm -rf *
