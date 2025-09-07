@@ -24,7 +24,7 @@ jobs:
       - name: Build project
         run: npm run build
 
-      # Clean first (before upload)
+      # Clean Hostinger sales folder BEFORE upload
       - name: Clean Hostinger sales folder
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -33,9 +33,9 @@ jobs:
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           port: 65002
           script: |
-            rm -rf /home/u331486718/domains/sales.shiphit.com/public_html/*
+            rm -rf /home/u331486718/domains/shiphit.com/public_html/sales/*
 
-      # Upload dist folder
+      # Upload dist folder to Hostinger sales folder
       - name: Upload dist folder to Hostinger
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -44,4 +44,4 @@ jobs:
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           port: 65002
           source: "dist/*"
-          target: "/home/u331486718/domains/sales.shiphit.com/public_html"
+          target: "/home/u331486718/domains/shiphit.com/public_html/sales"
