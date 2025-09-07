@@ -3,7 +3,7 @@ name: Deploy to Subdomain (sales.shiphit.com)
 on:
   push:
     branches:
-      - main  # or whichever branch you want to trigger deployment
+      - salesv4-db-updated  # or whichever branch you want to trigger deployment
 
 jobs:
   deploy:
