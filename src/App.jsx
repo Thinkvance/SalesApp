@@ -32,8 +32,8 @@ import ReviewManagement from "./ReviewManagement";
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  console.log("Test 07-09-2025!");
-  console.log("Test 07-09-2025!");
+  console.log("Test 08-09-2025!");
+  console.log("Test 08-09-2025!");
   useEffect(async () => {
     const getPermission = async () => {
       try {
