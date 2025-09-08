@@ -341,6 +341,7 @@ function PickupBooking() {
       const sinceDate = await sinceDatefun(data.Consignornumber); // Output: 08-Apr-2025
       await addDoc(pickupsRef, {
         WHReached: false,
+        KmDriven: 0,
         // Consignor Data
         consignorname: data.Consignorname,
         consignorphonenumber: data.Consignornumber,
