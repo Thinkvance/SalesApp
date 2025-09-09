@@ -85,102 +85,123 @@ function App() {
     return () => unsubscribe(); // Cleanup the listener on unmount
   }, []);
 
-  if (loading) {
-    return <div>Loading...</div>; // You can replace this with a loading spinner or component
-  }
+  // if (loading) {
+  //   return <div>Loading...</div>; // You can replace this with a loading spinner or component
+  // }
 
   return (
-    <Router>
-      <div>
-        <Toaster />
-        <Routes>
-          {/* If user is not present, redirect to SignIn */}
-          <Route
-            path="/"
-            element={user ? <PickupBooking /> : <Navigate to="/signin" />}
-          />
-          {/* Only allow access to other routes if user is logged in */}
-          <Route
-            path="/Pickup-Booking"
-            element={user ? <PickupBooking /> : <Navigate to="/signin" />}
-          />
-          <Route
-            path="/Sales-Report"
-            element={user ? <SalesReport /> : <Navigate to="/signin" />}
-          />
-          <Route
-            path="/accounts"
-            element={user ? <Accounts /> : <Navigate to="/signin" />}
-          />
-          <Route
-            path="/Cancel-or-reschedule"
-            element={user ? <CancelOrReshedule /> : <Navigate to="/signin" />}
-          />
-          <Route
-            path="/addExtraCharges"
-            element={user ? <ExtraChargesModule /> : <Navigate to="/signin" />}
-          />
-          <Route
-            path="/Pickups"
-            element={user ? <Pickups /> : <Navigate to="/signin" />}
-          />
-          <Route
-            path="/all-Pickups"
-            element={user ? <AllPickups /> : <Navigate to="/signin" />}
-          />
-          <Route
-            path="/Sale-rates"
-            element={user ? <RateCardForm /> : <Navigate to="/signin" />}
-          />
-          <Route
-            path="/vendor-rates"
-            element={user ? <VendorRates /> : <Navigate to="/signin" />}
-          />
-          <Route
-            path="/Payment-confirm"
-            element={user ? <PaymentConfirm /> : <Navigate to="/signin" />}
-          />
-          <Route
-            path="/logistics-Dashboard"
-            element={user ? <LogisticsDashboard /> : <Navigate to="/signin" />}
-          />
-          <Route
-            path="/Payment-confirmation-form/:awbnumber"
-            element={
-              user ? <PaymentConfirmationForm /> : <Navigate to="/signin" />
-            }
-          />
-          <Route
-            path="/Sales-Incentive"
-            element={user ? <SalesIncentive /> : <Navigate to="/signin" />}
-          />
-          <Route
-            path="/Pickup-Incentive"
-            element={user ? <PickupIncentive /> : <Navigate to="/signin" />}
-          />
-          <Route
-            path="/My-Shipments"
-            element={user ? <Myshipments /> : <Navigate to="/signin" />}
-          />
-          <Route
-            path="/review-management"
-            element={user ? <ReviewManagement /> : <Navigate to="/signin" />}
-          />
-          <Route
-            path="/PickuPersonIncentive-Report"
-            element={
-              user ? <PickupPersonIncentive /> : <Navigate to="/signin" />
-            }
-          />
-          {/* Sign In route, only accessible if no user is logged in */}
-          <Route
-            path="/signin"
-            element={!user ? <SignIn /> : <Navigate to="/Pickup-Booking" />}
-          />
-        </Routes>
+    <div class="flex items-center justify-center min-h-screen bg-gray-50 px-6">
+      <div class="bg-white shadow-xl rounded-2xl p-10 max-w-lg w-full text-center border border-gray-200">
+        <img
+          src="https://img.icons8.com/ios-filled/100/4a90e2/internet--v1.png"
+          alt="Website Update"
+          class="mx-auto mb-6 opacity-80"
+        />
+
+        <h1 class="text-3xl font-bold text-gray-900 mb-3">We’ve Moved!</h1>
+        <p class="text-gray-600 leading-relaxed mb-8">
+          The domain you are trying to access is no longer active. Please
+          continue using our new official site:
+        </p>
+
+        <a
+          href="https://sales.shiphit.in"
+          target="_blank"
+          class="inline-block px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg shadow hover:bg-purple-700 transition"
+        >
+          Visit sales.shiphit.in
+        </a>
       </div>
-    </Router>
+    </div>
   );
 }
 
 export default App;
+
+//  <Router>
+//       <div>
+//         <Toaster />
+//         <Routes>
+//           <Route
+//             path="/"
+//             element={user ? <PickupBooking /> : <Navigate to="/signin" />}
+//           />
+//           <Route
+//             path="/Pickup-Booking"
+//             element={user ? <PickupBooking /> : <Navigate to="/signin" />}
+//           />
+//           <Route
+//             path="/Sales-Report"
+//             element={user ? <SalesReport /> : <Navigate to="/signin" />}
+//           />
+//           <Route
+//             path="/accounts"
+//             element={user ? <Accounts /> : <Navigate to="/signin" />}
+//           />
+//           <Route
+//             path="/Cancel-or-reschedule"
+//             element={user ? <CancelOrReshedule /> : <Navigate to="/signin" />}
+//           />
+//           <Route
+//             path="/addExtraCharges"
+//             element={user ? <ExtraChargesModule /> : <Navigate to="/signin" />}
+//           />
+//           <Route
+//             path="/Pickups"
+//             element={user ? <Pickups /> : <Navigate to="/signin" />}
+//           />
+//           <Route
+//             path="/all-Pickups"
+//             element={user ? <AllPickups /> : <Navigate to="/signin" />}
+//           />
+//           <Route
+//             path="/Sale-rates"
+//             element={user ? <RateCardForm /> : <Navigate to="/signin" />}
+//           />
+//           <Route
+//             path="/vendor-rates"
+//             element={user ? <VendorRates /> : <Navigate to="/signin" />}
+//           />
+//           <Route
+//             path="/Payment-confirm"
+//             element={user ? <PaymentConfirm /> : <Navigate to="/signin" />}
+//           />
+//           <Route
+//             path="/logistics-Dashboard"
+//             element={user ? <LogisticsDashboard /> : <Navigate to="/signin" />}
+//           />
+//           <Route
+//             path="/Payment-confirmation-form/:awbnumber"
+//             element={
+//               user ? <PaymentConfirmationForm /> : <Navigate to="/signin" />
+//             }
+//           />
+//           <Route
+//             path="/Sales-Incentive"
+//             element={user ? <SalesIncentive /> : <Navigate to="/signin" />}
+//           />
+//           <Route
+//             path="/Pickup-Incentive"
+//             element={user ? <PickupIncentive /> : <Navigate to="/signin" />}
+//           />
+//           <Route
+//             path="/My-Shipments"
+//             element={user ? <Myshipments /> : <Navigate to="/signin" />}
+//           />
+//           <Route
+//             path="/review-management"
+//             element={user ? <ReviewManagement /> : <Navigate to="/signin" />}
+//           />
+//           <Route
+//             path="/PickuPersonIncentive-Report"
+//             element={
+//               user ? <PickupPersonIncentive /> : <Navigate to="/signin" />
+//             }
+//           />
+//           <Route
+//             path="/signin"
+//             element={!user ? <SignIn /> : <Navigate to="/Pickup-Booking" />}
+//           />
+//         </Routes>
+//       </div>
+//     </Router>
