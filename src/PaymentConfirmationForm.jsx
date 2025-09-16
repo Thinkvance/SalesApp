@@ -321,7 +321,7 @@ function PaymentConfirmationForm() {
   }
   function getTruncatedURL(fullUrl) {
     const baseUrl =
-      "https://firebasestorage.googleapis.com/v0/b/shiphitmobileapppickup-4d0a1.appspot.com/o/";
+      "https://firebasestorage.googleapis.com/v0/b/shiphitmobileapppickup-fb7e2.firebasestorage.app/o/";
     const truncatedResult = fullUrl.replace(baseUrl, "");
     return truncatedResult;
   }
