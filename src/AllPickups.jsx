@@ -8,6 +8,7 @@ import {
   getDocs,
   updateDoc,
   orderBy,
+  Timestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import collectionName_BaseAwb from "./functions/collectionName";
@@ -113,6 +114,7 @@ function Pickups() {
       setModalOpenEdit(false);
     }
   };
+
   useEffect(() => {
     if (Location === "ALL") {
       if (username) {
@@ -125,9 +127,34 @@ function Pickups() {
             ];
 
             // Create an array of queries for each collection
-            const queries = collectionNames.map((collec) =>
-              query(collection(db, collec), orderBy("pickupDatetime", "desc"))
-            );
+            const queries = collectionNames.map((collec) => {
+              const baseCollection = collection(db, collec);
+
+              let q;
+
+              if (dateSearchTerm) {
+                // User searched by date
+                const startDate = new Date(dateSearchTerm);
+                startDate.setHours(0, 0, 0, 0);
+                const endDate = new Date(dateSearchTerm);
+                endDate.setHours(23, 59, 59, 999);
+
+                const startTimestamp = Timestamp.fromDate(startDate);
+                const endTimestamp = Timestamp.fromDate(endDate);
+
+                q = query(
+                  baseCollection,
+                  where("pickupDatetime", ">=", startTimestamp),
+                  where("pickupDatetime", "<=", endTimestamp),
+                  orderBy("pickupDatetime", "desc")
+                );
+              } else {
+                // Default -> ALL data
+                q = query(baseCollection, orderBy("pickupDatetime", "desc"));
+              }
+
+              return q;
+            });
 
             const unsubscribes = [];
 
@@ -136,12 +163,10 @@ function Pickups() {
                 (q) =>
                   new Promise((resolve) => {
                     const unsubscribe = onSnapshot(q, (snapshot) => {
-                      const data = snapshot.docs
-                        .map((doc) => ({
-                          ...doc.data(),
-                          id: doc.id,
-                        }))
-                        .filter((doc) => doc.currentStatus !== "DELIVERED"); // filter out delivered
+                      const data = snapshot.docs.map((doc) => ({
+                        ...doc.data(),
+                        id: doc.id,
+                      }));
                       resolve(data);
                     });
                     unsubscribes.push(unsubscribe);
@@ -149,7 +174,13 @@ function Pickups() {
               )
             )
               .then((results) => {
-                const combinedData = results.flat();
+                // Merge all results and sort them by datetime
+                const combinedData = results
+                  .flat()
+                  .sort(
+                    (a, b) =>
+                      b.pickupDatetime?.seconds - a.pickupDatetime?.seconds
+                  );
                 setPickups(combinedData);
                 setLoading(false);
               })
@@ -165,9 +196,9 @@ function Pickups() {
             return () => unsubscribes.forEach((unsubscribe) => unsubscribe());
           } catch (error) {
             console.log("error", error);
-            utilityFunctions.ErrorNotify(
-              "Unable to retrieve data. Please try again later."
-            );
+            // utilityFunctions.ErrorNotify(
+            //   "Unable to retrieve data. Please try again later."
+            // );
             setLoading(false);
           }
         };
@@ -177,15 +208,35 @@ function Pickups() {
     } else {
       const fetchData = () => {
         try {
-          const q = query(
-            collection(
-              db,
-              collectionName_BaseAwb.getCollection(
-                Location === "HQ CHENNAI" ? "CHENNAI" : Location
-              )
-            ),
-            orderBy("pickupDatetime", "desc")
+          const baseCollection = collection(
+            db,
+            collectionName_BaseAwb.getCollection(
+              Location === "HQ CHENNAI" ? "CHENNAI" : Location
+            )
           );
+
+          let q;
+
+          if (dateSearchTerm) {
+            // User searched by date
+            const startDate = new Date(dateSearchTerm);
+            startDate.setHours(0, 0, 0, 0);
+            const endDate = new Date(dateSearchTerm);
+            endDate.setHours(23, 59, 59, 999);
+
+            const startTimestamp = Timestamp.fromDate(startDate);
+            const endTimestamp = Timestamp.fromDate(endDate);
+
+            q = query(
+              baseCollection,
+              where("pickupDatetime", ">=", startTimestamp),
+              where("pickupDatetime", "<=", endTimestamp),
+              orderBy("pickupDatetime", "desc")
+            );
+          } else {
+            // Default -> ALL data
+            q = query(baseCollection, orderBy("pickupDatetime", "desc"));
+          }
 
           const unsubscribe = onSnapshot(q, (snapshot) => {
             const filteredData = snapshot.docs.map((doc) => ({
@@ -207,7 +258,7 @@ function Pickups() {
       };
       fetchData();
     }
-  }, [username, role, Location]);
+  }, [username, Location, dateSearchTerm]);
 
   // Filter pickups based on search terms
   const filteredPickups = pickups.filter((pickup) => {

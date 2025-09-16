@@ -312,6 +312,7 @@ function PaymentConfirmationForm() {
       const downloadURL = await getDownloadURL(storageRef);
       // Log the download URL
       return downloadURL;
+      console.log("downloadURL", downloadURL);
     } catch (error) {
       utilityFunctions.ErrorNotify(
         "An error occurred while uploading the document."
