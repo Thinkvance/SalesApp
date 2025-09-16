@@ -241,7 +241,6 @@ function PaymentConfirmationForm() {
 * Customs duty applicable (if any).`;
     const splitTerms = doc.splitTextToSize(terms, maxWidth + 300);
     doc.text(splitTerms, 40, doc.lastAutoTable.finalY + 48);
-
     const labelX = 330;
     const valueX = 460;
     let currentY = doc.lastAutoTable.finalY + 120;
