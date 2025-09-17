@@ -556,7 +556,7 @@ function PaymentConfirmationForm() {
                       { type: "URL", parameter: String(details.awbNumber) },
                     ],
                   },
-                  templateName: "payment_completed_final",
+                  templateName: "payment_completed_final1",
                 },
                 from: "+919600690881",
                 to: `+91${details.consignorphonenumber}`,
