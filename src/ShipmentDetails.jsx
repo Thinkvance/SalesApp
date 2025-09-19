@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { FiClipboard, FiCheck } from "react-icons/fi";
+import HeicImage from "./HeicImage";
 
 function ShipmentDetails({ selectedPickup, closeModal }) {
   const [copied, setCopied] = useState(false);
@@ -191,6 +192,7 @@ function ShipmentDetails({ selectedPickup, closeModal }) {
             </p>
           </div>
         </div>
+        {console.log("selectedPickup", selectedPickup)}
         <div className="mt-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-3">
             KYC Images
@@ -201,7 +203,6 @@ function ShipmentDetails({ selectedPickup, closeModal }) {
                 href={selectedPickup.KycImage}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block"
               >
                 <button className="px-4 py-2 text-white bg-purple-600 rounded hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
                   View KYC Image
@@ -210,31 +211,24 @@ function ShipmentDetails({ selectedPickup, closeModal }) {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 bg-gray-50 p-4 rounded-lg shadow-md">
-              <p className="text-gray-600">No Image Available</p>
+              <p className="text-gray-600">No KYC Available</p>
             </div>
           )}
         </div>
+
+        {/* Products Images */}
         {selectedPickup.PRODUCTSIMAGE?.length > 0 ? (
-          <div className="mt-6 relative ">
+          <div className="mt-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-3">
               Products Images
             </h3>
-            <p className="absolute right-3 top-1">
-              <span className="font-semibold text-purple-700">
-                Pickup Completed:
-              </span>{" "}
-              {selectedPickup.pickupCompletedDatatime || "NA"}
-            </p>
             <div className="grid grid-cols-1 gap-4">
-              {selectedPickup.PRODUCTSIMAGE.map((d, index) => (
-                <a href={d} key={index} target="_blank" className="w-fit">
-                  <img
-                    key={index}
-                    src={d}
-                    alt={`Form Image ${index + 1}`}
-                    className="w-48 rounded-2xl object-scale-down h-48"
-                  />
-                </a>
+              {selectedPickup.PRODUCTSIMAGE.map((d, i) => (
+                <HeicImage
+                  src={d}
+                  alt={`Product ${i + 1}`}
+                  className="w-48 rounded-2xl object-scale-down h-48"
+                />
               ))}
             </div>
           </div>
@@ -248,21 +242,19 @@ function ShipmentDetails({ selectedPickup, closeModal }) {
             </div>
           </div>
         )}
+
         {selectedPickup.PACKAGEWEIGHTIMAGES?.length > 0 ? (
           <div className="mt-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-3">
               Package Weight Images
             </h3>
             <div className="grid grid-cols-1 gap-4">
-              {selectedPickup.PACKAGEWEIGHTIMAGES.map((d, index) => (
-                <a href={d} key={index} target="_blank" className="w-fit">
-                  <img
-                    key={index}
-                    src={d}
-                    alt={`Form Image ${index + 1}`}
-                    className="w-48 rounded-2xl object-scale-down h-48"
-                  />
-                </a>
+              {selectedPickup.PACKAGEWEIGHTIMAGES.map((d, i) => (
+                <HeicImage
+                  src={d}
+                  alt={`Product ${i + 1}`}
+                  className="w-48 rounded-2xl object-scale-down h-48"
+                />
               ))}
             </div>
           </div>
@@ -283,15 +275,12 @@ function ShipmentDetails({ selectedPickup, closeModal }) {
               Form Images
             </h3>
             <div className="grid grid-cols-1 gap-4">
-              {selectedPickup.FORMIMAGES.map((d, index) => (
-                <a href={d} key={index} target="_blank" className="w-fit">
-                  <img
-                    key={index}
-                    src={d}
-                    alt={`Form Image ${index + 1}`}
-                    className="w-48 rounded-2xl object-scale-down h-48"
-                  />
-                </a>
+              {selectedPickup.FORMIMAGES.map((d, i) => (
+                <HeicImage
+                  src={d}
+                  alt={`Form ${i + 1}`}
+                  className="w-48 rounded-2xl object-scale-down h-48"
+                />
               ))}
             </div>
           </div>
@@ -311,16 +300,12 @@ function ShipmentDetails({ selectedPickup, closeModal }) {
               <h3 className="text-lg font-semibold text-gray-800 mb-3">
                 Pickup Person Image
               </h3>
-              <a
-                href={selectedPickup.PickupPersonImageURL}
-                target="_blank"
-                className="w-fit"
-              >
-                <img
-                  src={selectedPickup.PickupPersonImageURL}
-                  className="w-48 rounded-2xl object-scale-down h-48"
-                />
-              </a>
+
+              <HeicImage
+                src={selectedPickup.PickupPersonImageURL}
+                alt="Pickup Person"
+                className="w-48 rounded-2xl object-scale-down h-48"
+              />
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 pb-3 border-b-2 border-purple-700">
@@ -344,21 +329,11 @@ function ShipmentDetails({ selectedPickup, closeModal }) {
                   </h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                     {item.image?.map((imgUrl, imgIndex) => (
-                      <a
-                        href={imgUrl}
-                        key={imgIndex}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-fit"
-                      >
-                        <div className="bg-white border rounded-lg shadow-md overflow-hidden">
-                          <img
-                            src={imgUrl}
-                            alt={`${item.type}-${imgIndex}`}
-                            className="w-full h-40 object-cover"
-                          />
-                        </div>
-                      </a>
+                      <HeicImage
+                        src={imgUrl}
+                        alt={`${item.type}-${imgIndex}`}
+                        className="w-full h-40 object-cover rounded-lg"
+                      />
                     ))}
                   </div>
                 </div>
@@ -386,16 +361,11 @@ function ShipmentDetails({ selectedPickup, closeModal }) {
                 </span>{" "}
                 {selectedPickup.PaymentComfirmedDate || "NA"}
               </p>
-              <a
-                href={selectedPickup.paymentProof}
-                target="_blank"
-                className="w-fit"
-              >
-                <img
-                  src={selectedPickup.paymentProof}
-                  className="w-48 rounded-2xl object-scale-down h-48"
-                />
-              </a>
+              <HeicImage
+                src={selectedPickup.paymentProof}
+                alt="Payment Proof"
+                className="w-48 rounded-2xl object-scale-down h-48"
+              />
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 pb-3 border-b-2 border-purple-700">
@@ -419,16 +389,11 @@ function ShipmentDetails({ selectedPickup, closeModal }) {
                 {selectedPickup.packageConnectedDataTime || "NA"}
               </p>
               <div className="flex">
-                <a
-                  href={selectedPickup.AWbNumberImage}
-                  target="_blank"
-                  className="w-fit"
-                >
-                  <img
-                    src={selectedPickup.AWbNumberImage}
-                    className="w-48 rounded-2xl object-scale-down h-48"
-                  />
-                </a>
+                <HeicImage
+                  src={selectedPickup.AWbNumberImage}
+                  alt="AWB Number"
+                  className="w-48 rounded-2xl object-scale-down h-48"
+                />
                 <div className="pl-3 mt-5">
                   <span className="font-semibold text-purple-700">
                     Vendor AWB:

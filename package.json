@@ -26,6 +26,7 @@
     "express": "^4.21.2",
     "firebase": "^10.14.1",
     "googleapis": "^144.0.0",
+    "heic2any": "^0.0.4",
     "jsbarcode": "^3.11.6",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.4",
