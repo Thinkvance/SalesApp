@@ -1,0 +1,1 @@
+export default {appversion : "1.0.0 stable"}

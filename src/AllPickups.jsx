@@ -88,7 +88,6 @@ function Pickups() {
 
   const handleSave = async (value) => {
     setLoadingEdit(true);
-    console.log("value", typeof value.logisticCost);
     try {
       const q = query(
         collection(db, DB.db_collection),
@@ -116,112 +115,44 @@ function Pickups() {
   };
 
   useEffect(() => {
-    if (Location === "ALL") {
-      if (username) {
-        const fetchData = () => {
-          try {
-            const collectionNames = [
-              DB.db_collection,
-              "franchise_pondy",
-              "franchise_coimbatore",
-            ];
+    // Parse DD-MM-YYYY to Date
+    const parseCustomDate = (dateStr) => {
+      if (!dateStr) return null;
 
-            // Create an array of queries for each collection
-            const queries = collectionNames.map((collec) => {
-              const baseCollection = collection(db, collec);
+      const [day, month, year] = dateStr.split("-");
+      if (!day || !month || !year) return null;
 
-              let q;
+      const paddedDay = day.padStart(2, "0");
+      const paddedMonth = month.padStart(2, "0");
 
-              if (dateSearchTerm) {
-                // User searched by date
-                const startDate = new Date(dateSearchTerm);
-                startDate.setHours(0, 0, 0, 0);
-                const endDate = new Date(dateSearchTerm);
-                endDate.setHours(23, 59, 59, 999);
+      // Output: 2025-09-01T00:00:00
+      return new Date(`${year}-${paddedMonth}-${paddedDay}T00:00:00`);
+    };
 
-                const startTimestamp = Timestamp.fromDate(startDate);
-                const endTimestamp = Timestamp.fromDate(endDate);
+    const fetchDataForAll = async () => {
+      try {
+        const collectionNames = [
+          DB.db_collection,
+          "franchise_pondy",
+          "franchise_coimbatore",
+        ];
 
-                q = query(
-                  baseCollection,
-                  where("pickupDatetime", ">=", startTimestamp),
-                  where("pickupDatetime", "<=", endTimestamp),
-                  orderBy("pickupDatetime", "desc")
-                );
-              } else {
-                // Default -> ALL data
-                q = query(baseCollection, orderBy("pickupDatetime", "desc"));
-              }
-
-              return q;
-            });
-
-            const unsubscribes = [];
-
-            Promise.all(
-              queries.map(
-                (q) =>
-                  new Promise((resolve) => {
-                    const unsubscribe = onSnapshot(q, (snapshot) => {
-                      const data = snapshot.docs.map((doc) => ({
-                        ...doc.data(),
-                        id: doc.id,
-                      }));
-                      resolve(data);
-                    });
-                    unsubscribes.push(unsubscribe);
-                  })
-              )
-            )
-              .then((results) => {
-                // Merge all results and sort them by datetime
-                const combinedData = results
-                  .flat()
-                  .sort(
-                    (a, b) =>
-                      b.pickupDatetime?.seconds - a.pickupDatetime?.seconds
-                  );
-                setPickups(combinedData);
-                setLoading(false);
-              })
-              .catch((error) => {
-                console.log("error", error);
-                utilityFunctions.ErrorNotify(
-                  "Unable to retrieve data. Please try again later."
-                );
-                setLoading(false);
-              });
-
-            // Cleanup subscription on unmount
-            return () => unsubscribes.forEach((unsubscribe) => unsubscribe());
-          } catch (error) {
-            console.log("error", error);
-            // utilityFunctions.ErrorNotify(
-            //   "Unable to retrieve data. Please try again later."
-            // );
-            setLoading(false);
-          }
-        };
-
-        fetchData();
-      }
-    } else {
-      const fetchData = () => {
-        try {
-          const baseCollection = collection(
-            db,
-            collectionName_BaseAwb.getCollection(
-              Location === "HQ CHENNAI" ? "CHENNAI" : Location
-            )
-          );
-
+        const queries = collectionNames.map((collec) => {
+          const baseCollection = collection(db, collec);
           let q;
 
           if (dateSearchTerm) {
-            // User searched by date
-            const startDate = new Date(dateSearchTerm);
+            const parsedDate = parseCustomDate(dateSearchTerm);
+
+            if (!parsedDate || isNaN(parsedDate)) {
+              console.error("Invalid dateSearchTerm:", dateSearchTerm);
+              setLoading(false);
+              return null;
+            }
+
+            const startDate = new Date(parsedDate);
             startDate.setHours(0, 0, 0, 0);
-            const endDate = new Date(dateSearchTerm);
+            const endDate = new Date(parsedDate);
             endDate.setHours(23, 59, 59, 999);
 
             const startTimestamp = Timestamp.fromDate(startDate);
@@ -234,29 +165,140 @@ function Pickups() {
               orderBy("pickupDatetime", "desc")
             );
           } else {
-            // Default -> ALL data
             q = query(baseCollection, orderBy("pickupDatetime", "desc"));
           }
 
-          const unsubscribe = onSnapshot(q, (snapshot) => {
-            const filteredData = snapshot.docs.map((doc) => ({
-              ...doc.data(),
-              id: doc.id,
-            }));
-            setPickups(filteredData);
-            setLoading(false);
+          return q;
+        });
+
+        const unsubscribes = [];
+        const results = await Promise.all(
+          queries.map(
+            (q) =>
+              new Promise((resolve) => {
+                if (!q) return resolve([]);
+
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                  const data = snapshot.docs.map((doc) => {
+                    const docData = doc.data();
+                    return {
+                      ...docData,
+                      id: doc.id,
+                      pickupDatetime: docData.pickupDatetime ?? null,
+                    };
+                  });
+                  resolve(data);
+                });
+
+                unsubscribes.push(unsubscribe);
+              })
+          )
+        );
+
+        const combinedData = results
+          .flat()
+          .filter((item) => item.pickupDatetime)
+          .sort((a, b) => {
+            const timeA =
+              a.pickupDatetime?.seconds ??
+              (a.pickupDatetime?.toDate?.()?.getTime?.() ?? 0) / 1000;
+            const timeB =
+              b.pickupDatetime?.seconds ??
+              (b.pickupDatetime?.toDate?.()?.getTime?.() ?? 0) / 1000;
+            return timeB - timeA;
           });
 
-          return () => unsubscribe();
-        } catch (error) {
-          console.log(error);
-          utilityFunctions.ErrorNotify(
-            "Unable to retrieve data. Please try again later."
+        setPickups(combinedData);
+        setLoading(false);
+
+        return () => unsubscribes.forEach((unsubscribe) => unsubscribe());
+      } catch (error) {
+        console.error("Error in fetchDataForAll:", error);
+        utilityFunctions.ErrorNotify(
+          "Unable to retrieve data. Please try again later."
+        );
+        setLoading(false);
+      }
+    };
+
+    const fetchDataForSingleLocation = () => {
+      try {
+        const locationKey = Location === "HQ CHENNAI" ? "CHENNAI" : Location;
+        const baseCollection = collection(
+          db,
+          collectionName_BaseAwb.getCollection(locationKey)
+        );
+
+        let q;
+
+        if (dateSearchTerm) {
+          const parsedDate = parseCustomDate(dateSearchTerm);
+
+          if (!parsedDate || isNaN(parsedDate)) {
+            console.error("Invalid dateSearchTerm:", dateSearchTerm);
+            setLoading(false);
+            return;
+          }
+
+          const startDate = new Date(parsedDate);
+          startDate.setHours(0, 0, 0, 0);
+          const endDate = new Date(parsedDate);
+          endDate.setHours(23, 59, 59, 999);
+
+          const startTimestamp = Timestamp.fromDate(startDate);
+          const endTimestamp = Timestamp.fromDate(endDate);
+
+          q = query(
+            baseCollection,
+            where("pickupDatetime", ">=", startTimestamp),
+            where("pickupDatetime", "<=", endTimestamp),
+            orderBy("pickupDatetime", "desc")
           );
-          setLoading(false);
+        } else {
+          q = query(baseCollection, orderBy("pickupDatetime", "desc"));
         }
-      };
-      fetchData();
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+          const filteredData = snapshot.docs
+            .map((doc) => {
+              const docData = doc.data();
+              return {
+                ...docData,
+                id: doc.id,
+                pickupDatetime: docData.pickupDatetime ?? null,
+              };
+            })
+            .filter((item) => item.pickupDatetime)
+            .sort((a, b) => {
+              const timeA =
+                a.pickupDatetime?.seconds ??
+                (a.pickupDatetime?.toDate?.()?.getTime?.() ?? 0) / 1000;
+              const timeB =
+                b.pickupDatetime?.seconds ??
+                (b.pickupDatetime?.toDate?.()?.getTime?.() ?? 0) / 1000;
+              return timeB - timeA;
+            });
+
+          setPickups(filteredData);
+          setLoading(false);
+        });
+
+        return () => unsubscribe();
+      } catch (error) {
+        console.error("Error in fetchDataForSingleLocation:", error);
+        utilityFunctions.ErrorNotify(
+          "Unable to retrieve data. Please try again later."
+        );
+        setLoading(false);
+      }
+    };
+
+    if (Location === "ALL") {
+      if (username) {
+        fetchDataForAll();
+      }
+    } else {
+      fetchDataForSingleLocation();
     }
   }, [username, Location, dateSearchTerm]);
 

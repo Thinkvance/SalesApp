@@ -450,7 +450,7 @@ function PaymentConfirmationForm() {
           details.KycImage.startsWith("http")
             ? details.KycImage
             : await uploadFileToFirebase(KycImage, "KYC"),
-        PaymentComfirmedDate: await getTodayDate(),
+        // PaymentComfirmedDate: await getTodayDate(),
         consigneename: !data.consigneename1
           ? details.consigneename
           : data.consigneename1,
@@ -524,6 +524,7 @@ function PaymentConfirmationForm() {
         status: "PAYMENT DONE",
         paymentProof: await uploadFileToFirebase(paymentProof, "PAYMENT PROOF"),
         payment_Receipt_URL: Payment_URL,
+        PaymentComfirmedDate: await getTodayDate(),
       };
       updateDoc(docRef, updatedFields);
       try {

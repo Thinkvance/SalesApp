@@ -6,7 +6,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import utility from "./Utility/utilityFunctions";
-
+import ProfileModal from "./components/ProfileModal";
 function Nav() {
   const location = useLocation();
   const [user, setUser] = useState({});
@@ -15,6 +15,7 @@ function Nav() {
   const [rateAnchorEl, setRateAnchorEl] = useState(null); // Rate dropdown state
   const [reportsAnchorEl, setReportsAnchorEl] = useState(null); // Rate dropdown state
   const [RoleBasedScreens, setRoleBasedScreens] = useState({});
+  const [Open, setOpen] = useState(false);
   function roleFormate(role) {
     const formattedRole = role
       ?.split(" ") // Split the string into words
@@ -156,22 +157,24 @@ function Nav() {
         </div>
         {/* Right Section */}
         <div className="flex items-center gap-6 bg-purple-400  rounded-lg">
-          <Avatar className="bg-purple-600 text-white p-3 text-lg font-semibold">
+          <Avatar
+            onClick={() => setOpen(true)}
+            className="bg-purple-600 cursor-pointer text-white p-3 text-lg font-semibold"
+          >
             {user?.name?.[0]?.toUpperCase() || "?"}
           </Avatar>
-          <div className="text-gray-900 hidden sm:block">
+          {/* <div className="text-gray-900 hidden sm:block">
             {user ? (
               <>
                 <p className="font-semibold text-xl">{user.email}</p>
                 <p className="text-md text-gray-800 font-medium mt-1">
                   {roleFormate(user?.role)}
                 </p>{" "}
-                {/* Improved readability of role */}
               </>
             ) : (
               <p className="text-gray-500">Loading user info...</p>
             )}
-          </div>
+          </div> */}
           <button
             onClick={() => {
               localStorage.removeItem("LoginCredentials");
@@ -273,6 +276,11 @@ function Nav() {
           ></div>
         )}
       </div>
+      <ProfileModal
+        open={Open}
+        setOpen={setOpen}
+        user={{ name: "Nithish", email: "Nithish@gmail.com", role: "Manager" }}
+      />
     </nav>
   );
 }
