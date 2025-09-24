@@ -1,1 +1,1 @@
-export default {appversion : "1.0.0 stable"}
+export default { appversion: "3.0.0" };
