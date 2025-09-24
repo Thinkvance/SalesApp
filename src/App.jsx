@@ -38,6 +38,7 @@ import Accounts from "./Accounts";
 import ReviewManagement from "./ReviewManagement";
 import VersionUpdateModal from "./VersionUpdateModal"; // Version modal
 import appVersion from "./functions/appVersion";
+
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -47,7 +48,7 @@ function App() {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [updateMessage, setUpdateMessage] = useState("");
 
-  console.log("Build: 24-09-2025");
+  console.log("Build: 24-09-2025 !!!!!!!!!");
 
   // ✅ Notifications
   useEffect(() => {
