@@ -375,7 +375,7 @@ function PaymentConfirmationForm() {
       // Sending WhatsApp message
       const response = await axios.post(apiUrl, messageData, { headers });
       // Extract message status
-      const messageStatus = response?.data?.messages?.[0]?.status === "SENT";
+      const messageStatus = response?.status === 200;
       // Update Firestore document
       const pickupRef = doc(db, DB.db_collection, docId);
       await updateDoc(pickupRef, { makePaymentNotified: messageStatus });
