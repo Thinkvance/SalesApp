@@ -38,6 +38,14 @@ import Accounts from "./Accounts";
 import ReviewManagement from "./ReviewManagement";
 import VersionUpdateModal from "./VersionUpdateModal"; // Version modal
 import appVersion from "./functions/appVersion";
+import EscalationDashboard from "./EscalationDashboard"; // ✅ renamed import
+import ReportForm from "./ReportForm";
+
+function ManagerOnly({ children }) {
+  const stored = JSON.parse(localStorage.getItem("LoginCredentials") || "{}");
+  const role = stored?.role || "";
+  return role === "Manager" ? children : <Navigate to="/" replace />;
+}
 
 function App() {
   const [user, setUser] = useState(null);
@@ -77,8 +85,8 @@ function App() {
         const querySnapshot = await getDocs(q);
         let foundUser = false;
 
-        for (const doc of querySnapshot.docs) {
-          const result = doc.data();
+        for (const docSnap of querySnapshot.docs) {
+          const result = docSnap.data();
           if (result[user.email]) {
             const dataset = {
               name: result[user.email][0],
@@ -115,7 +123,6 @@ function App() {
       if (docSnap.exists()) {
         const data = docSnap.data();
 
-        // 🔐 Safe field checks
         const version = data?.version;
         const forceUpdate = data?.forceUpdate;
         const message = data?.message;
@@ -145,7 +152,7 @@ function App() {
       }
     }, 5000);
     return () => clearTimeout(timeout);
-  }, []);
+  }, [showUpdateModal]);
 
   if (loading) return <div>Loading...</div>;
 
@@ -156,7 +163,6 @@ function App() {
         for (const registration of registrations) {
           registration.unregister();
         }
-        // Full reload with query param bust
         window.location.href = `${window.location.origin}?v=${Date.now()}`;
       });
     } else {
@@ -196,9 +202,7 @@ function App() {
             />
             <Route
               path="/addExtraCharges"
-              element={
-                user ? <ExtraChargesModule /> : <Navigate to="/signin" />
-              }
+              element={user ? <ExtraChargesModule /> : <Navigate to="/signin" />}
             />
             <Route
               path="/Pickups"
@@ -222,15 +226,11 @@ function App() {
             />
             <Route
               path="/logistics-Dashboard"
-              element={
-                user ? <LogisticsDashboard /> : <Navigate to="/signin" />
-              }
+              element={user ? <LogisticsDashboard /> : <Navigate to="/signin" />}
             />
             <Route
               path="/Payment-confirmation-form/:awbnumber"
-              element={
-                user ? <PaymentConfirmationForm /> : <Navigate to="/signin" />
-              }
+              element={user ? <PaymentConfirmationForm /> : <Navigate to="/signin" />}
             />
             <Route
               path="/Sales-Incentive"
@@ -244,19 +244,37 @@ function App() {
               path="/My-Shipments"
               element={user ? <Myshipments /> : <Navigate to="/signin" />}
             />
+            {/* Report form is publicly routed but relies on internal auth/role guards */}
+            <Route path="/ReportForm" element={<ReportForm />} />
             <Route
               path="/review-management"
               element={user ? <ReviewManagement /> : <Navigate to="/signin" />}
             />
             <Route
               path="/PickuPersonIncentive-Report"
-              element={
-                user ? <PickupPersonIncentive /> : <Navigate to="/signin" />
-              }
+              element={user ? <PickupPersonIncentive /> : <Navigate to="/signin" />}
             />
             <Route
               path="/signin"
               element={!user ? <SignIn /> : <Navigate to="/Pickup-Booking" />}
+            />
+
+            {/* ✅ Manager-only Escalations Dashboard */}
+            <Route
+              path="/escalations"
+              element={
+                <ManagerOnly>
+                  <EscalationDashboard />
+                </ManagerOnly>
+              }
+            />
+
+            {/* 404 fallback to home or sign-in */}
+            <Route
+              path="*"
+              element={
+                user ? <Navigate to="/" replace /> : <Navigate to="/signin" replace />
+              }
             />
           </Routes>
         </div>

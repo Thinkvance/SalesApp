@@ -7,6 +7,9 @@ import {
   query,
   Timestamp,
   where,
+  doc,
+  updateDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import axios from "axios";
@@ -28,6 +31,57 @@ export default function Myshipments() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPickup, setSelectedPickup] = useState(null);
 
+  // -------- Escalation helpers --------
+  const ORIGIN = typeof window !== "undefined" ? window.location.origin : "";
+  // Adjust these routes to match your app’s paths
+  const ESCALATION_ADD_URL = (awb, escalationId) =>
+    `${ORIGIN}/EscalationSystem?mode=add&awb=${encodeURIComponent(awb)}${
+      escalationId ? `&escalationId=${encodeURIComponent(escalationId)}` : ""
+    }`;
+
+  const ESCALATION_VIEW_URL = (awb, escalationId) =>
+    `${ORIGIN}/EscalationSystem?mode=view&awb=${encodeURIComponent(awb)}${
+      escalationId ? `&escalationId=${encodeURIComponent(escalationId)}` : ""
+    }`;
+
+  const ESCALATION_CLOSE_URL = (awb, escalationId) =>
+    `${ORIGIN}/EscalationSystem?mode=close&awb=${encodeURIComponent(awb)}${
+      escalationId ? `&escalationId=${encodeURIComponent(escalationId)}` : ""
+    }`;
+
+  const openInNewTab = (url) => {
+    // keep noopener/noreferrer if you want; closing still works in modern browsers
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const handleAddReport = (item) => {
+    openInNewTab(
+      `/ReportForm?mode=add&awb=${encodeURIComponent(item.awbNumber)}`
+    );
+  };
+
+  const handleViewReport = (item) => {
+    openInNewTab(ESCALATION_VIEW_URL(item.awbNumber, item.escalationId));
+  };
+
+  const handleCloseEscalation = async (item) => {
+    if (role !== "Manager") return; // UI guard; enforce with Firestore rules as well.
+    try {
+      const ref = doc(db, DB.db_collection, item.id);
+      await updateDoc(ref, {
+        escalationStatus: "closed",
+        escalationClosedAt: serverTimestamp(),
+        escalationClosedBy: username || "",
+      });
+      // Open closure report form in a NEW TAB after marking closed
+      openInNewTab(ESCALATION_CLOSE_URL(item.awbNumber, item.escalationId));
+    } catch (err) {
+      console.error("Failed to close escalation:", err);
+      alert("Failed to close escalation. Please try again.");
+    }
+  };
+  // -------- End Escalation helpers --------
+
   async function Sharetrackinglink({
     name,
     awb,
@@ -40,8 +94,8 @@ export default function Myshipments() {
     setLoading(true);
 
     try {
-      if (selectedRecipient[awb] == "consignee") {
-        return;
+      if (selectedRecipient[awb] === "consignee") {
+        // no-op here as per your earlier constraint; keep the guard if needed
       }
 
       const estimatedDelivery = utilityFunctions.getEstimatedDate(
@@ -50,7 +104,7 @@ export default function Myshipments() {
       );
 
       const currentStatus_temp = currentStatus ? currentStatus : "-";
-      const data = {
+      const payload = {
         messages: [
           {
             content: {
@@ -58,16 +112,16 @@ export default function Myshipments() {
               templateData: {
                 body: {
                   placeholders: [
-                    name, // {{1}} - Name
+                    name,
                     currentStatus_temp,
-                    destination, // {{4}} - Destination
-                    estimatedDelivery, // {{5}} - Estimated Delivery
+                    destination,
+                    estimatedDelivery,
                   ],
                 },
                 buttons: [
                   {
                     type: "URL",
-                    parameter: String(awb), // Will be appended to URL in template
+                    parameter: String(awb),
                   },
                 ],
               },
@@ -79,23 +133,17 @@ export default function Myshipments() {
         ],
       };
 
-      await axios
-        .post("https://public.doubletick.io/whatsapp/message/template", data, {
+      await axios.post(
+        "https://public.doubletick.io/whatsapp/message/template",
+        payload,
+        {
           headers: {
             Authorization: "key_z6hIuLo8GC",
             Accept: "application/json",
             "Content-Type": "application/json",
           },
-        })
-        .then((response) => {
-          console.log("Message sent:", response.data);
-        })
-        .catch((error) => {
-          console.error(
-            "Error sending message:",
-            error.response?.data || error.message
-          );
-        });
+        }
+      );
     } catch (error) {
       console.log(error);
     }
@@ -105,13 +153,13 @@ export default function Myshipments() {
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("LoginCredentials"));
     setUsername(storedUser?.name);
-    setRole(storedUser.role);
+    setRole(storedUser?.role || "");
   }, []);
 
   useEffect(() => {
+    if (!role) return;
     let q;
     if (role === "Manager" || role === "sales admin") {
-      // Get all data from "pickup"
       q = query(
         collection(db, DB.db_collection),
         orderBy("pickupDatetime", "desc")
@@ -127,13 +175,12 @@ export default function Myshipments() {
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const pickupData = [];
-      querySnapshot.forEach((doc) => {
-        pickupData.push({ id: doc.id, ...doc.data() });
+      querySnapshot.forEach((docSnap) => {
+        pickupData.push({ id: docSnap.id, ...docSnap.data() });
       });
       setdata(pickupData);
     });
 
-    // Cleanup on unmount
     return () => unsubscribe();
   }, [role, username]);
 
@@ -141,19 +188,35 @@ export default function Myshipments() {
     const awbMatch = String(pickup.awbNumber)
       .toLowerCase()
       .includes(awbSearchTerm.toLowerCase());
-    const consignorPhoneMatch = pickup.consignorphonenumber
+    const consignorPhoneMatch = (pickup.consignorphonenumber || "")
       .toLowerCase()
       .includes(consignorPhoneSearchTerm.toLowerCase());
-    return awbMatch && consignorPhoneMatch; // Use AND logic to filter
+    return awbMatch && consignorPhoneMatch;
   });
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setSelectedPickup(null); // Reset selected pickup when modal is closed
+    setSelectedPickup(null);
   };
   const handleMoreIconClick = (pickup) => {
     setSelectedPickup(pickup);
-    setIsModalOpen(true); // Open the modal
+    setIsModalOpen(true);
+  };
+
+  // Small UI helpers
+  const Pill = ({ children, type = "neutral" }) => {
+    const map = {
+      neutral: "bg-gray-100 text-gray-700",
+      pending: "bg-yellow-100 text-yellow-800",
+      closed: "bg-green-100 text-green-800",
+    };
+    return (
+      <span
+        className={`px-2 py-1 rounded text-[11px] font-medium ${map[type]}`}
+      >
+        {children}
+      </span>
+    );
   };
 
   return (
@@ -196,6 +259,7 @@ export default function Myshipments() {
                   "Last Update",
                   "Track",
                   "Details",
+                  "Escalation",
                 ].map((header) => (
                   <th
                     key={header}
@@ -208,152 +272,191 @@ export default function Myshipments() {
             </thead>
             <tbody>
               {filteredPickups.length > 0
-                ? filteredPickups.map((item, i) => (
-                    <tr
-                      key={item.awbNumber}
-                      className="border-b hover:bg-gray-50 transition"
-                    >
-                      <td className="px-4  py-2">{item.awbNumber}</td>
-                      <td className="px-4 border py-2">{item.consignorname}</td>
-                      <td className="px-4 border py-2">
-                        {item.consignorphonenumber}
-                      </td>
-                      <td className="px-4 border py-2">
-                        {item.consigneephonenumber}
-                      </td>
-                      {/* <td className="px-4 py-2">{item.destination}</td> */}
-                      <td className="px-4 border py-2">{item.vendorName}</td>
-                      <td className="px-4 border py-2 whitespace-nowrap">
-                        {item.status}
-                      </td>
+                ? filteredPickups.map((item, i) => {
+                    const escStatus = (
+                      item.escalationStatus || "none"
+                    ).toLowerCase(); // "none" | "pending" | "closed"
+                    return (
+                      <tr
+                        key={item.awbNumber}
+                        className="border-b hover:bg-gray-50 transition"
+                      >
+                        <td className="px-4  py-2">{item.awbNumber}</td>
+                        <td className="px-4 border py-2">
+                          {item.consignorname}
+                        </td>
+                        <td className="px-4 border py-2">
+                          {item.consignorphonenumber}
+                        </td>
+                        <td className="px-4 border py-2">
+                          {item.consigneephonenumber}
+                        </td>
+                        <td className="px-4 border py-2">{item.vendorName}</td>
+                        <td className="px-4 border py-2 whitespace-nowrap">
+                          {item.status}
+                        </td>
 
-                      <td className="px-4 border  py-2">
-                        <div className="flex gap-2">
-                          {["consignor", "consignee"].map((type) => {
-                            const isSelected =
-                              selectedRecipient[item.awbNumber] === type;
-                            return (
-                              <label
-                                key={type}
-                                className={`px-3 py-1 rounded-md border cursor-pointer text-xs font-medium ${
-                                  isSelected
-                                    ? "bg-purple-700 text-white"
-                                    : "bg-gray-100 text-gray-700"
-                                }`}
-                              >
-                                <input
-                                  type="radio"
-                                  name={`recipient-${i}`}
-                                  value={type}
-                                  checked={isSelected}
-                                  onChange={() =>
-                                    setSelectedRecipient((prev) => ({
-                                      ...prev,
-                                      [item.awbNumber]: type,
-                                    }))
-                                  }
-                                  className="hidden"
-                                />
-                                {type.charAt(0).toUpperCase() + type.slice(1)}
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </td>
-                      <td className="text-center border  w-[100px] h-[40px]">
-                        {selectedRecipient[item.awbNumber] ? (
-                          <button
-                            onClick={async () => {
-                              const recipientPhone =
-                                selectedRecipient[item.awbNumber] ===
-                                "consignor"
-                                  ? item.consignorphonenumber
-                                  : item.consigneephonenumber;
+                        <td className="px-4 border  py-2">
+                          <div className="flex gap-2">
+                            {["consignor", "consignee"].map((type) => {
+                              const isSelected =
+                                selectedRecipient[item.awbNumber] === type;
+                              return (
+                                <label
+                                  key={type}
+                                  className={`px-3 py-1 rounded-md border cursor-pointer text-xs font-medium ${
+                                    isSelected
+                                      ? "bg-purple-700 text-white"
+                                      : "bg-gray-100 text-gray-700"
+                                  }`}
+                                >
+                                  <input
+                                    type="radio"
+                                    name={`recipient-${i}`}
+                                    value={type}
+                                    checked={isSelected}
+                                    onChange={() =>
+                                      setSelectedRecipient((prev) => ({
+                                        ...prev,
+                                        [item.awbNumber]: type,
+                                      }))
+                                    }
+                                    className="hidden"
+                                  />
+                                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </td>
 
-                              const recipientname =
-                                selectedRecipient[item.awbNumber] ===
-                                "consignor"
-                                  ? item.consignorname
-                                  : item.consigneename;
+                        <td className="text-center border  w-[100px] h-[40px]">
+                          {selectedRecipient[item.awbNumber] ? (
+                            <button
+                              onClick={async () => {
+                                const recipientPhone =
+                                  selectedRecipient[item.awbNumber] ===
+                                  "consignor"
+                                    ? item.consignorphonenumber
+                                    : item.consigneephonenumber;
 
-                              try {
-                                await Sharetrackinglink({
-                                  name: recipientname,
-                                  awb: item.awbNumber,
-                                  mode: item.service,
-                                  destination: item.destination,
-                                  phone: recipientPhone,
-                                  currentStatus:
-                                    item?.currentStatus?.toLowerCase(),
-                                  packageConnectedDataTime:
-                                    item.packageConnectedDataTime,
-                                });
-                              } catch (err) {
-                                console.error(
-                                  "Error sharing tracking link:",
-                                  err
-                                );
-                              }
-                            }}
-                            className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-1.5 rounded-md text-xs font-semibold flex items-center justify-center gap-1"
-                            disabled={loading}
+                                const recipientname =
+                                  selectedRecipient[item.awbNumber] ===
+                                  "consignor"
+                                    ? item.consignorname
+                                    : item.consigneename;
+
+                                try {
+                                  await Sharetrackinglink({
+                                    name: recipientname,
+                                    awb: item.awbNumber,
+                                    mode: item.service,
+                                    destination: item.destination,
+                                    phone: recipientPhone,
+                                    currentStatus:
+                                      item?.currentStatus?.toLowerCase(),
+                                    packageConnectedDataTime:
+                                      item.packageConnectedDataTime,
+                                  });
+                                } catch (err) {
+                                  console.error(
+                                    "Error sharing tracking link:",
+                                    err
+                                  );
+                                }
+                              }}
+                              className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-1.5 rounded-md text-xs font-semibold flex items-center justify-center gap-1"
+                              disabled={loading}
+                            >
+                              {loading ? (
+                                <div className="w-4 h-4">
+                                  <Lottie
+                                    animationData={loadingAnimation}
+                                    loop
+                                    autoplay
+                                  />
+                                </div>
+                              ) : (
+                                "Share"
+                              )}
+                            </button>
+                          ) : (
+                            <span className="text-gray-400 text-xs">
+                              Select first
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="text-[12px]  border px-4 py-2 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
+                          {item.currentStatus}
+                        </td>
+                        <td className="text-[12px] px-4 py-2 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
+                          {utilityFunctions.formateFirebaseTimestamp(
+                            item.lastStatusUpdated
+                          )}
+                        </td>
+
+                        <td className="px-4 py-2  border text-center">
+                          <a
+                            href={`https://shiphittracking.web.app/TrackingDetails/${item.awbNumber}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-md text-xs font-semibold"
                           >
-                            {loading ? (
-                              <div className="w-4 h-4">
-                                <Lottie
-                                  animationData={loadingAnimation}
-                                  loop
-                                  autoplay
-                                />
-                              </div>
-                            ) : (
-                              "Share"
-                            )}
-                          </button>
-                        ) : (
-                          <span className="text-gray-400 text-xs">
-                            Select first
-                          </span>
-                        )}
-                      </td>
-                      <td className="text-[12px]  border px-4 py-2 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
-                        {item.currentStatus}
-                      </td>
-                      <td className="text-[12px] px-4 py-2 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
-                        {utilityFunctions.formateFirebaseTimestamp(
-                          item.lastStatusUpdated
-                        )}
-                      </td>
-                      <td className="px-4 py-2  border text-center">
-                        <a
-                          href={`https://shiphittracking.web.app/TrackingDetails/${item.awbNumber}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-md text-xs font-semibold"
-                        >
-                          Track
-                        </a>
-                      </td>
-                      <td className="px-4 py-2 text-center">
-                        <img
-                          className="w-8 cursor-pointer mt-3"
-                          src="more-icon.svg"
-                          onClick={() => handleMoreIconClick(item)} // On click, show details in modal
-                        />
-                      </td>
-                    </tr>
-                  ))
-                : ""}
+                            Track
+                          </a>
+                        </td>
+
+                        <td className="px-4 py-2 text-center">
+                          <img
+                            className="w-8 cursor-pointer mt-3"
+                            src="more-icon.svg"
+                            onClick={() => handleMoreIconClick(item)}
+                          />
+                        </td>
+
+                        {/* -------- Escalation Column -------- */}
+                        <td className="px-4 py-2 border text-center">
+                          {escStatus === "none" ? (
+                            <button
+                              onClick={() => handleAddReport(item)}
+                              className="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-md text-xs font-semibold transition-colors duration-200"
+                              title="Add escalation report"
+                            >
+                              Escalate
+                            </button>
+                          ) : escStatus === "pending" ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <Pill type="pending">Pending</Pill>
+                              {role === "Manager" && (
+                                <button
+                                  onClick={() => handleCloseEscalation(item)}
+                                  className="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-md text-xs font-semibold transition-colors duration-200"
+                                  title="Close escalation (Manager only)"
+                                >
+                                  Close
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <Pill type="closed">Closed</Pill>
+                          )}
+                        </td>
+                        {/* -------- End Escalation Column -------- */}
+                      </tr>
+                    );
+                  })
+                : null}
             </tbody>
           </table>
+
           {filteredPickups.length <= 0 ? (
             <div className="flex p-10 w-full  justify-center items-center">
               <span className="font-[12px] text-gray-400">No data</span>
             </div>
-          ) : (
-            ""
-          )}
+          ) : null}
         </div>
+
         {isModalOpen && selectedPickup && (
           <ShipmentDetails
             selectedPickup={selectedPickup}
