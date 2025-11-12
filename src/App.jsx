@@ -58,7 +58,7 @@ function App() {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [updateMessage, setUpdateMessage] = useState("");
 
-  console.log("Build: 12-11-2025 !!!!!!!!!");
+  console.log("Build: 12-11-2025!");
 
   // ✅ Notifications
   useEffect(() => {
