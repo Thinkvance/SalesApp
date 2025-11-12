@@ -115,6 +115,7 @@ const EditShipmentModal = ({
                 "BOMBINO",
                 "ATLANTIC",
                 "ExPlus",
+                "TurboFox",
               ]}
               error={errors.vendorName}
             />

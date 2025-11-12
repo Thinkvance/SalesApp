@@ -18,6 +18,9 @@ import customParseFormat from "dayjs/plugin/customParseFormat";
 import BarChartCom from "./salesReportCharts/BarChartCom";
 import DB from "./DB/DB";
 import ShipmentDetails from "./ShipmentDetails";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
+import SalesReportBarChartSVendor from "./Charts/SalesReportBarChartSVendor";
 
 dayjs.extend(customParseFormat);
 dayjs.extend(isBetween);
@@ -40,6 +43,9 @@ function Accounts() {
   const [selectedBookedBy, setSelectedBookedBy] = useState("All");
   const [SelectedCity, setSelectedCity] = useState("All");
   const [selectedSource, setselectedSource] = useState("All");
+  const [selectedVendor, setselectedVendor] = useState("All");
+  const [selectedVendorAWBnumber, setselectedVendorAWBnumber] = useState("");
+  const [selectedChart, setselectedChart] = useState("Vendor-wise Chart");
 
   const [isModalOpen, setIsModalOpen] = useState(false); // State to control modal visibility
   const [selectedPickup, setSelectedPickup] = useState(null); // State to hold the selected pickup for modal
@@ -67,7 +73,6 @@ function Accounts() {
 
     return () => unsubscribe();
   }, []);
-
 
   const closeModal = () => {
     setIsModalOpen(false);
@@ -264,6 +269,20 @@ function Accounts() {
     const matchedsource =
       selectedSource === "All" ||
       pickup.Source?.toLowerCase() === selectedSource.toLowerCase();
+    const matchedvendor =
+      selectedVendor === "All" ||
+      pickup.vendorName?.toLowerCase() === selectedVendor.toLowerCase();
+    console.log(
+      "pickup?.vendorAwbnumber",
+      pickup?.vendorAwbnumber,
+      pickup?.vendorAwbnumber == null
+    );
+    const matchedVendorAWBnumber =
+      selectedVendorAWBnumber === ""
+        ? true // include all
+        : pickup?.vendorAwbnumber != null &&
+          String(pickup.vendorAwbnumber).toLowerCase() ===
+            String(selectedVendorAWBnumber).toLowerCase();
 
     return (
       withinDateRange &&
@@ -272,9 +291,13 @@ function Accounts() {
       matchesPickupPerson &&
       matchesBookedBy &&
       matchedCity &&
-      matchedsource
+      matchedsource &&
+      matchedvendor &&
+      matchedVendorAWBnumber
     );
   });
+
+  console.log("filteredPickups", filteredPickups);
 
   const totalSales = filteredPickups.length;
 
@@ -302,12 +325,92 @@ function Accounts() {
     }, {})
   );
 
+  const exportOctoberData = async () => {
+    try {
+      const octoberData = [];
+
+      [...filteredPickups]
+        .sort(
+          (a, b) =>
+            parseDate(b.PaymentComfirmedDate) -
+            parseDate(a.PaymentComfirmedDate)
+        )
+        .map((item) => {
+          const rawDate = item.PaymentComfirmedDate;
+          if (!rawDate) return;
+
+          let dateObj;
+
+          if (rawDate.toDate) {
+            dateObj = rawDate.toDate();
+          } else if (typeof rawDate === "string") {
+            const [datePart, timePart, modifier] = rawDate.split(" ");
+            if (!datePart || !timePart || !modifier) return;
+
+            const [day, month, year] = datePart.split("-").map(Number);
+            let [hours, minutes, seconds] = timePart.split(":").map(Number);
+
+            if (modifier === "PM" && hours !== 12) hours += 12;
+            if (modifier === "AM" && hours === 12) hours = 0;
+
+            dateObj = new Date(year, month - 1, day, hours, minutes, seconds);
+          } else {
+            return;
+          }
+
+          octoberData.push({
+            PaymentComfirmedDate: rawDate,
+            consignorname: item.consignorname || "",
+            awbNumber: item.awbNumber || "",
+            vendorName: item.vendorName || "",
+            actualWeight: item.internalWeight || "",
+            pickuparea: item.pickuparea || "",
+            destination: item.destination || "",
+            logisticCost: item.logisticCost || "",
+          });
+        });
+
+      if (!octoberData.length) {
+        alert("No October records found!");
+        return;
+      }
+
+      const workbook = new ExcelJS.Workbook();
+      const ws = workbook.addWorksheet("October Data");
+
+      ws.columns = [
+        {
+          header: "Date",
+          key: "PaymentComfirmedDate",
+          width: 30,
+        },
+        { header: "Customer", key: "consignorname", width: 25 },
+        { header: "Receipt No", key: "awbNumber", width: 20 },
+        { header: "Vendor", key: "vendorName", width: 20 },
+        { header: "Weight", key: "actualWeight", width: 15 },
+        { header: "Pickup Area", key: "pickuparea", width: 20 },
+        { header: "Country", key: "destination", width: 20 },
+        { header: "Sale price", key: "logisticCost", width: 15 },
+      ];
+
+      octoberData.forEach((row) => ws.addRow(row));
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      saveAs(new Blob([buffer]), `${filterOption}-Vendor-Data.xlsx`);
+
+      // alert("✅ Excel downloaded successfully!");
+    } catch (error) {
+      console.error("❌ Export Error:", error);
+      alert("Something went wrong while exporting!");
+    }
+  };
+
   return (
     <>
       <Nav />
       <div className="container mx-auto p-6 rounded-lg">
         <h1 className="text-3xl font-bold mb-6 text-purple-700">
-          Sales Report
+          Vendor Report
         </h1>
         <div className="flex flex-row  flex-wrap gap-6 mb-6 items-end">
           <div className="w-fit col-span-1 md:col-span-2">
@@ -379,6 +482,61 @@ function Accounts() {
               <option value="GMB">GMB</option>
             </select>
           </div>
+
+          <div className="w-fit col-span-1 md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Vendor
+            </label>
+            <select
+              value={selectedVendor}
+              onChange={(e) => setselectedVendor(e.target.value)}
+              className="border rounded  input-style w-full"
+            >
+              <option value="All">All</option>
+              <option value="DHL">DHL</option>
+              <option value="Aramex">ARAMEX</option>
+              <option value="UPS">UPS</option>
+              <option value="FedEx">FedEx</option>
+              <option value="TurboFox">TurboFox</option>
+              <option value="ATLANTIC">ATLANTIC</option>
+              <option value="ExPlus">ExPlus</option>
+            </select>
+          </div>
+
+          <div className="w-fit col-span-1 md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Select Chart For
+            </label>
+            <select
+              value={selectedChart}
+              onChange={(e) => setselectedChart(e.target.value)}
+              className="border rounded  input-style w-full"
+            >
+              <option value="Sales Executive Chart">
+                Sales Executive Chart
+              </option>
+              <option value="Vendor-wise Chart">Vendor-wise Chart</option>
+            </select>
+          </div>
+
+          <div className="w-fit col-span-1 md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Search By Vendor AWBNumber
+            </label>
+            <input
+              value={selectedVendorAWBnumber}
+              onChange={(e) => setselectedVendorAWBnumber(e.target.value)}
+              type="text"
+              className="border rounded  input-style w-full"
+              placeholder="Vendor AWB Number"
+            />
+          </div>
+          <button
+            onClick={exportOctoberData}
+            className="bg-purple-500 text-white px-4 py-2 rounded-lg"
+          >
+            Export Data
+          </button>
           {filterOption === "select_range" && (
             <>
               <div>
@@ -413,52 +571,77 @@ function Accounts() {
             </>
           )}
         </div>
-        <div className="flex flex-wrap gap-4 mb-6 justify-start items-center">
-          {/* Total Sales */}
-          <div className="flex-1 min-w-[220px] max-w-sm bg-purple-100 border border-purple-300 rounded-xl p-6 shadow-md h-fit">
-            <h2 className="text-lg font-semibold text-purple-700 mb-2">
-              Total Sales
-            </h2>
-            <p className="text-2xl font-bold text-purple-900">{totalSales}</p>
-          </div>
 
-          {/* Total Logistic Cost */}
-          <div className="flex-1 min-w-[220px] max-w-sm bg-green-100 border border-green-300 rounded-xl p-6 shadow-md h-fit">
-            <h2 className="text-lg font-semibold text-green-700 mb-2">
-              Total Logistic Cost
-            </h2>
-            <p className="text-2xl font-bold text-green-900">
-              {totalLogisticsCost}
-            </p>
-          </div>
-
-          {/* Total Margin */}
-          <div className="flex-1 min-w-[220px] max-w-sm bg-yellow-100 border border-yellow-300 rounded-xl p-6 shadow-md h-fit">
-            <h2 className="text-lg font-semibold text-yellow-700 mb-2">
-              Total Margin
-            </h2>
-            <p className="text-2xl font-bold text-yellow-900">
-              ₹ {totalMargin}
-            </p>
-          </div>
-          {/* Bar Chart Section (Visually wider) */}
-          <div className="flex-[2] min-w-full sm:min-w-[500px] bg-white border border-gray-200 rounded-xl p-4 shadow-md">
-            <div className="mb-3">
-              <BarChartCom salesData={salesData} />
-            </div>
-            <div>
-              <h2 className="text-sm sm:text-base font-semibold text-gray-700 mb-1">
-                Total Margin Overview
+        <div className="flex flex-col lg:flex-row gap-8 mb-10 items-start justify-between">
+          {/* === LEFT SIDE: Metric Cards (Column) === */}
+          <div className="flex flex-col gap-6 w-full lg:w-1/4">
+            {/* Total Sales */}
+            <div className="bg-gradient-to-br from-purple-100 to-purple-200 border border-purple-300 rounded-2xl p-6 shadow-md hover:shadow-lg transition-transform hover:scale-[1.02] duration-300">
+              <h2 className="text-lg font-semibold text-purple-700 mb-1">
+                Total Sales
               </h2>
-              <p className="text-lg sm:text-xl font-bold text-gray-900">
+              <p className="text-3xl font-bold text-purple-900">{totalSales}</p>
+            </div>
+
+            {/* Total Logistic Cost */}
+            <div className="bg-gradient-to-br from-green-100 to-green-200 border border-green-300 rounded-2xl p-6 shadow-md hover:shadow-lg transition-transform hover:scale-[1.02] duration-300">
+              <h2 className="text-lg font-semibold text-green-700 mb-1">
+                Total Logistic Cost
+              </h2>
+              <p className="text-3xl font-bold text-green-900">
+                ₹ {totalLogisticsCost}
+              </p>
+            </div>
+
+            {/* Total Margin */}
+            <div className="bg-gradient-to-br from-yellow-100 to-yellow-200 border border-yellow-300 rounded-2xl p-6 shadow-md hover:shadow-lg transition-transform hover:scale-[1.02] duration-300">
+              <h2 className="text-lg font-semibold text-yellow-700 mb-1">
+                Total Margin
+              </h2>
+              <p className="text-3xl font-bold text-yellow-900">
                 ₹ {totalMargin}
               </p>
             </div>
           </div>
+
+          {/* === RIGHT SIDE: Chart Section === */}
+          <div className="w-full lg:w-full bg-white border border-gray-200 rounded-2xl p-6 shadow-lg">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-800">
+                {selectedChart === "Sales Executive Chart"
+                  ? "Sales Executive Performance"
+                  : "Vendor Performance"}
+              </h2>
+              <span className="text-sm text-gray-500">
+                Total Margin:{" "}
+                <strong className="text-gray-900">₹ {totalMargin}</strong>
+              </span>
+            </div>
+
+            <div className="mb-6">
+              {selectedChart === "Sales Executive Chart" ? (
+                <BarChartCom salesData={salesData} />
+              ) : (
+                <SalesReportBarChartSVendor pickups={filteredPickups} />
+              )}
+            </div>
+
+            <div className="text-right">
+              <p className="text-sm text-gray-600">
+                Data from{" "}
+                <span className="font-semibold">{from.format("DD MMM")}</span>{" "}
+                to{" "}
+                <span className="font-semibold">
+                  {to.format("DD MMM YYYY")}
+                </span>
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="overflow-auto border scrollbar-hide">
-          <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow overflow-hidden">
-            <thead className="bg-purple-600 text-white sticky top-0">
+
+        <div className="overflow-x-auto overflow-y-hidden border scrollbar-hide relative">
+          <table className="min-w-max table-auto bg-white border border-gray-200 rounded-lg shadow">
+            <thead className="bg-purple-600 text-white sticky top-0 z-30">
               <tr>
                 {[
                   "AWB Number",
@@ -480,12 +663,18 @@ function Accounts() {
                   "Payment Proof",
                   "Details",
                 ].map((head, i) => (
-                  <th key={i} className="py-3 px-4 border">
+                  <th
+                    key={i}
+                    className={`py-3 px-4 border ${
+                      i === 0 ? "sticky left-0 bg-purple-600 z-20" : ""
+                    }`}
+                  >
                     {head}
                   </th>
                 ))}
               </tr>
             </thead>
+
             <tbody>
               {filteredPickups.length > 0 ? (
                 [...filteredPickups]
@@ -499,7 +688,9 @@ function Accounts() {
                       key={pickup.id}
                       className={idx % 2 === 0 ? "bg-gray-50" : ""}
                     >
-                      <td className="py-3 px-4 border">{pickup.awbNumber}</td>
+                      <td className="py-3 px-4 border sticky left-0 bg-white z-10 min-w-[140px]">
+                        {pickup.awbNumber}
+                      </td>
                       <td className="py-3 px-4 border">
                         {pickup.consignorname}
                       </td>
@@ -507,7 +698,9 @@ function Accounts() {
                         {pickup.consignorphonenumber}
                       </td>
                       <td className="py-3 px-4 border">{pickup.destination}</td>
-                      <td className="py-3 px-4 border">{pickup.weightapx}</td>
+                      <td className="py-3 px-4 border">
+                        {pickup.internalWeight}
+                      </td>
                       <td className="py-3 px-4 border">{pickup.vendorName}</td>
                       <td className="py-3 px-4 border">{pickup.Source}</td>
                       <td className="py-3 px-4 border">{pickup.pickuparea}</td>
@@ -579,7 +772,7 @@ function Accounts() {
                         <img
                           className="w-8 cursor-pointer mt-3"
                           src="more-icon.svg"
-                          onClick={() => handleMoreIconClick(pickup)} // On click, show details in modal
+                          onClick={() => handleMoreIconClick(pickup)}
                         />
                       </td>
                     </tr>

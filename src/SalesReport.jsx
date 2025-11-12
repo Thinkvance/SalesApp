@@ -403,10 +403,10 @@ function SalesReport() {
         </div>
         <div className="flex flex-col gap-6 mb-6 sm:flex-row sm:flex-wrap sm:gap-10 sm:items-start">
           {/* Card Grid Section */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full sm:max-w-[500px]">
+          <div className="grid grid-cols-1 sm:grid-cols-2  w-full sm:max-w-[500px]">
             {/* LEFT COLUMN: stack the first 3 cards */}
             <div className="flex flex-col gap-4 ">
-              <div className="bg-purple-50 border border-purple-200 rounded-xl px-6 py-3  shadow-md transition-shadow duration-200 hover:shadow-2xl">
+              <div className="bg-purple-50 border w-fit border-purple-200 rounded-xl px-6 py-3  shadow-md transition-shadow duration-200 hover:shadow-2xl">
                 <h2 className="text-lg font-semibold text-purple-800 mb-2">
                   Total Sales
                 </h2>
@@ -414,7 +414,7 @@ function SalesReport() {
                   {totalSales}
                 </p>
               </div>
-              <div className="bg-green-50 border border-green-200 rounded-xl px-6 py-3 shadow-md transition-shadow duration-200 hover:shadow-2xl">
+              <div className="bg-green-50 border w-fit border-green-200 rounded-xl px-6 py-3 shadow-md transition-shadow duration-200 hover:shadow-2xl">
                 <h2 className="text-lg font-semibold text-green-800 mb-2">
                   Total Logistic Cost
                 </h2>
@@ -422,7 +422,7 @@ function SalesReport() {
                   {totalLogisticsCost}
                 </p>
               </div>
-              <div className="bg-blue-50 border border-blue-200 rounded-xl px-6 py-3 shadow-md transition-shadow duration-200 hover:shadow-2xl">
+              <div className="bg-blue-50 border w-fit border-blue-200 rounded-xl px-6 py-3 shadow-md transition-shadow duration-200 hover:shadow-2xl">
                 <h2 className="text-lg font-semibold text-blue-800 mb-2">
                   Discounts Applied
                 </h2>
@@ -534,9 +534,9 @@ function SalesReport() {
             ) : null}
           </div>
         </div>
-        <div className="overflow-auto border scrollbar-hide">
-          <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow overflow-hidden">
-            <thead className="bg-purple-600 text-white sticky top-0">
+        <div className="overflow-x-auto overflow-y-hidden border scrollbar-hide relative">
+          <table className="min-w-max table-auto bg-white border border-gray-200 rounded-lg shadow">
+            <thead className="bg-purple-600 text-white sticky top-0 z-30">
               <tr>
                 {[
                   "AWB Number",
@@ -556,12 +556,18 @@ function SalesReport() {
                   "Payment Proof",
                   "Details",
                 ].map((head, i) => (
-                  <th key={i} className="py-3 px-4 border">
+                  <th
+                    key={i}
+                    className={`py-3 px-4 border ${
+                      i === 0 ? "sticky left-0 bg-purple-600 z-20" : ""
+                    }`}
+                  >
                     {head}
                   </th>
                 ))}
               </tr>
             </thead>
+
             <tbody>
               {filteredPickups.length > 0 ? (
                 [...filteredPickups]
@@ -575,7 +581,9 @@ function SalesReport() {
                       key={pickup.id}
                       className={idx % 2 === 0 ? "bg-gray-50" : ""}
                     >
-                      <td className="py-3 px-4 border">{pickup.awbNumber}</td>
+                      <td className="py-3 px-4 border sticky left-0 bg-white z-10 min-w-[140px]">
+                        {pickup.awbNumber}
+                      </td>
                       <td className="py-3 px-4 border">
                         {pickup.consignorname}
                       </td>
@@ -583,7 +591,9 @@ function SalesReport() {
                         {pickup.consignorphonenumber}
                       </td>
                       <td className="py-3 px-4 border">{pickup.destination}</td>
-                      <td className="py-3 px-4 border">{pickup.weightapx}</td>
+                      <td className="py-3 px-4 border">
+                        {pickup.actualWeight}
+                      </td>
                       <td className="py-3 px-4 border">{pickup.vendorName}</td>
                       <td className="py-3 px-4 border">{pickup.Source}</td>
                       <td className="py-3 px-4 border">{pickup.pickuparea}</td>
@@ -624,7 +634,7 @@ function SalesReport() {
                         <img
                           className="w-8 cursor-pointer mt-3"
                           src="more-icon.svg"
-                          onClick={() => handleMoreIconClick(pickup)} // On click, show details in modal
+                          onClick={() => handleMoreIconClick(pickup)}
                         />
                       </td>
                     </tr>
