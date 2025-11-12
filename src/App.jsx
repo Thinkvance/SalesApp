@@ -38,17 +38,27 @@ import Accounts from "./Accounts";
 import ReviewManagement from "./ReviewManagement";
 import VersionUpdateModal from "./VersionUpdateModal"; // Version modal
 import appVersion from "./functions/appVersion";
+import EscalationDashboard from "./EscalationDashboard"; // ✅ import
+import ReportForm from "./ReportForm";
+
+function PrivilegedOnly({ children }) {
+  const stored = JSON.parse(localStorage.getItem("LoginCredentials") || "{}");
+  const role = String(stored?.role || "").toLowerCase();
+  // ✅ Allow Manager and Sales Admin
+  const allowed = ["manager", "sales admin"];
+  return allowed.includes(role) ? children : <Navigate to="/" replace />;
+}
 
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const CURRENT_APP_VERSION = appVersion.appversion; // ✅ Update this on each deploy
+  const CURRENT_APP_VERSION = appVersion.appversion;
 
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [updateMessage, setUpdateMessage] = useState("");
 
-  console.log("Build: 24-09-2025 !!!!!!!!!");
+  console.log("Build: 12-11-2025!");
 
   // ✅ Notifications
   useEffect(() => {
@@ -77,8 +87,8 @@ function App() {
         const querySnapshot = await getDocs(q);
         let foundUser = false;
 
-        for (const doc of querySnapshot.docs) {
-          const result = doc.data();
+        for (const docSnap of querySnapshot.docs) {
+          const result = docSnap.data();
           if (result[user.email]) {
             const dataset = {
               name: result[user.email][0],
@@ -115,7 +125,6 @@ function App() {
       if (docSnap.exists()) {
         const data = docSnap.data();
 
-        // 🔐 Safe field checks
         const version = data?.version;
         const forceUpdate = data?.forceUpdate;
         const message = data?.message;
@@ -137,7 +146,7 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // Optional: Timeout fallback if Firestore doesn't respond
+  // Optional: Timeout fallback
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (!showUpdateModal) {
@@ -145,18 +154,17 @@ function App() {
       }
     }, 5000);
     return () => clearTimeout(timeout);
-  }, []);
+  }, [showUpdateModal]);
 
   if (loading) return <div>Loading...</div>;
 
-  // ✅ Refresh with cache busting
+  // ✅ Refresh handler for updates
   const handleRefresh = () => {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.getRegistrations().then((registrations) => {
         for (const registration of registrations) {
           registration.unregister();
         }
-        // Full reload with query param bust
         window.location.href = `${window.location.origin}?v=${Date.now()}`;
       });
     } else {
@@ -244,6 +252,8 @@ function App() {
               path="/My-Shipments"
               element={user ? <Myshipments /> : <Navigate to="/signin" />}
             />
+            {/* Report form public route */}
+            <Route path="/ReportForm" element={<ReportForm />} />
             <Route
               path="/review-management"
               element={user ? <ReviewManagement /> : <Navigate to="/signin" />}
@@ -257,6 +267,28 @@ function App() {
             <Route
               path="/signin"
               element={!user ? <SignIn /> : <Navigate to="/Pickup-Booking" />}
+            />
+
+            {/* ✅ Escalation Dashboard for Manager and Sales Admin */}
+            <Route
+              path="/escalations"
+              element={
+                <PrivilegedOnly>
+                  <EscalationDashboard />
+                </PrivilegedOnly>
+              }
+            />
+
+            {/* 404 fallback */}
+            <Route
+              path="*"
+              element={
+                user ? (
+                  <Navigate to="/" replace />
+                ) : (
+                  <Navigate to="/signin" replace />
+                )
+              }
             />
           </Routes>
         </div>

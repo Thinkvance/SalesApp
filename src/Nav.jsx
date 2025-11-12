@@ -1,66 +1,94 @@
+// Nav.jsx
 import { Avatar, Menu, MenuItem } from "@mui/material";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { auth } from "./firebase";
+import { auth, db } from "./firebase";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import utility from "./Utility/utilityFunctions";
 import ProfileModal from "./components/ProfileModal";
+
 function Nav() {
   const location = useLocation();
   const [user, setUser] = useState({});
-  const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile sidebar state
-  const [pickupAnchorEl, setPickupAnchorEl] = useState(null); // Pickup dropdown state
-  const [rateAnchorEl, setRateAnchorEl] = useState(null); // Rate dropdown state
-  const [reportsAnchorEl, setReportsAnchorEl] = useState(null); // Rate dropdown state
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [pickupAnchorEl, setPickupAnchorEl] = useState(null);
+  const [rateAnchorEl, setRateAnchorEl] = useState(null);
+  const [reportsAnchorEl, setReportsAnchorEl] = useState(null);
   const [RoleBasedScreens, setRoleBasedScreens] = useState({});
   const [Open, setOpen] = useState(false);
+
+  // 🔹 Manager + Sales Admin pending count for Escalations
+  const [pendingCount, setPendingCount] = useState(0);
+
   function roleFormate(role) {
-    const formattedRole = role
-      ?.split(" ") // Split the string into words
-      ?.map(
-        (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-      ) // Capitalize the first letter of each word
-      ?.join(" "); // Join the words back into a single string
-    return formattedRole; // Output: "Sales Admin"
+    return role
+      ?.split(" ")
+      ?.map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      ?.join(" ");
   }
+
   useEffect(() => {
-    setUser(JSON.parse(localStorage.getItem("LoginCredentials")));
+    const u = JSON.parse(localStorage.getItem("LoginCredentials"));
+    setUser(u);
     setRoleBasedScreens(utility.rolesPermissions());
   }, []);
 
-  const handlePickupMenuOpen = (event) =>
-    setPickupAnchorEl(event.currentTarget);
-  const handlePickupMenuClose = () => setPickupAnchorEl(null);
+  // normalize role checks
+  const roleLower = (user?.role || "").toLowerCase();
+  const shouldShowEscalationsNav = roleLower === "manager" || roleLower === "sales admin";
 
+  // 🔹 Subscribe to pending escalations (Manager OR Sales Admin)
+  useEffect(() => {
+    if (!shouldShowEscalationsNav) return;
+    const qRef = query(
+      collection(db, "ecalatoins"),
+      where("escalationStatus", "==", "pending")
+    );
+    const unsub = onSnapshot(
+      qRef,
+      (snap) => setPendingCount(snap.size || 0),
+      () => setPendingCount(0)
+    );
+    return () => unsub();
+  }, [shouldShowEscalationsNav]);
+
+  const handlePickupMenuOpen = (event) => setPickupAnchorEl(event.currentTarget);
+  const handlePickupMenuClose = () => setPickupAnchorEl(null);
   const handleRateMenuOpen = (event) => setRateAnchorEl(event.currentTarget);
   const handleRateMenuClose = () => setRateAnchorEl(null);
-
-  const handleReportsMenuOpen = (event) =>
-    setReportsAnchorEl(event.currentTarget);
+  const handleReportsMenuOpen = (event) => setReportsAnchorEl(event.currentTarget);
   const handleReportsMenuClose = () => setReportsAnchorEl(null);
+
+  const isActive = (path) =>
+    location.pathname.toLowerCase().startsWith(path.toLowerCase());
 
   return (
     <nav className="sticky top-0 z-40 flex items-center justify-between bg-purple-400 p-2 shadow-md">
-      {/* Desktop Navigation */}
-      <div className="flex  container mx-auto justify-between">
+      <div className="flex container mx-auto justify-between">
+        {/* Left section */}
         <div className="flex items-center gap-4">
           <Link to="/">
             <img src="/logo.png" className="h-10" alt="Logo" />
           </Link>
+
+          {/* Mobile toggle */}
           <button
             className="lg:hidden block text-white"
             onClick={() => setSidebarOpen(true)}
           >
             <MenuIcon fontSize="large" />
           </button>
-          {/* Desktop Navigation Links */}
+
+          {/* Desktop Nav */}
           <ul className="hidden lg:flex space-x-8 items-center">
+            {/* Pickup Management */}
             <li>
               <button
                 onClick={handlePickupMenuOpen}
-                className="text-white flex items-center gap-1"
+                className="text-white flex items-center gap-1 font-medium"
               >
                 Pickup Management
                 <ArrowDropDownIcon />
@@ -70,24 +98,24 @@ function Nav() {
                 open={Boolean(pickupAnchorEl)}
                 onClose={handlePickupMenuClose}
               >
-                {RoleBasedScreens?.PickupManagement?.map((d) => {
-                  return (
-                    <MenuItem
-                      key={d}
-                      onClick={handlePickupMenuClose}
-                      component={Link}
-                      to={`/${d}`}
-                    >
-                      {utility.formatRouteName(d)}
-                    </MenuItem>
-                  );
-                })}
+                {RoleBasedScreens?.PickupManagement?.map((d) => (
+                  <MenuItem
+                    key={d}
+                    onClick={handlePickupMenuClose}
+                    component={Link}
+                    to={`/${d}`}
+                  >
+                    {utility.formatRouteName(d)}
+                  </MenuItem>
+                ))}
               </Menu>
             </li>
+
+            {/* Rate Management */}
             <li>
               <button
                 onClick={handleRateMenuOpen}
-                className="text-white flex items-center gap-1"
+                className="text-white flex items-center gap-1 font-medium"
               >
                 Rate Management
                 <ArrowDropDownIcon />
@@ -99,27 +127,24 @@ function Nav() {
               >
                 {RoleBasedScreens?.RateManagement?.map((d) => (
                   <MenuItem
-                    onClick={handlePickupMenuClose}
+                    key={d}
+                    onClick={handleRateMenuClose}
                     component={Link}
                     to={`/${d}`}
-                    className={`${
-                      location.pathname === `/${d}`
-                        ? "text-purple-900"
-                        : "text-gray-700"
-                    }`}
+                    className={`${isActive(`/${d}`) ? "text-purple-900" : "text-gray-700"}`}
                   >
                     {utility.formatRouteName(d)}
                   </MenuItem>
                 ))}
               </Menu>
             </li>
-            {user?.role == "Manager" ||
-            user?.role == "sales admin" ||
-            user?.role == "sales associate" ? (
+
+            {/* Reports Section */}
+            {["manager", "sales admin", "sales associate"].includes(roleLower) && (
               <li>
                 <button
                   onClick={handleReportsMenuOpen}
-                  className="text-white flex items-center gap-1"
+                  className="text-white flex items-center gap-1 font-medium"
                 >
                   Reports
                   <ArrowDropDownIcon />
@@ -131,50 +156,61 @@ function Nav() {
                 >
                   {RoleBasedScreens?.Reports?.map((d) => (
                     <MenuItem
-                      onClick={handlePickupMenuClose}
+                      key={d}
+                      onClick={handleReportsMenuClose}
                       component={Link}
                       to={`/${d}`}
-                      className={`${
-                        location.pathname === `/${d}`
-                          ? "text-purple-900"
-                          : "text-gray-700"
-                      }`}
+                      className={`${isActive(`/${d}`) ? "text-purple-900" : "text-gray-700"}`}
                     >
                       {utility.formatRouteName(d)}
                     </MenuItem>
                   ))}
                 </Menu>
               </li>
-            ) : (
-              ""
             )}
-            <li className="flex items-center gap-2">
-              <Link to="/My-Shipments" className="text-white">
-                My shipments
+
+            {/* My Shipments */}
+            <li>
+              <Link
+                to="/My-Shipments"
+                className={`text-white font-medium hover:text-gray-200 transition-all ${
+                  isActive("/My-Shipments") ? "underline" : ""
+                }`}
+              >
+                My Shipments
               </Link>
             </li>
+
+            {/* 🔹 Escalations (Manager OR Sales Admin) */}
+            {shouldShowEscalationsNav && (
+              <li>
+                <Link
+                  to="/escalations"
+                  className={`text-white font-medium hover:text-gray-200 transition-all ${
+                    isActive("/escalations") ? "underline" : ""
+                  }`}
+                >
+                  Escalations
+                  {pendingCount > 0 && (
+                    <span className="ml-2 inline-flex items-center justify-center rounded-full bg-white/30 text-white text-[11px] font-semibold px-2 py-0.5">
+                      {pendingCount}
+                    </span>
+                  )}
+                </Link>
+              </li>
+            )}
           </ul>
         </div>
-        {/* Right Section */}
-        <div className="flex items-center gap-6 bg-purple-400  rounded-lg">
+
+        {/* Right section */}
+        <div className="flex items-center gap-6 bg-purple-400 rounded-lg">
           <Avatar
             onClick={() => setOpen(true)}
             className="bg-purple-600 cursor-pointer text-white p-3 text-lg font-semibold"
           >
             {user?.name?.[0]?.toUpperCase() || "?"}
           </Avatar>
-          {/* <div className="text-gray-900 hidden sm:block">
-            {user ? (
-              <>
-                <p className="font-semibold text-xl">{user.email}</p>
-                <p className="text-md text-gray-800 font-medium mt-1">
-                  {roleFormate(user?.role)}
-                </p>{" "}
-              </>
-            ) : (
-              <p className="text-gray-500">Loading user info...</p>
-            )}
-          </div> */}
+
           <button
             onClick={() => {
               localStorage.removeItem("LoginCredentials");
@@ -186,102 +222,111 @@ function Nav() {
           </button>
         </div>
 
-        {/* Sidebar for Mobile */}
+        {/* Mobile Sidebar */}
         <div
           className={`fixed top-0 left-0 h-full w-64 bg-white z-20 transform ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           } transition-transform duration-300 ease-in-out shadow-lg`}
         >
-          {/* Header */}
           <div className="flex justify-between items-center p-4 bg-purple-500">
             <h2 className="text-white font-bold text-lg">Menu</h2>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="text-white focus:outline-none hover:text-gray-200"
-            >
+            <button onClick={() => setSidebarOpen(false)} className="text-white hover:text-gray-200">
               <CloseIcon />
             </button>
           </div>
-          {/* Menu Items */}
+
           <ul className="flex flex-col p-4 space-y-2">
             {RoleBasedScreens?.PickupManagement?.map((d) => (
-              <li>
+              <li key={d}>
                 <Link
                   to={`/${d}`}
-                  className={`py-2 px-4 text-gray-700 rounded-lg transition-colors duration-200 block ${
-                    location.pathname === `/${d}`
-                      ? "bg-purple-100 text-purple-800"
-                      : ""
-                  } hover:bg-purple-200`}
+                  className={`py-2 px-4 text-gray-700 rounded-lg block ${
+                    isActive(`/${d}`) ? "bg-purple-100 text-purple-800" : "hover:bg-purple-200"
+                  }`}
                   onClick={() => setSidebarOpen(false)}
                 >
                   {utility.formatRouteName(d)}
                 </Link>
               </li>
             ))}
-            {RoleBasedScreens?.RateManagement?.map((d) => (
-              <li>
-                <Link
-                  to={`/${d}`}
-                  className={`py-2 px-4 text-gray-700 rounded-lg transition-colors duration-200 block ${
-                    location.pathname === `/${d}`
-                      ? "bg-purple-100 text-purple-800"
-                      : ""
-                  } hover:bg-purple-200`}
-                  onClick={() => setSidebarOpen(false)}
-                >
-                  {utility.formatRouteName(d)}
-                </Link>
-              </li>
-            ))}
-            {user?.role == "Manager" ||
-            user?.role == "sales admin" ||
-            user?.role == "sales associate"
-              ? RoleBasedScreens?.Reports?.map((d) => (
-                  <li>
-                    <Link
-                      to={`/${d}`}
-                      className={`py-2 px-4 text-gray-700 rounded-lg transition-colors duration-200 block ${
-                        location.pathname === `/${d}`
-                          ? "bg-purple-100 text-purple-800"
-                          : ""
-                      } hover:bg-purple-200`}
-                      onClick={() => setSidebarOpen(false)}
-                    >
-                      {utility.formatRouteName(d)}
-                    </Link>
-                  </li>
-                ))
-              : ""}
 
-            <li className="flex items-center gap-2">
+            {RoleBasedScreens?.RateManagement?.map((d) => (
+              <li key={d}>
+                <Link
+                  to={`/${d}`}
+                  className={`py-2 px-4 text-gray-700 rounded-lg block ${
+                    isActive(`/${d}`) ? "bg-purple-100 text-purple-800" : "hover:bg-purple-200"
+                  }`}
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  {utility.formatRouteName(d)}
+                </Link>
+              </li>
+            ))}
+
+            {["manager", "sales admin", "sales associate"].includes(roleLower) &&
+              RoleBasedScreens?.Reports?.map((d) => (
+                <li key={d}>
+                  <Link
+                    to={`/${d}`}
+                    className={`py-2 px-4 text-gray-700 rounded-lg block ${
+                      isActive(`/${d}`) ? "bg-purple-100 text-purple-800" : "hover:bg-purple-200"
+                    }`}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    {utility.formatRouteName(d)}
+                  </Link>
+                </li>
+              ))}
+
+            <li>
               <Link
                 to="/My-Shipments"
-                className={`py-2 px-4 text-gray-700 rounded-lg transition-colors duration-200 block ${
-                  location.pathname === `/My-Shipments`
-                    ? "bg-purple-100 text-purple-800"
-                    : ""
-                } hover:bg-purple-200`}
+                className={`py-2 px-4 text-gray-700 rounded-lg block ${
+                  isActive("/My-Shipments") ? "bg-purple-100 text-purple-800" : "hover:bg-purple-200"
+                }`}
+                onClick={() => setSidebarOpen(false)}
               >
-                My shipments
+                My Shipments
               </Link>
             </li>
+
+            {/* 🔹 Escalations (Manager OR Sales Admin) */}
+            {shouldShowEscalationsNav && (
+              <li>
+                <Link
+                  to="/escalations"
+                  className={`py-2 px-4 text-gray-700 rounded-lg flex items-center justify-between ${
+                    isActive("/escalations") ? "bg-purple-100 text-purple-800" : "hover:bg-purple-200"
+                  }`}
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <span>Escalations</span>
+                  {pendingCount > 0 && (
+                    <span className="ml-2 inline-flex items-center justify-center rounded-full bg-purple-600 text-white text-[11px] font-semibold px-2 py-0.5">
+                      {pendingCount}
+                    </span>
+                  )}
+                </Link>
+              </li>
+            )}
           </ul>
         </div>
-        {/* Overlay */}
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 bg-black opacity-50 z-10"
-            onClick={() => setSidebarOpen(false)}
-          ></div>
-        )}
+
+        {sidebarOpen && <div className="fixed inset-0 bg-black opacity-50 z-10" onClick={() => setSidebarOpen(false)} />}
       </div>
+
       <ProfileModal
         open={Open}
         setOpen={setOpen}
-        user={{ name: "Nithish", email: "Nithish@gmail.com", role: "Manager" }}
+        user={{
+          name: user?.name || "User",
+          email: user?.email || "user@example.com",
+          role: roleFormate(user?.role) || "Role",
+        }}
       />
     </nav>
   );
 }
+
 export default Nav;
