@@ -58,7 +58,7 @@ function App() {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [updateMessage, setUpdateMessage] = useState("");
 
-  console.log("Build: 24-09-2025 !!!!!!!!!");
+  console.log("Build: 12-11-2025 !!!!!!!!!");
 
   // ✅ Notifications
   useEffect(() => {
@@ -204,7 +204,9 @@ function App() {
             />
             <Route
               path="/addExtraCharges"
-              element={user ? <ExtraChargesModule /> : <Navigate to="/signin" />}
+              element={
+                user ? <ExtraChargesModule /> : <Navigate to="/signin" />
+              }
             />
             <Route
               path="/Pickups"
@@ -228,11 +230,15 @@ function App() {
             />
             <Route
               path="/logistics-Dashboard"
-              element={user ? <LogisticsDashboard /> : <Navigate to="/signin" />}
+              element={
+                user ? <LogisticsDashboard /> : <Navigate to="/signin" />
+              }
             />
             <Route
               path="/Payment-confirmation-form/:awbnumber"
-              element={user ? <PaymentConfirmationForm /> : <Navigate to="/signin" />}
+              element={
+                user ? <PaymentConfirmationForm /> : <Navigate to="/signin" />
+              }
             />
             <Route
               path="/Sales-Incentive"
@@ -254,7 +260,9 @@ function App() {
             />
             <Route
               path="/PickuPersonIncentive-Report"
-              element={user ? <PickupPersonIncentive /> : <Navigate to="/signin" />}
+              element={
+                user ? <PickupPersonIncentive /> : <Navigate to="/signin" />
+              }
             />
             <Route
               path="/signin"
@@ -275,7 +283,11 @@ function App() {
             <Route
               path="*"
               element={
-                user ? <Navigate to="/" replace /> : <Navigate to="/signin" replace />
+                user ? (
+                  <Navigate to="/" replace />
+                ) : (
+                  <Navigate to="/signin" replace />
+                )
               }
             />
           </Routes>
