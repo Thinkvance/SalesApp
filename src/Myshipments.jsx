@@ -10,6 +10,7 @@ import {
   doc,
   updateDoc,
   serverTimestamp,
+  getDocs,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import axios from "axios";
@@ -33,53 +34,124 @@ export default function Myshipments() {
 
   // -------- Escalation helpers --------
   const ORIGIN = typeof window !== "undefined" ? window.location.origin : "";
-  // Adjust these routes to match your app’s paths
   const ESCALATION_ADD_URL = (awb, escalationId) =>
     `${ORIGIN}/EscalationSystem?mode=add&awb=${encodeURIComponent(awb)}${
       escalationId ? `&escalationId=${encodeURIComponent(escalationId)}` : ""
     }`;
 
-  const ESCALATION_VIEW_URL = (awb, escalationId) =>
-    `${ORIGIN}/EscalationSystem?mode=view&awb=${encodeURIComponent(awb)}${
-      escalationId ? `&escalationId=${encodeURIComponent(escalationId)}` : ""
-    }`;
-
-  const ESCALATION_CLOSE_URL = (awb, escalationId) =>
-    `${ORIGIN}/EscalationSystem?mode=close&awb=${encodeURIComponent(awb)}${
-      escalationId ? `&escalationId=${encodeURIComponent(escalationId)}` : ""
-    }`;
-
   const openInNewTab = (url) => {
-    // keep noopener/noreferrer if you want; closing still works in modern browsers
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const handleAddReport = (item) => {
-    openInNewTab(
-      `/ReportForm?mode=add&awb=${encodeURIComponent(item.awbNumber)}`
-    );
+    openInNewTab(`/ReportForm?mode=add&awb=${encodeURIComponent(item.awbNumber)}`);
   };
 
-  const handleViewReport = (item) => {
-    openInNewTab(ESCALATION_VIEW_URL(item.awbNumber, item.escalationId));
-  };
+  // -------- View Escalations Modal (for any role) --------
+  const [escModalOpen, setEscModalOpen] = useState(false);
+  const [escRows, setEscRows] = useState([]);
+  const [escLoading, setEscLoading] = useState(false);
+  const [escError, setEscError] = useState("");
+  const [escAwb, setEscAwb] = useState(null);
 
-  const handleCloseEscalation = async (item) => {
-    if (role !== "Manager") return; // UI guard; enforce with Firestore rules as well.
+  // Lightbox for modal images
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImages, setLightboxImages] = useState([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  const openLightbox = (imgs, idx) => {
+    setLightboxImages(imgs);
+    setLightboxIndex(idx || 0);
+    setLightboxOpen(true);
+  };
+  const closeLightbox = () => setLightboxOpen(false);
+
+  const formatTS = (ts) => {
     try {
-      const ref = doc(db, DB.db_collection, item.id);
-      await updateDoc(ref, {
-        escalationStatus: "closed",
-        escalationClosedAt: serverTimestamp(),
-        escalationClosedBy: username || "",
-      });
-      // Open closure report form in a NEW TAB after marking closed
-      openInNewTab(ESCALATION_CLOSE_URL(item.awbNumber, item.escalationId));
-    } catch (err) {
-      console.error("Failed to close escalation:", err);
-      alert("Failed to close escalation. Please try again.");
+      const d = ts?.toDate?.() || null;
+      if (!d) return "-";
+      return d.toLocaleString();
+    } catch {
+      return "-";
     }
   };
+
+  const Field = ({ label, value, multiline }) => (
+    <div className="text-sm">
+      <div className="flex items-start gap-1">
+        <span className="font-semibold text-purple-700">{label}</span>
+        <span className="text-black">:</span>
+        <span className={`text-black ${multiline ? "whitespace-pre-wrap break-words" : ""}`}>
+          {value || "-"}
+        </span>
+      </div>
+    </div>
+  );
+
+  // ✅ FIXED: No mixed where+orderBy; try numeric & string AWB; sort client-side
+  const handleViewEscalation = async (item) => {
+    setEscError("");
+    setEscRows([]);
+    setEscLoading(true);
+    setEscModalOpen(true);
+    setEscAwb(item?.awbNumber ?? "");
+
+    try {
+      const awb = item?.awbNumber;
+      const awbNum = Number(awb);
+      const isNum = !Number.isNaN(awbNum);
+
+      let docsNum = [];
+      let docsStr = [];
+
+      // Query by number (if numeric)
+      try {
+        if (isNum) {
+          const qNum = query(collection(db, "ecalatoins"), where("awbNumber", "==", awbNum));
+          const snapNum = await getDocs(qNum);
+          docsNum = snapNum.docs;
+        }
+      } catch (e) {
+        console.warn("Numeric AWB query failed (continuing):", e);
+      }
+
+      // Query by string
+      try {
+        const qStr = query(collection(db, "ecalatoins"), where("awbNumber", "==", String(awb)));
+        const snapStr = await getDocs(qStr);
+        docsStr = snapStr.docs;
+      } catch (e) {
+        console.warn("String AWB query failed (continuing):", e);
+      }
+
+      // Merge unique & sort by createdAt (oldest first)
+      const mergedMap = new Map();
+      [...docsNum, ...docsStr].forEach((d) => mergedMap.set(d.id, { id: d.id, ...d.data() }));
+      const merged = Array.from(mergedMap.values()).sort((a, b) => {
+        const ta = a.escalationCreatedAt?.toDate?.() || new Date(0);
+        const tb = b.escalationCreatedAt?.toDate?.() || new Date(0);
+        return ta - tb;
+      });
+
+      if (merged.length === 0) {
+        setEscError("No escalations found for this AWB.");
+      }
+      setEscRows(merged);
+    } catch (e) {
+      console.error(e);
+      // Gentle fallback: don't block modal, just message
+      setEscError("No escalations found for this AWB.");
+    } finally {
+      setEscLoading(false);
+    }
+  };
+
+  const closeEscModal = () => {
+    setEscModalOpen(false);
+    setEscRows([]);
+    setEscAwb(null);
+  };
+
   // -------- End Escalation helpers --------
 
   async function Sharetrackinglink({
@@ -95,7 +167,7 @@ export default function Myshipments() {
 
     try {
       if (selectedRecipient[awb] === "consignee") {
-        // no-op here as per your earlier constraint; keep the guard if needed
+        // no-op if needed
       }
 
       const estimatedDelivery = utilityFunctions.getEstimatedDate(
@@ -111,12 +183,7 @@ export default function Myshipments() {
               language: "en",
               templateData: {
                 body: {
-                  placeholders: [
-                    name,
-                    currentStatus_temp,
-                    destination,
-                    estimatedDelivery,
-                  ],
+                  placeholders: [name, currentStatus_temp, destination, estimatedDelivery],
                 },
                 buttons: [
                   {
@@ -133,17 +200,13 @@ export default function Myshipments() {
         ],
       };
 
-      await axios.post(
-        "https://public.doubletick.io/whatsapp/message/template",
-        payload,
-        {
-          headers: {
-            Authorization: "key_z6hIuLo8GC",
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      await axios.post("https://public.doubletick.io/whatsapp/message/template", payload, {
+        headers: {
+          Authorization: "key_z6hIuLo8GC",
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+      });
     } catch (error) {
       console.log(error);
     }
@@ -158,14 +221,11 @@ export default function Myshipments() {
 
   useEffect(() => {
     if (!role) return;
-    let q;
+    let qy;
     if (role === "Manager" || role === "sales admin") {
-      q = query(
-        collection(db, DB.db_collection),
-        orderBy("pickupDatetime", "desc")
-      );
+      qy = query(collection(db, DB.db_collection), orderBy("pickupDatetime", "desc"));
     } else {
-      q = query(
+      qy = query(
         collection(db, DB.db_collection),
         where("pickupBookedBy", "==", username),
         orderBy("pickupDatetime", "desc"),
@@ -173,7 +233,7 @@ export default function Myshipments() {
       );
     }
 
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const unsubscribe = onSnapshot(qy, (querySnapshot) => {
       const pickupData = [];
       querySnapshot.forEach((docSnap) => {
         pickupData.push({ id: docSnap.id, ...docSnap.data() });
@@ -210,22 +270,14 @@ export default function Myshipments() {
       pending: "bg-yellow-100 text-yellow-800",
       closed: "bg-green-100 text-green-800",
     };
-    return (
-      <span
-        className={`px-2 py-1 rounded text-[11px] font-medium ${map[type]}`}
-      >
-        {children}
-      </span>
-    );
+    return <span className={`px-2 py-1 rounded text-[11px] font-medium ${map[type]}`}>{children}</span>;
   };
 
   return (
     <>
       <Nav />
       <div className="container mx-auto p-6">
-        <h2 className="text-3xl font-bold text-purple-700 mb-6">
-          My Shipments
-        </h2>
+        <h2 className="text-3xl font-bold text-purple-700 mb-6">My Shipments</h2>
         <div className="mb-6 flex flex-wrap gap-10">
           <input
             type="text"
@@ -242,6 +294,7 @@ export default function Myshipments() {
             className="border border-gray-300 rounded py-2 px-4 w-[230px] mb-2 focus:outline-none focus:ring-2 focus:ring-purple-600"
           />
         </div>
+
         <div className="overflow-x-auto scroll-container border rounded-lg shadow">
           <table className="min-w-full bg-white text-sm">
             <thead className="bg-purple-700 text-white text-left">
@@ -261,10 +314,7 @@ export default function Myshipments() {
                   "Details",
                   "Escalation",
                 ].map((header) => (
-                  <th
-                    key={header}
-                    className="py-3 px-4 whitespace-nowrap font-medium border"
-                  >
+                  <th key={header} className="py-3 px-4 whitespace-nowrap font-medium border">
                     {header}
                   </th>
                 ))}
@@ -273,41 +323,25 @@ export default function Myshipments() {
             <tbody>
               {filteredPickups.length > 0
                 ? filteredPickups.map((item, i) => {
-                    const escStatus = (
-                      item.escalationStatus || "none"
-                    ).toLowerCase(); // "none" | "pending" | "closed"
+                    const escStatus = (item.escalationStatus || "none").toLowerCase(); // "none" | "pending" | "closed"
                     return (
-                      <tr
-                        key={item.awbNumber}
-                        className="border-b hover:bg-gray-50 transition"
-                      >
+                      <tr key={item.awbNumber} className="border-b hover:bg-gray-50 transition">
                         <td className="px-4  py-2">{item.awbNumber}</td>
-                        <td className="px-4 border py-2">
-                          {item.consignorname}
-                        </td>
-                        <td className="px-4 border py-2">
-                          {item.consignorphonenumber}
-                        </td>
-                        <td className="px-4 border py-2">
-                          {item.consigneephonenumber}
-                        </td>
+                        <td className="px-4 border py-2">{item.consignorname}</td>
+                        <td className="px-4 border py-2">{item.consignorphonenumber}</td>
+                        <td className="px-4 border py-2">{item.consigneephonenumber}</td>
                         <td className="px-4 border py-2">{item.vendorName}</td>
-                        <td className="px-4 border py-2 whitespace-nowrap">
-                          {item.status}
-                        </td>
+                        <td className="px-4 border py-2 whitespace-nowrap">{item.status}</td>
 
                         <td className="px-4 border  py-2">
                           <div className="flex gap-2">
                             {["consignor", "consignee"].map((type) => {
-                              const isSelected =
-                                selectedRecipient[item.awbNumber] === type;
+                              const isSelected = selectedRecipient[item.awbNumber] === type;
                               return (
                                 <label
                                   key={type}
                                   className={`px-3 py-1 rounded-md border cursor-pointer text-xs font-medium ${
-                                    isSelected
-                                      ? "bg-purple-700 text-white"
-                                      : "bg-gray-100 text-gray-700"
+                                    isSelected ? "bg-purple-700 text-white" : "bg-gray-100 text-gray-700"
                                   }`}
                                 >
                                   <input
@@ -335,14 +369,12 @@ export default function Myshipments() {
                             <button
                               onClick={async () => {
                                 const recipientPhone =
-                                  selectedRecipient[item.awbNumber] ===
-                                  "consignor"
+                                  selectedRecipient[item.awbNumber] === "consignor"
                                     ? item.consignorphonenumber
                                     : item.consigneephonenumber;
 
                                 const recipientname =
-                                  selectedRecipient[item.awbNumber] ===
-                                  "consignor"
+                                  selectedRecipient[item.awbNumber] === "consignor"
                                     ? item.consignorname
                                     : item.consigneename;
 
@@ -353,16 +385,11 @@ export default function Myshipments() {
                                     mode: item.service,
                                     destination: item.destination,
                                     phone: recipientPhone,
-                                    currentStatus:
-                                      item?.currentStatus?.toLowerCase(),
-                                    packageConnectedDataTime:
-                                      item.packageConnectedDataTime,
+                                    currentStatus: item?.currentStatus?.toLowerCase(),
+                                    packageConnectedDataTime: item.packageConnectedDataTime,
                                   });
                                 } catch (err) {
-                                  console.error(
-                                    "Error sharing tracking link:",
-                                    err
-                                  );
+                                  console.error("Error sharing tracking link:", err);
                                 }
                               }}
                               className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-1.5 rounded-md text-xs font-semibold flex items-center justify-center gap-1"
@@ -370,20 +397,14 @@ export default function Myshipments() {
                             >
                               {loading ? (
                                 <div className="w-4 h-4">
-                                  <Lottie
-                                    animationData={loadingAnimation}
-                                    loop
-                                    autoplay
-                                  />
+                                  <Lottie animationData={loadingAnimation} loop autoplay />
                                 </div>
                               ) : (
                                 "Share"
                               )}
                             </button>
                           ) : (
-                            <span className="text-gray-400 text-xs">
-                              Select first
-                            </span>
+                            <span className="text-gray-400 text-xs">Select first</span>
                           )}
                         </td>
 
@@ -391,9 +412,7 @@ export default function Myshipments() {
                           {item.currentStatus}
                         </td>
                         <td className="text-[12px] px-4 py-2 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
-                          {utilityFunctions.formateFirebaseTimestamp(
-                            item.lastStatusUpdated
-                          )}
+                          {utilityFunctions.formateFirebaseTimestamp(item.lastStatusUpdated)}
                         </td>
 
                         <td className="px-4 py-2  border text-center">
@@ -418,28 +437,28 @@ export default function Myshipments() {
                         {/* -------- Escalation Column -------- */}
                         <td className="px-4 py-2 border text-center">
                           {escStatus === "none" ? (
-                            <button
-                              onClick={() => handleAddReport(item)}
-                              className="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-md text-xs font-semibold transition-colors duration-200"
-                              title="Add escalation report"
-                            >
-                              Escalate
-                            </button>
-                          ) : escStatus === "pending" ? (
                             <div className="flex items-center justify-center gap-2">
-                              <Pill type="pending">Pending</Pill>
-                              {role === "Manager" && (
-                                <button
-                                  onClick={() => handleCloseEscalation(item)}
-                                  className="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-md text-xs font-semibold transition-colors duration-200"
-                                  title="Close escalation (Manager only)"
-                                >
-                                  Close
-                                </button>
-                              )}
+                              <button
+                                onClick={() => handleAddReport(item)}
+                                className="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-md text-xs font-semibold transition-colors duration-200"
+                                title="Add escalation report"
+                              >
+                                Escalate
+                              </button>
                             </div>
                           ) : (
-                            <Pill type="closed">Closed</Pill>
+                            <div className="flex items-center justify-center gap-2">
+                              <Pill type={escStatus === "closed" ? "closed" : "pending"}>
+                                {escStatus === "closed" ? "Closed" : "Pending"}
+                              </Pill>
+                              <button
+                                onClick={() => handleViewEscalation(item)}
+                                className="bg-slate-800 hover:bg-black text-white px-3 py-1.5 rounded-md text-xs font-semibold transition-colors duration-200"
+                                title="View submitted escalation(s)"
+                              >
+                                View
+                              </button>
+                            </div>
                           )}
                         </td>
                         {/* -------- End Escalation Column -------- */}
@@ -458,12 +477,212 @@ export default function Myshipments() {
         </div>
 
         {isModalOpen && selectedPickup && (
-          <ShipmentDetails
-            selectedPickup={selectedPickup}
-            closeModal={closeModal}
-          />
+          <ShipmentDetails selectedPickup={selectedPickup} closeModal={closeModal} />
         )}
       </div>
+
+      {/* -------- View Escalations Modal -------- */}
+      {escModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={closeEscModal}
+        >
+          <div
+            className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="sticky top-0 z-10 bg-white border-b px-5 py-3 flex items-center justify-between">
+              <h3 className="text-lg md:text-xl font-bold text-purple-700">
+                Escalations for this AWB
+                {escAwb ? <span className="text-purple-700"> — {escAwb}</span> : null}
+              </h3>
+              <button
+                onClick={closeEscModal}
+                className="bg-red-600 text-white rounded-full w-8 h-8 text-sm font-bold flex items-center justify-center hover:bg-red-700"
+                title="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="max-h-[80vh] overflow-y-auto px-5 py-4 space-y-4">
+              {escLoading ? (
+                <div className="text-center text-gray-600 py-10">Loading…</div>
+              ) : escError ? (
+                <div className="text-center text-rose-600 py-6">{escError}</div>
+              ) : escRows.length === 0 ? (
+                <div className="text-center text-gray-600 py-10">
+                  No escalations found for this AWB.
+                </div>
+              ) : (
+                escRows.map((r) => {
+                  const status = String(r.escalationStatus || "").toLowerCase();
+                  const imgs = Array.isArray(r.escalationImages) ? r.escalationImages : [];
+                  const cimgs = Array.isArray(r.closureImages) ? r.closureImages : [];
+
+                  return (
+                    <div key={r.id} className="rounded-xl border border-gray-200 shadow-sm p-4">
+                      {/* Top meta row */}
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
+                          <span>
+                            <span className="font-semibold text-purple-700">Status</span>
+                            <span className="text-black"> : </span>
+                            <span className="text-black">
+                              {status === "pending" ? "Pending" : status === "closed" ? "Closed" : "—"}
+                            </span>
+                          </span>
+                          <span>
+                            <span className="font-semibold text-purple-700">Category</span>
+                            <span className="text-black"> : </span>
+                            <span className="text-black">{r.escalationCategory || "-"}</span>
+                          </span>
+                          <span>
+                            <span className="font-semibold text-purple-700">AWB</span>
+                            <span className="text-black"> : </span>
+                            <span className="text-black">{r.awbNumber || "-"}</span>
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          Created: {formatTS(r.escalationCreatedAt)}
+                        </div>
+                      </div>
+
+                      {/* Details grid */}
+                      <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+                        <Field label="Created By" value={r.escalationCreatedBy || "-"} />
+                        <Field label="—" value="" /> {/* spacer */}
+                        <Field label="Message" value={r.escalationMessage || "-"} multiline />
+                      </div>
+
+                      {/* Submitted Images */}
+                      <div className="mt-4">
+                        <div className="text-sm font-semibold text-purple-700 mb-1">Submitted Images</div>
+                        {imgs.length > 0 ? (
+                          <div className="flex flex-wrap gap-3">
+                            {imgs.map((src, i2) => (
+                              <button
+                                key={src + i2}
+                                className="w-20 h-20 rounded overflow-hidden border border-gray-200"
+                                onClick={() => openLightbox(imgs, i2)}
+                                title={`Image ${i2 + 1}`}
+                              >
+                                <img src={src} alt="" className="w-full h-full object-cover" />
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-xs text-gray-500">No images provided.</div>
+                        )}
+                      </div>
+
+                      {/* Closed details */}
+                      {status === "closed" && (
+                        <>
+                          <hr className="my-4 border-gray-200" />
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+                            <Field label="Closed By" value={r.escalationClosedBy || "-"} />
+                            <Field label="Closed At" value={formatTS(r.escalationClosedAt)} />
+                            <Field label="Closure Note" value={r.closureNote || "-"} multiline />
+                          </div>
+
+                          <div className="mt-3">
+                            <div className="text-sm font-semibold text-purple-700 mb-1">Closure Images</div>
+                            {cimgs.length > 0 ? (
+                              <div className="flex flex-wrap gap-3">
+                                {cimgs.map((src, i3) => (
+                                  <button
+                                    key={src + i3}
+                                    className="w-20 h-20 rounded overflow-hidden border border-gray-200"
+                                    onClick={() => openLightbox(cimgs, i3)}
+                                    title={`Closure Image ${i3 + 1}`}
+                                  >
+                                    <img src={src} alt="" className="w-full h-full object-cover" />
+                                  </button>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-xs text-gray-500">No closure images.</div>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox — top-right close, footer controls (no overlay) */}
+      {lightboxOpen && (
+        <div
+          className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
+          onClick={closeLightbox}
+        >
+          <div
+            className="relative bg-white rounded-lg shadow-xl max-w-3xl w-full p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={closeLightbox}
+              className="absolute top-2 right-2 bg-red-600 text-white rounded-full w-8 h-8 text-sm font-bold flex items-center justify-center hover:bg-red-700"
+              title="Close"
+            >
+              ✕
+            </button>
+
+            <div className="w-full max-h-[70vh] overflow-hidden flex items-center justify-center pt-6">
+              <img
+                src={lightboxImages[lightboxIndex]}
+                alt=""
+                className="max-w-full max-h-[65vh] object-contain rounded"
+              />
+            </div>
+
+            <div className="mt-4 flex items-center justify-between">
+              <button
+                onClick={() => setLightboxIndex((i) => Math.max(0, i - 1))}
+                disabled={lightboxIndex === 0}
+                className="px-3 py-1.5 text-sm rounded border disabled:opacity-50"
+              >
+                Prev
+              </button>
+              <div className="text-sm font-medium">
+                {lightboxIndex + 1} / {lightboxImages.length}
+              </div>
+              <button
+                onClick={() =>
+                  setLightboxIndex((i) => Math.min(lightboxImages.length - 1, i + 1))
+                }
+                disabled={lightboxIndex === lightboxImages.length - 1}
+                className="px-3 py-1.5 text-sm rounded border disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              {lightboxImages.map((src, idx) => (
+                <button
+                  key={src + idx}
+                  onClick={() => setLightboxIndex(idx)}
+                  className={`w-16 h-16 rounded overflow-hidden border ${
+                    idx === lightboxIndex ? "border-purple-700" : "border-gray-200"
+                  }`}
+                  title={`Image ${idx + 1}`}
+                >
+                  <img src={src} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

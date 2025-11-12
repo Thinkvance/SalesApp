@@ -38,20 +38,22 @@ import Accounts from "./Accounts";
 import ReviewManagement from "./ReviewManagement";
 import VersionUpdateModal from "./VersionUpdateModal"; // Version modal
 import appVersion from "./functions/appVersion";
-import EscalationDashboard from "./EscalationDashboard"; // ✅ renamed import
+import EscalationDashboard from "./EscalationDashboard"; // ✅ import
 import ReportForm from "./ReportForm";
 
-function ManagerOnly({ children }) {
+function PrivilegedOnly({ children }) {
   const stored = JSON.parse(localStorage.getItem("LoginCredentials") || "{}");
-  const role = stored?.role || "";
-  return role === "Manager" ? children : <Navigate to="/" replace />;
+  const role = String(stored?.role || "").toLowerCase();
+  // ✅ Allow Manager and Sales Admin
+  const allowed = ["manager", "sales admin"];
+  return allowed.includes(role) ? children : <Navigate to="/" replace />;
 }
 
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const CURRENT_APP_VERSION = appVersion.appversion; // ✅ Update this on each deploy
+  const CURRENT_APP_VERSION = appVersion.appversion;
 
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [updateMessage, setUpdateMessage] = useState("");
@@ -144,7 +146,7 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // Optional: Timeout fallback if Firestore doesn't respond
+  // Optional: Timeout fallback
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (!showUpdateModal) {
@@ -156,7 +158,7 @@ function App() {
 
   if (loading) return <div>Loading...</div>;
 
-  // ✅ Refresh with cache busting
+  // ✅ Refresh handler for updates
   const handleRefresh = () => {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.getRegistrations().then((registrations) => {
@@ -244,7 +246,7 @@ function App() {
               path="/My-Shipments"
               element={user ? <Myshipments /> : <Navigate to="/signin" />}
             />
-            {/* Report form is publicly routed but relies on internal auth/role guards */}
+            {/* Report form public route */}
             <Route path="/ReportForm" element={<ReportForm />} />
             <Route
               path="/review-management"
@@ -259,17 +261,17 @@ function App() {
               element={!user ? <SignIn /> : <Navigate to="/Pickup-Booking" />}
             />
 
-            {/* ✅ Manager-only Escalations Dashboard */}
+            {/* ✅ Escalation Dashboard for Manager and Sales Admin */}
             <Route
               path="/escalations"
               element={
-                <ManagerOnly>
+                <PrivilegedOnly>
                   <EscalationDashboard />
-                </ManagerOnly>
+                </PrivilegedOnly>
               }
             />
 
-            {/* 404 fallback to home or sign-in */}
+            {/* 404 fallback */}
             <Route
               path="*"
               element={

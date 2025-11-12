@@ -30,7 +30,9 @@ const StatusPill = ({ status }) => {
     none: "bg-gray-100 text-gray-700",
   };
   return (
-    <span className={`px-2 py-1 rounded text-[11px] font-medium ${map[s] || map.none}`}>
+    <span
+      className={`px-2 py-1 rounded text-[11px] font-medium ${map[s] || map.none}`}
+    >
       {s[0]?.toUpperCase() + s.slice(1)}
     </span>
   );
@@ -76,15 +78,21 @@ export default function EscalationDashboard() {
     setUsername(stored?.name || "");
   }, []);
 
-  // Subscribe to escalations; order OLDEST FIRST (asc)
+  // normalized role helpers
+  const roleLower = String(role || "").toLowerCase();
+  const isPrivileged = roleLower === "manager" || roleLower === "sales admin";
+  const isManager = roleLower === "manager";
+
+  // Subscribe to escalations; order OLDEST FIRST (asc) — available to Manager + Sales Admin
   useEffect(() => {
     if (!role) return;
-    if (role !== "Manager") {
+    if (!isPrivileged) {
+      // Non-privileged users do not load escalations
       setLoading(false);
       return;
     }
     const base = collection(db, "ecalatoins");
-    const qRef = query(base, orderBy("escalationCreatedAt", "asc")); // ⬅️ changed to asc
+    const qRef = query(base, orderBy("escalationCreatedAt", "asc"));
     const unsub = onSnapshot(
       qRef,
       (snap) => {
@@ -98,7 +106,7 @@ export default function EscalationDashboard() {
       }
     );
     return () => unsub();
-  }, [role]);
+  }, [role, isPrivileged]);
 
   // Lock background scroll for modal
   useEffect(() => {
@@ -133,10 +141,17 @@ export default function EscalationDashboard() {
         if (statusFilter === "all") return true;
         return String(r.escalationStatus || "").toLowerCase() === statusFilter;
       })
-      .filter((r) => String(r.awbNumber || "").toLowerCase().includes(s));
+      .filter((r) =>
+        String(r.awbNumber || "")
+          .toLowerCase()
+          .includes(s)
+      );
 
     // safety-net sort: OLDEST FIRST
-    res.sort((a, b) => getMillis(a.escalationCreatedAt) - getMillis(b.escalationCreatedAt));
+    res.sort(
+      (a, b) =>
+        getMillis(a.escalationCreatedAt) - getMillis(b.escalationCreatedAt)
+    );
     return res;
   }, [rows, statusFilter, awbSearch]);
 
@@ -151,7 +166,9 @@ export default function EscalationDashboard() {
     setImgError("");
     setNoteError("");
 
-    const imgs = Array.isArray(row.escalationImages) ? row.escalationImages : [];
+    const imgs = Array.isArray(row.escalationImages)
+      ? row.escalationImages
+      : [];
     setLightboxImages(imgs);
     setLightboxIndex(0);
 
@@ -226,7 +243,7 @@ export default function EscalationDashboard() {
 
   // Validation: min 100 chars note + min 1 image
   const canClose =
-    role === "Manager" &&
+    isManager &&
     String(activeRow?.escalationStatus || "").toLowerCase() === "pending" &&
     closeNote.trim().length >= 100 &&
     closeNewImages.length >= 1;
@@ -293,12 +310,14 @@ export default function EscalationDashboard() {
   if (!role) {
     return <div className="p-6 text-sm text-gray-600">Loading user…</div>;
   }
-  if (role !== "Manager") {
+  if (!isPrivileged) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center">
         <div className="rounded-xl border bg-white shadow p-8 text-center max-w-md">
           <h2 className="text-lg font-semibold text-gray-800 mb-2">Access Restricted</h2>
-          <p className="text-gray-600">This dashboard is only available to Managers.</p>
+          <p className="text-gray-600">
+            This dashboard and closed-report access is only available to Managers and Sales Admin.
+          </p>
         </div>
       </div>
     );
@@ -312,11 +331,7 @@ export default function EscalationDashboard() {
       {flash && (
         <div className="mb-4 rounded-xl shadow bg-gradient-to-r from-purple-600 to-purple-800 text-white px-4 py-3 flex items-center justify-between">
           <span className="text-sm font-medium">{flash}</span>
-          <button
-            onClick={() => setFlash("")}
-            className="text-white/90 hover:text-white underline text-xs"
-            aria-label="Dismiss"
-          >
+          <button onClick={() => setFlash("")} className="text-white/90 hover:text-white underline text-xs" aria-label="Dismiss">
             Dismiss
           </button>
         </div>
@@ -325,35 +340,27 @@ export default function EscalationDashboard() {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <div className="flex items-center gap-2">
-          {/* Quick filters including "Closed Reports" */}
+          {/* Quick filters including "Closed Reports" (closed only shown to privileged users) */}
           <button
             onClick={() => setStatusFilter("pending")}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold border ${
-              statusFilter === "pending"
-                ? "bg-purple-700 text-white border-purple-700"
-                : "bg-white text-gray-700"
-            }`}
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold border ${statusFilter === "pending" ? "bg-purple-700 text-white border-purple-700" : "bg-white text-gray-700"}`}
           >
             Pending
           </button>
-          <button
-            onClick={() => setStatusFilter("closed")}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold border ${
-              statusFilter === "closed"
-                ? "bg-purple-700 text-white border-purple-700"
-                : "bg-white text-gray-700"
-            }`}
-            title="Closed report information"
-          >
-            Closed Reports
-          </button>
+
+          {isPrivileged && (
+            <button
+              onClick={() => setStatusFilter("closed")}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold border ${statusFilter === "closed" ? "bg-purple-700 text-white border-purple-700" : "bg-white text-gray-700"}`}
+              title="Closed report information"
+            >
+              Closed Reports
+            </button>
+          )}
+
           <button
             onClick={() => setStatusFilter("all")}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold border ${
-              statusFilter === "all"
-                ? "bg-purple-700 text-white border-purple-700"
-                : "bg-white text-gray-700"
-            }`}
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold border ${statusFilter === "all" ? "bg-purple-700 text-white border-purple-700" : "bg-white text-gray-700"}`}
           >
             All
           </button>
@@ -374,42 +381,26 @@ export default function EscalationDashboard() {
           <thead className="bg-purple-700 text-white text-left">
             <tr>
               {["AWB", "Status", "Created At", "Created By", "Message", "Actions"].map((h) => (
-                <th key={h} className="py-3 px-4 whitespace-nowrap font-medium border">
-                  {h}
-                </th>
+                <th key={h} className="py-3 px-4 whitespace-nowrap font-medium border">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-gray-500">
-                  Loading…
-                </td>
+                <td colSpan={6} className="px-4 py-6 text-center text-gray-500">Loading…</td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-gray-500">
-                  No escalations found.
-                </td>
+                <td colSpan={6} className="px-4 py-6 text-center text-gray-500">No escalations found.</td>
               </tr>
             ) : (
               filtered.map((row) => (
-                <tr
-                  key={row.id}
-                  className="border-b hover:bg-gray-50 transition cursor-pointer"
-                  onClick={() => handleView(row)}
-                >
+                <tr key={row.id} className="border-b hover:bg-gray-50 transition" onClick={() => handleView(row)}>
                   <td className="px-4 py-2">{row.awbNumber || "-"}</td>
-                  <td className="px-4 py-2">
-                    <StatusPill status={row.escalationStatus} />
-                  </td>
-                  <td className="px-4 py-2 whitespace-nowrap">
-                    {formatTimestamp(row.escalationCreatedAt)}
-                  </td>
-                  <td className="px-4 py-2 whitespace-nowrap">
-                    {row.escalationCreatedBy || "-"}
-                  </td>
+                  <td className="px-4 py-2"><StatusPill status={row.escalationStatus} /></td>
+                  <td className="px-4 py-2 whitespace-nowrap">{formatTimestamp(row.escalationCreatedAt)}</td>
+                  <td className="px-4 py-2 whitespace-nowrap">{row.escalationCreatedBy || "-"}</td>
                   <td className="px-4 py-2 max-w-[320px]">
                     <span title={row.escalationMessage || ""} className="line-clamp-2">
                       {row.escalationMessage || "-"}
@@ -417,18 +408,40 @@ export default function EscalationDashboard() {
                   </td>
                   <td className="px-4 py-2 whitespace-nowrap">
                     {String(row.escalationStatus).toLowerCase() === "pending" ? (
+                      isManager ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleView(row);
+                          }}
+                          className="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-md text-xs font-semibold"
+                          title="Close escalation"
+                        >
+                          Close
+                        </button>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleView(row);
+                          }}
+                          className="bg-slate-800 hover:bg-black text-white px-3 py-1.5 rounded-md text-xs font-semibold"
+                          title="View escalation"
+                        >
+                          View
+                        </button>
+                      )
+                    ) : (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleView(row);
                         }}
-                        className="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-md text-xs font-semibold"
-                        title="Close escalation"
+                        className="bg-slate-800 hover:bg-black text-white px-3 py-1.5 rounded-md text-xs font-semibold"
+                        title="View escalation"
                       >
-                        Close
+                        View
                       </button>
-                    ) : (
-                      <span className="text-gray-400 text-xs">—</span>
                     )}
                   </td>
                 </tr>
@@ -440,26 +453,12 @@ export default function EscalationDashboard() {
 
       {/* Modal */}
       {modalOpen && activeRow && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          onClick={closeModal}
-        >
-          <div
-            className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={closeModal}>
+          <div className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="sticky top-0 z-10 bg-white border-b px-5 py-3 flex items-center justify-between">
-              <h2 className="text-lg md:text-xl font-bold text-purple-700">
-                Escalation — AWB {activeRow.awbNumber || "-"}
-              </h2>
-              <button
-                onClick={closeModal}
-                className="bg-red-600 text-white rounded-full w-8 h-8 text-sm font-bold flex items-center justify-center hover:bg-red-700"
-                title="Close"
-              >
-                ✕
-              </button>
+              <h2 className="text-lg md:text-xl font-bold text-purple-700">Escalation — AWB {activeRow.awbNumber || "-"}</h2>
+              <button onClick={closeModal} className="bg-red-600 text-white rounded-full w-8 h-8 text-sm font-bold flex items-center justify-center hover:bg-red-700" title="Close">✕</button>
             </div>
 
             {/* Scrollable content */}
@@ -469,11 +468,7 @@ export default function EscalationDashboard() {
                 <Info label="Status" value={String(activeRow.escalationStatus || "-")} />
                 <Info label="Created At" value={formatTimestamp(activeRow.escalationCreatedAt)} />
                 <Info label="Created By" value={activeRow.escalationCreatedBy || "-"} />
-                <Info
-                  label="Escalation Message"
-                  value={activeRow.escalationMessage || "-"}
-                  multiline
-                />
+                <Info label="Escalation Message" value={activeRow.escalationMessage || "-"} multiline />
                 <hr className="border-gray-200" />
               </section>
 
@@ -488,6 +483,12 @@ export default function EscalationDashboard() {
                   <Info label="Destination" value={shipment?.destination || "-"} />
                   <Info label="Vendor" value={shipment?.vendorName || "-"} />
                   <Info label="Service" value={shipment?.service || "-"} />
+                  <div className="flex items-center gap-3 bg-gray-50 border border-purple-200 rounded-xl px-4 py-2 w-fit shadow-sm">
+                    <span className="font-semibold text-purple-700 text-base">Escalation Category:</span>
+                    <p className={`text-base px-3 py-1 rounded-md text-white font-medium ${shipment?.escalationCategory ? "bg-red-500" : "bg-gray-400"}`}>
+                      {shipment?.escalationCategory || "Not Assigned"}
+                    </p>
+                  </div>
                 </div>
                 <hr className="mt-4 border-gray-200" />
               </section>
@@ -496,122 +497,76 @@ export default function EscalationDashboard() {
               <section>
                 <h3 className="text-lg font-semibold text-purple-700 mb-2">Submitted Images</h3>
                 {lightboxImages.length > 0 ? (
-                  <>
-                    <div className="flex flex-wrap gap-3">
-                      {lightboxImages.map((src, idx) => (
-                        <button
-                          key={src + idx}
-                          className={`w-20 h-20 rounded overflow-hidden border ${
-                            idx === lightboxIndex ? "border-purple-700" : "border-gray-200"
-                          }`}
-                          onClick={() => {
-                            setLightboxIndex(idx);
-                            setLightboxOpen(true);
-                          }}
-                          title={`Image ${idx + 1}`}
-                        >
-                          <img src={src} alt="" className="w-full h-full object-cover" />
-                        </button>
-                      ))}
-                    </div>
-                  </>
+                  <div className="flex flex-wrap gap-3">
+                    {lightboxImages.map((src, idx) => (
+                      <button
+                        key={src + idx}
+                        className={`w-20 h-20 rounded overflow-hidden border ${idx === lightboxIndex ? "border-purple-700" : "border-gray-200"}`}
+                        onClick={() => {
+                          setLightboxIndex(idx);
+                          setLightboxOpen(true);
+                        }}
+                        title={`Image ${idx + 1}`}
+                      >
+                        <img src={src} alt="" className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
                 ) : (
                   <div className="text-xs text-gray-500">No images provided.</div>
                 )}
                 <hr className="mt-4 border-gray-200" />
               </section>
 
-              {/* Close section (Manager + pending) */}
-              {String(activeRow.escalationStatus || "").toLowerCase() === "pending" &&
-                role === "Manager" && (
-                  <section>
-                    <h3 className="text-lg font-semibold text-purple-700 mb-2">
-                      Close Escalation
-                    </h3>
+              {/* Close section (Manager only + pending) */}
+              {String(activeRow.escalationStatus || "").toLowerCase() === "pending" && isManager && (
+                <section>
+                  <h3 className="text-lg font-semibold text-purple-700 mb-2">Close Escalation</h3>
 
-                    {/* Description to close (min 100 chars) */}
-                    <div className="mb-3">
-                      <div className="text-sm font-semibold text-purple-700">
-                        Description to Close <span className="text-rose-600">*</span>
+                  {/* Description to close (min 100 chars) */}
+                  <div className="mb-3">
+                    <div className="text-sm font-semibold text-purple-700">Description to Close <span className="text-rose-600">*</span></div>
+                    <textarea
+                      rows={4}
+                      className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600"
+                      placeholder="Write at least 100 characters describing the resolution / action taken…"
+                      value={closeNote}
+                      onChange={(e) => setCloseNote(e.target.value)}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">{closeNote.trim().length} / 100 characters</p>
+                    {noteError && <div className="text-xs text-rose-600 mt-1">{noteError}</div>}
+                  </div>
+
+                  {/* Proof Images (min 1) */}
+                  <div className="mb-3">
+                    <div className="text-sm font-semibold text-purple-700">
+                      Proof Images <span className="text-rose-600">*</span>
+                      <span className="text-xs text-gray-500 ml-1">(Min 1, Max {MAX_IMAGES}, ≤ {MAX_MB}MB each)</span>
+                    </div>
+
+                    {closePreviews.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-3">
+                        {closePreviews.map((src, idx) => (
+                          <div key={src + idx} className="relative w-20 h-20">
+                            <img src={src} alt="" className="w-full h-full rounded object-cover border" />
+                            <button type="button" onClick={() => removeCloseImage(idx)} className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full w-5 h-5 text-xs font-bold flex items-center justify-center hover:bg-red-700" title="Remove">✕</button>
+                          </div>
+                        ))}
                       </div>
-                      <textarea
-                        rows={4}
-                        className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600"
-                        placeholder="Write at least 100 characters describing the resolution / action taken…"
-                        value={closeNote}
-                        onChange={(e) => setCloseNote(e.target.value)}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        {closeNote.trim().length} / 100 characters
-                      </p>
-                      {noteError && (
-                        <div className="text-xs text-rose-600 mt-1">{noteError}</div>
-                      )}
-                    </div>
+                    )}
 
-                    {/* Proof Images (min 1) */}
-                    <div className="mb-3">
-                      <div className="text-sm font-semibold text-purple-700">
-                        Proof Images <span className="text-rose-600">*</span>
-                        <span className="text-xs text-gray-500 ml-1">
-                          (Min 1, Max {MAX_IMAGES}, ≤ {MAX_MB}MB each)
-                        </span>
-                      </div>
+                    <input type="file" accept="image/*" multiple className="mt-2 text-sm" onChange={(e) => handleFilesSelected(e.target.files)} />
+                    {imgError && <div className="text-xs text-rose-600 mt-1">{imgError}</div>}
+                  </div>
 
-                      {closePreviews.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-3">
-                          {closePreviews.map((src, idx) => (
-                            <div key={src + idx} className="relative w-20 h-20">
-                              <img
-                                src={src}
-                                alt=""
-                                className="w-full h-full rounded object-cover border"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => removeCloseImage(idx)}
-                                className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full w-5 h-5 text-xs font-bold flex items-center justify-center hover:bg-red-700"
-                                title="Remove"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        className="mt-2 text-sm"
-                        onChange={(e) => handleFilesSelected(e.target.files)}
-                      />
-                      {imgError && <div className="text-xs text-rose-600 mt-1">{imgError}</div>}
-                    </div>
-
-                    <div className="flex gap-2">
-                      <button
-                        disabled={!canClose || closing}
-                        onClick={handleCloseSubmit}
-                        className={`px-4 py-2 rounded-md text-white text-sm font-semibold ${
-                          !canClose || closing
-                            ? "bg-gray-300 cursor-not-allowed"
-                            : "bg-rose-600 hover:bg-rose-700"
-                        }`}
-                      >
-                        {closing ? "Closing…" : "Mark as Closed"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={closeModal}
-                        className="px-4 py-2 rounded-md border text-sm text-gray-700 bg-gray-100 hover:bg-gray-200"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </section>
-                )}
+                  <div className="flex gap-2">
+                    <button disabled={!canClose || closing} onClick={handleCloseSubmit} className={`px-4 py-2 rounded-md text-white text-sm font-semibold ${!canClose || closing ? "bg-gray-300 cursor-not-allowed" : "bg-rose-600 hover:bg-rose-700"}`}>
+                      {closing ? "Closing…" : "Mark as Closed"}
+                    </button>
+                    <button type="button" onClick={closeModal} className="px-4 py-2 rounded-md border text-sm text-gray-700 bg-gray-100 hover:bg-gray-200">Cancel</button>
+                  </div>
+                </section>
+              )}
             </div>
           </div>
         </div>
@@ -619,66 +574,27 @@ export default function EscalationDashboard() {
 
       {/* Lightbox — close at top-right, Prev/Next in footer (no overlay) */}
       {lightboxOpen && (
-        <div
-          className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
-          onClick={() => setLightboxOpen(false)}
-        >
-          <div
-            className="relative bg-white rounded-lg shadow-xl max-w-3xl w-full p-4"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setLightboxOpen(false)}>
+          <div className="relative bg-white rounded-lg shadow-xl max-w-3xl w-full p-4" onClick={(e) => e.stopPropagation()}>
             {/* Close button top-right */}
-            <button
-              onClick={() => setLightboxOpen(false)}
-              className="absolute top-2 right-2 bg-red-600 text-white rounded-full w-8 h-8 text-sm font-bold flex items-center justify-center hover:bg-red-700"
-              title="Close"
-            >
-              ✕
-            </button>
+            <button onClick={() => setLightboxOpen(false)} className="absolute top-2 right-2 bg-red-600 text-white rounded-full w-8 h-8 text-sm font-bold flex items-center justify-center hover:bg-red-700" title="Close">✕</button>
 
             {/* Image area */}
             <div className="w-full max-h-[70vh] overflow-hidden flex items-center justify-center pt-6">
-              <img
-                src={lightboxImages[lightboxIndex]}
-                alt=""
-                className="max-w-full max-h-[65vh] object-contain rounded"
-              />
+              <img src={lightboxImages[lightboxIndex]} alt="" className="max-w-full max-h-[65vh] object-contain rounded" />
             </div>
 
             {/* Footer controls to avoid overlay */}
             <div className="mt-4 flex items-center justify-between">
-              <button
-                onClick={() => setLightboxIndex((i) => Math.max(0, i - 1))}
-                disabled={lightboxIndex === 0}
-                className="px-3 py-1.5 text-sm rounded border disabled:opacity-50"
-              >
-                Prev
-              </button>
-              <div className="text-sm font-medium">
-                {lightboxIndex + 1} / {lightboxImages.length}
-              </div>
-              <button
-                onClick={() =>
-                  setLightboxIndex((i) => Math.min(lightboxImages.length - 1, i + 1))
-                }
-                disabled={lightboxIndex === lightboxImages.length - 1}
-                className="px-3 py-1.5 text-sm rounded border disabled:opacity-50"
-              >
-                Next
-              </button>
+              <button onClick={() => setLightboxIndex((i) => Math.max(0, i - 1))} disabled={lightboxIndex === 0} className="px-3 py-1.5 text-sm rounded border disabled:opacity-50">Prev</button>
+              <div className="text-sm font-medium">{lightboxIndex + 1} / {lightboxImages.length}</div>
+              <button onClick={() => setLightboxIndex((i) => Math.min(lightboxImages.length - 1, i + 1))} disabled={lightboxIndex === lightboxImages.length - 1} className="px-3 py-1.5 text-sm rounded border disabled:opacity-50">Next</button>
             </div>
 
             {/* Thumbs row */}
             <div className="mt-3 flex flex-wrap gap-2">
               {lightboxImages.map((src, idx) => (
-                <button
-                  key={src + idx}
-                  onClick={() => setLightboxIndex(idx)}
-                  className={`w-16 h-16 rounded overflow-hidden border ${
-                    idx === lightboxIndex ? "border-purple-700" : "border-gray-200"
-                  }`}
-                  title={`Image ${idx + 1}`}
-                >
+                <button key={src + idx} onClick={() => setLightboxIndex(idx)} className={`w-16 h-16 rounded overflow-hidden border ${idx === lightboxIndex ? "border-purple-700" : "border-gray-200"}`} title={`Image ${idx + 1}`}>
                   <img src={src} alt="" className="w-full h-full object-cover" />
                 </button>
               ))}
@@ -696,9 +612,7 @@ function Info({ label, value, multiline }) {
       <div className="flex items-start gap-1">
         <span className="font-semibold text-purple-700">{label}</span>
         <span className="text-black">:</span>
-        <span className={`text-black ${multiline ? "whitespace-pre-wrap break-words" : ""}`}>
-          {value || "-"}
-        </span>
+        <span className={`text-black ${multiline ? "whitespace-pre-wrap break-words" : ""}`}>{value || "-"}</span>
       </div>
     </div>
   );

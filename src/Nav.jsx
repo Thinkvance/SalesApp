@@ -1,3 +1,4 @@
+// Nav.jsx
 import { Avatar, Menu, MenuItem } from "@mui/material";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -19,7 +20,7 @@ function Nav() {
   const [RoleBasedScreens, setRoleBasedScreens] = useState({});
   const [Open, setOpen] = useState(false);
 
-  // 🔹 Manager pending count for Escalations
+  // 🔹 Manager + Sales Admin pending count for Escalations
   const [pendingCount, setPendingCount] = useState(0);
 
   function roleFormate(role) {
@@ -35,9 +36,13 @@ function Nav() {
     setRoleBasedScreens(utility.rolesPermissions());
   }, []);
 
-  // 🔹 Subscribe to pending escalations (Manager only)
+  // normalize role checks
+  const roleLower = (user?.role || "").toLowerCase();
+  const shouldShowEscalationsNav = roleLower === "manager" || roleLower === "sales admin";
+
+  // 🔹 Subscribe to pending escalations (Manager OR Sales Admin)
   useEffect(() => {
-    if (user?.role !== "Manager") return;
+    if (!shouldShowEscalationsNav) return;
     const qRef = query(
       collection(db, "ecalatoins"),
       where("escalationStatus", "==", "pending")
@@ -48,7 +53,7 @@ function Nav() {
       () => setPendingCount(0)
     );
     return () => unsub();
-  }, [user?.role]);
+  }, [shouldShowEscalationsNav]);
 
   const handlePickupMenuOpen = (event) => setPickupAnchorEl(event.currentTarget);
   const handlePickupMenuClose = () => setPickupAnchorEl(null);
@@ -135,7 +140,7 @@ function Nav() {
             </li>
 
             {/* Reports Section */}
-            {["Manager", "sales admin", "sales associate"].includes(user?.role) && (
+            {["manager", "sales admin", "sales associate"].includes(roleLower) && (
               <li>
                 <button
                   onClick={handleReportsMenuOpen}
@@ -176,8 +181,8 @@ function Nav() {
               </Link>
             </li>
 
-            {/* 🔹 Escalations (Manager only, replaces Dashboard) */}
-            {user?.role === "Manager" && (
+            {/* 🔹 Escalations (Manager OR Sales Admin) */}
+            {shouldShowEscalationsNav && (
               <li>
                 <Link
                   to="/escalations"
@@ -225,10 +230,7 @@ function Nav() {
         >
           <div className="flex justify-between items-center p-4 bg-purple-500">
             <h2 className="text-white font-bold text-lg">Menu</h2>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="text-white hover:text-gray-200"
-            >
+            <button onClick={() => setSidebarOpen(false)} className="text-white hover:text-gray-200">
               <CloseIcon />
             </button>
           </div>
@@ -262,7 +264,7 @@ function Nav() {
               </li>
             ))}
 
-            {["Manager", "sales admin", "sales associate"].includes(user?.role) &&
+            {["manager", "sales admin", "sales associate"].includes(roleLower) &&
               RoleBasedScreens?.Reports?.map((d) => (
                 <li key={d}>
                   <Link
@@ -289,15 +291,13 @@ function Nav() {
               </Link>
             </li>
 
-            {/* 🔹 Escalations (Manager only) */}
-            {user?.role === "Manager" && (
+            {/* 🔹 Escalations (Manager OR Sales Admin) */}
+            {shouldShowEscalationsNav && (
               <li>
                 <Link
                   to="/escalations"
                   className={`py-2 px-4 text-gray-700 rounded-lg flex items-center justify-between ${
-                    isActive("/escalations")
-                      ? "bg-purple-100 text-purple-800"
-                      : "hover:bg-purple-200"
+                    isActive("/escalations") ? "bg-purple-100 text-purple-800" : "hover:bg-purple-200"
                   }`}
                   onClick={() => setSidebarOpen(false)}
                 >
@@ -313,12 +313,7 @@ function Nav() {
           </ul>
         </div>
 
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 bg-black opacity-50 z-10"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
+        {sidebarOpen && <div className="fixed inset-0 bg-black opacity-50 z-10" onClick={() => setSidebarOpen(false)} />}
       </div>
 
       <ProfileModal
