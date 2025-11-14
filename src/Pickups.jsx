@@ -63,7 +63,6 @@ function Pickups() {
           let q;
 
           if (dateSearchTerm) {
-            // If user searches by date
             const startDate = new Date(dateSearchTerm);
             startDate.setHours(0, 0, 0, 0);
             const endDate = new Date(dateSearchTerm);
@@ -72,35 +71,34 @@ function Pickups() {
             const startTimestamp = Timestamp.fromDate(startDate);
             const endTimestamp = Timestamp.fromDate(endDate);
 
-            q =
-              role === "sales admin" || role === "OPS Head"
-                ? query(
-                    baseCollection,
-                    where("pickupDatetime", ">=", startTimestamp),
-                    where("pickupDatetime", "<=", endTimestamp),
-                    where(
-                      "pickupDatetime",
-                      ">=",
-                      Timestamp.fromDate(oneMonthAgo)
-                    ),
-                    orderBy("pickupDatetime", "desc")
-                  )
-                : query(
-                    baseCollection,
-                    where("pickupBookedBy", "==", username),
-                    where("pickupDatetime", ">=", startTimestamp),
-                    where("pickupDatetime", "<=", endTimestamp),
-                    where(
-                      "pickupDatetime",
-                      ">=",
-                      Timestamp.fromDate(oneMonthAgo)
-                    ),
-                    orderBy("pickupDatetime", "desc")
-                  );
+            if (role === "OPS Head") {
+              q = query(
+                baseCollection,
+                where("pickupDatetime", ">=", startTimestamp),
+                where("pickupDatetime", "<=", endTimestamp),
+                where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo)),
+                orderBy("pickupDatetime", "desc")
+              );
+            } else if (role === "sales admin") {
+              q = query(
+                baseCollection,
+                where("pickupDatetime", ">=", startTimestamp),
+                where("pickupDatetime", "<=", endTimestamp),
+                orderBy("pickupDatetime", "desc")
+              );
+            } else {
+              q = query(
+                baseCollection,
+                where("pickupBookedBy", "==", username),
+                where("pickupDatetime", ">=", startTimestamp),
+                where("pickupDatetime", "<=", endTimestamp),
+                where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo)),
+                orderBy("pickupDatetime", "desc")
+              );
+            }
           } else {
-            // Default -> last 1 month data
             q =
-              role === "sales admin" || role === "OPS Head"
+              role === "OPS Head"
                 ? query(
                     baseCollection,
                     where(
@@ -110,6 +108,8 @@ function Pickups() {
                     ),
                     orderBy("pickupDatetime", "desc")
                   )
+                : role === "sales admin"
+                ? query(baseCollection, orderBy("pickupDatetime", "desc"))
                 : query(
                     baseCollection,
                     where("pickupBookedBy", "==", username),

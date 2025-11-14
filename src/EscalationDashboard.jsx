@@ -251,14 +251,16 @@ export default function EscalationDashboard() {
   const canClose =
     isManager &&
     String(activeRow?.escalationStatus || "").toLowerCase() === "pending" &&
-    closeNote.trim().length >= 100 &&
     closeNewImages.length >= 1;
 
   const handleCloseSubmit = async () => {
-    if (closeNote.trim().length < 100) {
-      setNoteError("Description must be at least 100 characters.");
+    const length = closeNote.trim().length;
+    if (length < 15 || length > 200) {
+      setNoteError("Description must be between 15 and 200 characters.");
       return;
-    } else setNoteError("");
+    } else {
+      setNoteError("");
+    }
 
     if (closeNewImages.length < 1) {
       setImgError("Please upload at least one proof image.");
@@ -661,12 +663,12 @@ export default function EscalationDashboard() {
                         <textarea
                           rows={4}
                           className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600"
-                          placeholder="Write at least 100 characters describing the resolution / action taken…"
+                          placeholder="Write at least 15 characters describing the resolution / action taken…"
                           value={closeNote}
                           onChange={(e) => setCloseNote(e.target.value)}
                         />
                         <p className="text-xs text-gray-500 mt-1">
-                          {closeNote.trim().length} / 100 characters
+                          {closeNote.trim().length} / 200 characters
                         </p>
                         {noteError && (
                           <div className="text-xs text-rose-600 mt-1">

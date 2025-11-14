@@ -207,8 +207,12 @@ export default function ReportForm() {
       return;
     }
 
-    if (escalationMessage.trim().length < 100) {
-      setMessageError("Escalation message must be at least 100 characters.");
+    const length = escalationMessage.trim().length;
+
+    if (length < 15 || length > 200) {
+      setMessageError(
+        "Escalation message must be between 15 and 200 characters."
+      );
       return;
     }
 
@@ -441,13 +445,13 @@ export default function ReportForm() {
                   <textarea
                     rows={4}
                     className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600"
-                    placeholder="Describe the issue (at least 100 characters)…"
+                    placeholder="Describe the issue (At least 15 characters)"
                     value={escalationMessage}
                     onChange={(e) => setEscalationMessage(e.target.value)}
                     required
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    {escalationMessage.trim().length} / 100 characters
+                    {escalationMessage.trim().length} / 200 characters
                   </p>
                   {messageError && (
                     <p className="text-xs text-rose-600 mt-1">{messageError}</p>
