@@ -1,4 +1,4 @@
-name: Deploy to Subdomain (sales.shiphit.com)
+name: Deploy to Subdomain (sales.shiphit.in)
 
 on:
   push:
