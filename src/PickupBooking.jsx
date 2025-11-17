@@ -181,6 +181,15 @@ function PickupBooking() {
     setCountryCodeToName(codeToNameMap);
   }, []);
 
+  function getRecentData(data) {
+    return data.reduce((latest, current) => {
+      const latestTime = latest?.pickupDatetime?.seconds ?? 0;
+      const currentTime = current?.pickupDatetime?.seconds ?? 0;
+
+      return currentTime > latestTime ? current : latest;
+    });
+  }
+
   const auto_populate = async (phoneNumber) => {
     if (phoneNumber.length >= 9 && phoneNumber.length <= 10) {
       try {
@@ -191,9 +200,11 @@ function PickupBooking() {
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
-          const data = querySnapshot.docs[0].data();
+          const data = querySnapshot.docs.map((doc) => doc.data());
+          console.log("All data:", data);
           const dynamicSource = "Repeated Customer"; // Get source from DB
-          // Ensure the dynamic source is added to options first
+          const recentShipment = getRecentData(data);
+          console.log("recentShipment", recentShipment);
           setSourceOptions((prev) =>
             prev.includes(dynamicSource) ? prev : [...prev, dynamicSource]
           );
@@ -201,11 +212,20 @@ function PickupBooking() {
           // Wait for state update before setting value
           setTimeout(() => {
             setValue("source", dynamicSource); // Set form value dynamically
+            setValue(
+              "consigneephonenumber",
+              recentShipment.consigneephonenumber.split(" ")[1]
+            );
+            setValue("consigneename", recentShipment.consigneename);
+            setValue("consigneelocation", recentShipment.consigneelocation);
             setsource(dynamicSource);
-            setIsSourceFixed(true); // Disable the field
+            setIsSourceFixed(true);
           }, 100);
         } else {
           // Reset if no match found
+          setValue("consigneephonenumber", ""); // Set form value dynamically
+          setValue("consigneename", ""); // Set form value dynamically
+          setValue("consigneelocation", ""); // Set form value dynamically
           setValue("source", source); // Set form value dynamically
           setsource(source);
           setIsSourceFixed(false);
