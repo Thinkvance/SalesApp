@@ -435,7 +435,7 @@ function PaymentConfirmationForm() {
         collectionName_BaseAwb.getCollection(
           JSON.parse(localStorage.getItem("LoginCredentials")).Location
         ),
-        final_result[0].id
+        final_result[0].id                                                  
       ); // db is your Firestore instance
 
       const updatedFields = {
