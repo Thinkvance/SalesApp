@@ -9,17 +9,20 @@ import axios from "axios";
 import { doc, updateDoc } from "firebase/firestore";
 import Lottie from "lottie-react";
 import formatFirestoreTimestamp from "./Utility/formatFirestoreTimestamp";
+import generate_GST_Invoice_PDF from "./Utility/GSTinvoice";
 
 function PaymentConfirmCard({ item, index }) {
   const navigate = useNavigate();
   const barcodeRef = useRef(null); // Ref for barcode generation
   const [loading, setloading] = useState(false);
   const [animationData, setAnimationData] = useState(null);
+  const [isOpen, setisOpen] = useState(false);
+  const [gst, setGst] = useState("");
+
   const [User, setUser] = useState({});
   useEffect(() => {
     setUser(JSON.parse(localStorage.getItem("LoginCredentials")));
   }, []);
-
   const getTodayDate = async () => {
     const now = new Date();
 
@@ -330,6 +333,52 @@ function PaymentConfirmCard({ item, index }) {
       key={index}
       className="flex  relative flex-col border border-gray-300 rounded-lg p-6 bg-white shadow-lg hover:shadow-2xl transition-shadow duration-300"
     >
+      {isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
+          <div className="bg-white rounded-xl w-[90%] max-w-md p-6 shadow-xl">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              Enter GST Number
+            </h2>
+
+            <input
+              type="text"
+              value={gst}
+              onChange={(e) => setGst(e.target.value)}
+              placeholder="Enter GST Number"
+              className="w-full border rounded-lg p-3 text-gray-700 outline-none focus:ring-2 focus:ring-purple-500"
+            />
+
+            <div className="flex justify-end gap-3 mt-5">
+              <button
+                onClick={() => {
+                  setisOpen((prev) => !prev);
+                  setGst("");
+                }}
+                className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={() =>
+                  generate_GST_Invoice_PDF(
+                    item,
+                    item.awbNumber,
+                    item.costKg,
+                    item.discountCost,
+                    item.additionalcharges,
+                    gst
+                  )
+                }
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between mb-2">
         <div>
           {User.role == "Manager" ? (
@@ -416,7 +465,7 @@ function PaymentConfirmCard({ item, index }) {
         ""
       )}
       {allowedStatuses.includes(item.status) ? (
-        <div className="flex gap-10">
+        <div className="text-sm flex gap-10">
           <button
             onClick={() =>
               generate_Invoice_PDF(
@@ -428,6 +477,12 @@ function PaymentConfirmCard({ item, index }) {
             className="p-2 rounded-md bg-purple-600  text-white"
           >
             Receipt
+          </button>
+          <button
+            onClick={() => setisOpen(true)}
+            className="p-2 rounded-md bg-purple-600  text-white"
+          >
+            GST Invoice
           </button>
           <button
             onClick={() => generate_AWBNUMBER_PDF()}
