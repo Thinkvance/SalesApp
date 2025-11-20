@@ -466,18 +466,13 @@ function PaymentConfirmCard({ item, index }) {
       )}
       {allowedStatuses.includes(item.status) ? (
         <div className="text-sm flex gap-10">
-          <button
-            onClick={() =>
-              generate_Invoice_PDF(
-                item.costKg,
-                item.discountCost,
-                item.additionalcharges
-              )
-            }
+          <a
+            target="_blank"
+            href={item.payment_Receipt_URL}
             className="p-2 rounded-md bg-purple-600  text-white"
           >
             Receipt
-          </button>
+          </a>
           <button
             onClick={() => setisOpen(true)}
             className="p-2 rounded-md bg-purple-600  text-white"

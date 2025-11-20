@@ -11,6 +11,7 @@ import {
   doc,
   updateDoc,
   onSnapshot,
+  runTransaction,
 } from "firebase/firestore";
 import collectionName_BaseAwb from "./functions/collectionName";
 import axios from "axios";
@@ -151,10 +152,35 @@ function PaymentConfirmationForm() {
     return `${day}-${month}-${year} ${hours}:${minutes}:${seconds} ${period}`;
   };
 
-  async function generate_Invoice_PDF(costKg, discountCost, additionalcharges) {
+  async function getNextInvoiceNumber(franchise = "CHENNAI") {
+    const counterRef = doc(db, "invoiceCounter", franchise);
+
+    return await runTransaction(db, async (transaction) => {
+      const counterDoc = await transaction.get(counterRef);
+
+      if (!counterDoc.exists()) {
+        throw "Counter document does not exist!";
+      }
+
+      const newInvoice = (counterDoc.data().current || 0) + 1;
+
+      transaction.update(counterRef, { current: newInvoice });
+
+      console.log("newInvoice", newInvoice);
+      return newInvoice;
+    });
+  }
+
+  async function generate_Invoice_PDF(
+    costKg,
+    discountCost,
+    additionalcharges,
+    invoiceNumber
+  ) {
     const doc = new jsPDF("p", "pt");
     const subtotal = parseInt(costKg) * details.actualWeight;
     const nettotal = subtotal - parseInt(discountCost) + additionalcharges;
+    const year = new Date().getFullYear();
     // Add business name and logo
     doc.setFontSize(20);
     doc.addImage("/shiphtlogo.png", "PNG", 40, 30, 180, 60); // Replace with your logo
@@ -194,7 +220,7 @@ function PaymentConfirmationForm() {
     const rightMargin = pageWidth - 40; // Right margin of 40 units
 
     doc.setFont("helvetica", "normal");
-    doc.text(`Receipt Number: RCPT-${details.awbNumber}`, rightMargin, 40, {
+    doc.text(`Receipt Number: SHRT-${year}${invoiceNumber}`, rightMargin, 40, {
       align: "right",
     });
     doc.text(`Date: ${await getTodayDate()}`, rightMargin, 61, {
@@ -392,6 +418,7 @@ function PaymentConfirmationForm() {
     }
   }
 
+  //Payment Request!
   const onSubmit = async (data) => {
     const temp =
       data.countrycode && data.consigneenumber1
@@ -399,23 +426,18 @@ function PaymentConfirmationForm() {
         : false;
     let consigneenumber1 = temp ? temp : details.consigneephonenumber;
 
-    // if (costKg < 500) {
-    //   setError("costKg", {
-    //     type: "manual",
-    //     message: "Cost/KG must be at least 500",
-    //   });
-    //   return;
-    // }
-
     setSubmitLoading(true);
     try {
       if (!details) {
         throw new Error("User details not found");
       }
+      const invoiceNumber = await getNextInvoiceNumber();
+
       const Payment_URL = await generate_Invoice_PDF(
         data.costKg,
         data.discountCost,
-        data.additionalcharges
+        data.additionalcharges,
+        invoiceNumber
       );
       const q = query(
         collection(

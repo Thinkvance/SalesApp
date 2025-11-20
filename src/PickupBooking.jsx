@@ -251,7 +251,6 @@ function PickupBooking() {
       }
       const newAwb = counterDoc.data().current + 1;
       transaction.update(counterRef, { current: newAwb });
-      console.log("newAwb", newAwb);
       return newAwb;
     });
   }

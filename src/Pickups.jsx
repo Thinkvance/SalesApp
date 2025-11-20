@@ -76,7 +76,7 @@ function Pickups() {
                 baseCollection,
                 where("pickupDatetime", ">=", startTimestamp),
                 where("pickupDatetime", "<=", endTimestamp),
-                where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo)),
+                // where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo)),
                 orderBy("pickupDatetime", "desc")
               );
             } else if (role === "sales admin") {
@@ -101,11 +101,11 @@ function Pickups() {
               role === "OPS Head"
                 ? query(
                     baseCollection,
-                    where(
-                      "pickupDatetime",
-                      ">=",
-                      Timestamp.fromDate(oneMonthAgo)
-                    ),
+                    // where(
+                    //   "pickupDatetime",
+                    //   ">=",
+                    //   Timestamp.fromDate(oneMonthAgo)
+                    // ),
                     orderBy("pickupDatetime", "desc")
                   )
                 : role === "sales admin"
