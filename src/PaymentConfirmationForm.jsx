@@ -34,6 +34,8 @@ function PaymentConfirmationForm() {
   const [showPopup, setShowPopup] = useState(false); // State to control popup visibility
   const [showPopupForPayConfirm, setshowPopupForPayConfirm] = useState(false);
   const barcodeRef = useRef(null); // Ref for barcode generation
+  const [paymentMode, setPaymentMode] = useState("");
+
   const {
     register,
     handleSubmit,
@@ -435,7 +437,7 @@ function PaymentConfirmationForm() {
         collectionName_BaseAwb.getCollection(
           JSON.parse(localStorage.getItem("LoginCredentials")).Location
         ),
-        final_result[0].id                                                  
+        final_result[0].id
       ); // db is your Firestore instance
 
       const updatedFields = {
@@ -484,6 +486,11 @@ function PaymentConfirmationForm() {
 
   const paymentConfirm = async () => {
     const validateForm = () => {
+      if (!paymentMode) {
+        setFormError("paymentMode");
+        return;
+      }
+
       if (!paymentProof) {
         setFormError("Payment proof Image is required.");
         return false;
@@ -521,6 +528,7 @@ function PaymentConfirmationForm() {
         final_result[0].id
       );
       const updatedFields = {
+        paymentMode: paymentMode,
         status: "PAYMENT DONE",
         paymentProof: await uploadFileToFirebase(paymentProof, "PAYMENT PROOF"),
         payment_Receipt_URL: Payment_URL,
@@ -918,6 +926,33 @@ function PaymentConfirmationForm() {
           ) : (
             ""
           )}
+          {details.status == "PAYMENT REQUESTED" ? (
+            <div className="flex flex-col mb-4">
+              <label className="text-gray-700 font-medium mb-1">
+                Select Payment Mode
+              </label>
+              <select
+                className="p-2  border rounded bg-gray-100"
+                value={paymentMode}
+                onChange={(e) => setPaymentMode(e.target.value)}
+              >
+                <option value="">Select Option</option>
+                <option value="Cash">Cash</option>
+                <option value="Credit/Debit Cards">Credit/Debit Cards</option>
+                <option value="UPI">UPI</option>
+                <option value="Bank Transfer">Bank Transfer</option>
+              </select>
+
+              {formError === "paymentMode" && (
+                <p className="text-red-500 text-sm mt-2">
+                  Please select a payment mode!
+                </p>
+              )}
+            </div>
+          ) : (
+            ""
+          )}
+
           <div className="flex flex-col mb-1">
             <label className="text-gray-700 font-medium mb-1">
               Enter Logistics Cost
