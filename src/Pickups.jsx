@@ -70,7 +70,6 @@ function Pickups() {
 
             const startTimestamp = Timestamp.fromDate(startDate);
             const endTimestamp = Timestamp.fromDate(endDate);
-
             if (role === "OPS Head") {
               q = query(
                 baseCollection,
