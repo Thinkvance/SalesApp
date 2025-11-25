@@ -518,7 +518,7 @@ export default function EscalationDashboard() {
         {modalOpen && activeRow && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-            onClick={closeModal}
+            // onClick={closeModal}
           >
             <div
               className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden"

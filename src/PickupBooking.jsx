@@ -928,8 +928,11 @@ function PickupBooking() {
                   <option value="UPS">UPS</option>
                   <option value="FedEx">FedEx</option>
                   <option value="TurboFox">TurboFox</option>
+                  <option value="DESK SELF">DESK SELF</option>
+                  <option value="ICL SELF">ICL SELF</option>
+                  <option value="ICL SELF">ICL SELF</option>
                   <option value="ATLANTIC">ATLANTIC</option>
-                  <option value="ExPlus">ExPlus</option>
+                  <option value="ICL FedEx">ICL FedEx</option>
                 </select>
                 {errors.vendor && (
                   <p className="text-red-500 text-sm mt-1">
