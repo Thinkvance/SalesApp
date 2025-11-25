@@ -269,7 +269,7 @@ export default function Myshipments() {
 
         comments: fbForm.comments.trim(),
         starRatings: rating,
-        discount: fbForm.discount || fbPickup.discount || "",
+        discount: fbForm.discount || fbPickup.discount || null,
 
         createdBy: username || "",
         createdAt: serverTimestamp(),
@@ -893,7 +893,7 @@ export default function Myshipments() {
       {fbModalOpen && fbPickup && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          onClick={closeFeedbackModal}
+          // onClick={closeFeedbackModal}
         >
           <div
             className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden"
@@ -1006,50 +1006,60 @@ export default function Myshipments() {
                   <label className="block text-sm font-semibold text-purple-700 mb-1">
                     Comments
                   </label>
-                  <textarea
-                    className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none ${
-                      fbMode === "add"
-                        ? "focus:ring-2 focus:ring-purple-600"
-                        : "bg-gray-50"
-                    }`}
-                    rows={3}
-                    value={fbForm.comments}
-                    onChange={(e) =>
-                      fbMode === "add"
-                        ? setFbForm((prev) => ({
-                            ...prev,
-                            comments: e.target.value,
-                          }))
-                        : null
-                    }
-                    readOnly={fbMode === "view"}
-                    placeholder="Write your feedback here…"
-                  />
+                  {fbMode === "view" ? (
+                    <p className="inline-block bg-gray-100 text-black px-2 py-1 rounded text-sm font-medium">
+                      {fbForm.comments}
+                    </p>
+                  ) : (
+                    <textarea
+                      className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600
+                      }`}
+                      rows={3}
+                      value={fbForm.comments}
+                      onChange={(e) =>
+                        fbMode === "add"
+                          ? setFbForm((prev) => ({
+                              ...prev,
+                              comments: e.target.value,
+                            }))
+                          : null
+                      }
+                      placeholder="Write your feedback here…"
+                    />
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-purple-700 mb-1">
                     Discount
                   </label>
-                  <input
-                    type="text"
-                    className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none ${
-                      fbMode === "add"
-                        ? "focus:ring-2 focus:ring-purple-600"
-                        : "bg-gray-50"
-                    }`}
-                    value={fbForm.discount}
-                    onChange={(e) =>
-                      fbMode === "add"
-                        ? setFbForm((prev) => ({
-                            ...prev,
-                            discount: e.target.value,
-                          }))
-                        : null
-                    }
-                    readOnly={fbMode === "view"}
-                    placeholder="Enter discount"
-                  />
+                  {fbMode === "view" ? (
+                    <p className="inline-block bg-gray-100 text-black px-2 py-1 rounded text-sm font-medium">
+                      {fbForm.discount == null || fbForm.discount === ""
+                        ? "-"
+                        : fbForm.discount}
+                    </p>
+                  ) : (
+                    <input
+                      type="text"
+                      className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none ${
+                        fbMode === "add"
+                          ? "focus:ring-2 focus:ring-purple-600"
+                          : "bg-gray-50"
+                      }`}
+                      value={fbForm.discount}
+                      onChange={(e) =>
+                        fbMode === "add"
+                          ? setFbForm((prev) => ({
+                              ...prev,
+                              discount: e.target.value,
+                            }))
+                          : null
+                      }
+                      readOnly={fbMode === "view"}
+                      placeholder="Enter discount"
+                    />
+                  )}
                 </div>
 
                 {fbError && (
