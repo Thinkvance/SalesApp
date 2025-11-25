@@ -34,4 +34,4 @@ jobs:
       - name: Deploy with rsync
         run: |
           rsync -avz --delete -e "ssh -p ${{ secrets.HOSTINGER_PORT }}" \
-            dist/ ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }}:/home/${{ secrets.HOSTINGER_USER }}/domains/shiphit.com/public_html/sales/
+            dist/ ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }}:/home/${{ secrets.HOSTINGER_USER }}/domains/shiphit.in/public_html/sales/
