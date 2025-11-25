@@ -70,13 +70,12 @@ function Pickups() {
 
             const startTimestamp = Timestamp.fromDate(startDate);
             const endTimestamp = Timestamp.fromDate(endDate);
-
             if (role === "OPS Head") {
               q = query(
                 baseCollection,
                 where("pickupDatetime", ">=", startTimestamp),
                 where("pickupDatetime", "<=", endTimestamp),
-                where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo)),
+                // where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo)),
                 orderBy("pickupDatetime", "desc")
               );
             } else if (role === "sales admin") {
@@ -101,11 +100,11 @@ function Pickups() {
               role === "OPS Head"
                 ? query(
                     baseCollection,
-                    where(
-                      "pickupDatetime",
-                      ">=",
-                      Timestamp.fromDate(oneMonthAgo)
-                    ),
+                    // where(
+                    //   "pickupDatetime",
+                    //   ">=",
+                    //   Timestamp.fromDate(oneMonthAgo)
+                    // ),
                     orderBy("pickupDatetime", "desc")
                   )
                 : role === "sales admin"
