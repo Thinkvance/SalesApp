@@ -8,6 +8,7 @@ import {
   Timestamp,
   where,
   doc,
+  setDoc,
   updateDoc,
   serverTimestamp,
   getDocs,
@@ -44,7 +45,9 @@ export default function Myshipments() {
   };
 
   const handleAddReport = (item) => {
-    openInNewTab(`/ReportForm?mode=add&awb=${encodeURIComponent(item.awbNumber)}`);
+    openInNewTab(
+      `/ReportForm?mode=add&awb=${encodeURIComponent(item.awbNumber)}`
+    );
   };
 
   // -------- View Escalations Modal (for any role) --------
@@ -81,14 +84,17 @@ export default function Myshipments() {
       <div className="flex items-start gap-1">
         <span className="font-semibold text-purple-700">{label}</span>
         <span className="text-black">:</span>
-        <span className={`text-black ${multiline ? "whitespace-pre-wrap break-words" : ""}`}>
+        <span
+          className={`text-black ${
+            multiline ? "whitespace-pre-wrap break-words" : ""
+          }`}
+        >
           {value || "-"}
         </span>
       </div>
     </div>
   );
 
-  // ✅ FIXED: No mixed where+orderBy; try numeric & string AWB; sort client-side
   const handleViewEscalation = async (item) => {
     setEscError("");
     setEscRows([]);
@@ -107,7 +113,10 @@ export default function Myshipments() {
       // Query by number (if numeric)
       try {
         if (isNum) {
-          const qNum = query(collection(db, "ecalatoins"), where("awbNumber", "==", awbNum));
+          const qNum = query(
+            collection(db, "ecalatoins"),
+            where("awbNumber", "==", awbNum)
+          );
           const snapNum = await getDocs(qNum);
           docsNum = snapNum.docs;
         }
@@ -117,7 +126,10 @@ export default function Myshipments() {
 
       // Query by string
       try {
-        const qStr = query(collection(db, "ecalatoins"), where("awbNumber", "==", String(awb)));
+        const qStr = query(
+          collection(db, "ecalatoins"),
+          where("awbNumber", "==", String(awb))
+        );
         const snapStr = await getDocs(qStr);
         docsStr = snapStr.docs;
       } catch (e) {
@@ -126,7 +138,9 @@ export default function Myshipments() {
 
       // Merge unique & sort by createdAt (oldest first)
       const mergedMap = new Map();
-      [...docsNum, ...docsStr].forEach((d) => mergedMap.set(d.id, { id: d.id, ...d.data() }));
+      [...docsNum, ...docsStr].forEach((d) =>
+        mergedMap.set(d.id, { id: d.id, ...d.data() })
+      );
       const merged = Array.from(mergedMap.values()).sort((a, b) => {
         const ta = a.escalationCreatedAt?.toDate?.() || new Date(0);
         const tb = b.escalationCreatedAt?.toDate?.() || new Date(0);
@@ -139,7 +153,6 @@ export default function Myshipments() {
       setEscRows(merged);
     } catch (e) {
       console.error(e);
-      // Gentle fallback: don't block modal, just message
       setEscError("No escalations found for this AWB.");
     } finally {
       setEscLoading(false);
@@ -152,7 +165,126 @@ export default function Myshipments() {
     setEscAwb(null);
   };
 
-  // -------- End Escalation helpers --------
+  // -------- FEEDBACK STATE --------
+
+  // Live feedback map: { [awbNumberString]: feedbackDocData }
+  const [feedbackByAwb, setFeedbackByAwb] = useState({});
+  const [fbModalOpen, setFbModalOpen] = useState(false);
+  const [fbPickup, setFbPickup] = useState(null);
+  const [fbForm, setFbForm] = useState({
+    comments: "",
+    discount: "",
+  });
+  const [rating, setRating] = useState(0);
+  const [hovered, setHovered] = useState(0);
+  const [fbSaving, setFbSaving] = useState(false);
+  const [fbError, setFbError] = useState("");
+  const [fbMode, setFbMode] = useState("add"); // "add" | "view"
+  const [fbExisting, setFbExisting] = useState(null);
+
+  // Subscribe to all feedback docs and build a map by AWB
+  useEffect(() => {
+    const q = collection(db, "feedback");
+    const unsub = onSnapshot(q, (snap) => {
+      const map = {};
+      snap.forEach((docSnap) => {
+        const d = docSnap.data();
+        const key = String(d.awbNumber);
+        map[key] = { id: docSnap.id, ...d };
+      });
+      setFeedbackByAwb(map);
+    });
+
+    return () => unsub();
+  }, []);
+
+  const openFeedbackModal = (item) => {
+    const key = String(item.awbNumber);
+    const existing = feedbackByAwb[key] || null;
+
+    setFbPickup(item);
+    setFbExisting(existing);
+    setFbMode(existing ? "view" : "add");
+
+    setFbForm({
+      comments: existing?.comments || "",
+      discount: existing?.discount ?? item.discount ?? "",
+    });
+
+    setRating(existing?.starRatings || 0);
+    setHovered(0);
+    setFbError("");
+    setFbModalOpen(true);
+  };
+
+  const closeFeedbackModal = () => {
+    if (fbSaving) return;
+    setFbModalOpen(false);
+    setFbPickup(null);
+    setFbExisting(null);
+    setFbMode("add");
+    setFbForm({
+      comments: "",
+      discount: "",
+    });
+    setRating(0);
+    setHovered(0);
+    setFbError("");
+  };
+
+  const handleFeedbackSubmit = async (e) => {
+    e.preventDefault();
+    if (!fbPickup || fbMode === "view") return;
+
+    // ⭐ Rating validation
+    if (!rating || rating < 1) {
+      setFbError("Please select at least 1 star.");
+      return;
+    }
+
+    // 📝 Comment length validation
+    const commentLength = fbForm.comments.trim().length;
+    if (commentLength < 20) {
+      setFbError("Comments must be at least 20 characters.");
+      return;
+    }
+    if (commentLength > 200) {
+      setFbError("Comments cannot exceed 200 characters.");
+      return;
+    }
+
+    setFbSaving(true);
+    setFbError("");
+
+    try {
+      // ⭐ USE SAME DOC ID AS PICKUP
+      await setDoc(doc(db, "feedback", fbPickup.id), {
+        awbNumber: fbPickup.awbNumber,
+        consignorName: fbPickup.consignorname,
+        consignorPhone: fbPickup.consignorphonenumber,
+        consigneeName: fbPickup.consigneename,
+        consigneePhone: fbPickup.consigneephonenumber,
+        service: fbPickup.service,
+        vendor: fbPickup.vendorName,
+
+        comments: fbForm.comments.trim(),
+        starRatings: rating,
+        discount: fbForm.discount || fbPickup.discount || "",
+
+        createdBy: username || "",
+        createdAt: serverTimestamp(),
+      });
+
+      closeFeedbackModal();
+    } catch (err) {
+      console.error("Error saving feedback:", err);
+      setFbError("Failed to save feedback. Please try again.");
+    } finally {
+      setFbSaving(false);
+    }
+  };
+
+  // -------- End Escalation / Feedback helpers --------
 
   async function Sharetrackinglink({
     name,
@@ -183,7 +315,12 @@ export default function Myshipments() {
               language: "en",
               templateData: {
                 body: {
-                  placeholders: [name, currentStatus_temp, destination, estimatedDelivery],
+                  placeholders: [
+                    name,
+                    currentStatus_temp,
+                    destination,
+                    estimatedDelivery,
+                  ],
                 },
                 buttons: [
                   {
@@ -200,13 +337,17 @@ export default function Myshipments() {
         ],
       };
 
-      await axios.post("https://public.doubletick.io/whatsapp/message/template", payload, {
-        headers: {
-          Authorization: "key_z6hIuLo8GC",
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-      });
+      await axios.post(
+        "https://public.doubletick.io/whatsapp/message/template",
+        payload,
+        {
+          headers: {
+            Authorization: "key_z6hIuLo8GC",
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+        }
+      );
     } catch (error) {
       console.log(error);
     }
@@ -223,7 +364,10 @@ export default function Myshipments() {
     if (!role) return;
     let qy;
     if (role === "Manager" || role === "sales admin") {
-      qy = query(collection(db, DB.db_collection), orderBy("pickupDatetime", "desc"));
+      qy = query(
+        collection(db, DB.db_collection),
+        orderBy("pickupDatetime", "desc")
+      );
     } else {
       qy = query(
         collection(db, DB.db_collection),
@@ -270,14 +414,22 @@ export default function Myshipments() {
       pending: "bg-yellow-100 text-yellow-800",
       closed: "bg-green-100 text-green-800",
     };
-    return <span className={`px-2 py-1 rounded text-[11px] font-medium ${map[type]}`}>{children}</span>;
+    return (
+      <span
+        className={`px-2 py-1 rounded text-[11px] font-medium ${map[type]}`}
+      >
+        {children}
+      </span>
+    );
   };
 
   return (
     <>
       <Nav />
       <div className="container mx-auto p-6">
-        <h2 className="text-3xl font-bold text-purple-700 mb-6">My Shipments</h2>
+        <h2 className="text-3xl font-bold text-purple-700 mb-6">
+          My Shipments
+        </h2>
         <div className="mb-6 flex flex-wrap gap-10">
           <input
             type="text"
@@ -313,8 +465,12 @@ export default function Myshipments() {
                   "Track",
                   "Details",
                   "Escalation",
+                  "Feedback",
                 ].map((header) => (
-                  <th key={header} className="py-3 px-4 whitespace-nowrap font-medium border">
+                  <th
+                    key={header}
+                    className="py-3 px-4 whitespace-nowrap font-medium border"
+                  >
                     {header}
                   </th>
                 ))}
@@ -323,25 +479,44 @@ export default function Myshipments() {
             <tbody>
               {filteredPickups.length > 0
                 ? filteredPickups.map((item, i) => {
-                    const escStatus = (item.escalationStatus || "none").toLowerCase(); // "none" | "pending" | "closed"
+                    const escStatus = (
+                      item.escalationStatus || "none"
+                    ).toLowerCase(); // "none" | "pending" | "closed"
+                    const fbKey = String(item.awbNumber);
+                    const hasFeedback = !!feedbackByAwb[fbKey];
+
                     return (
-                      <tr key={item.awbNumber} className="border-b hover:bg-gray-50 transition">
+                      <tr
+                        key={item.awbNumber}
+                        className="border-b hover:bg-gray-50 transition"
+                      >
                         <td className="px-4  py-2">{item.awbNumber}</td>
-                        <td className="px-4 border py-2">{item.consignorname}</td>
-                        <td className="px-4 border py-2">{item.consignorphonenumber}</td>
-                        <td className="px-4 border py-2">{item.consigneephonenumber}</td>
+                        <td className="px-4 border py-2">
+                          {item.consignorname}
+                        </td>
+                        <td className="px-4 border py-2">
+                          {item.consignorphonenumber}
+                        </td>
+                        <td className="px-4 border py-2">
+                          {item.consigneephonenumber}
+                        </td>
                         <td className="px-4 border py-2">{item.vendorName}</td>
-                        <td className="px-4 border py-2 whitespace-nowrap">{item.status}</td>
+                        <td className="px-4 border py-2 whitespace-nowrap">
+                          {item.status}
+                        </td>
 
                         <td className="px-4 border  py-2">
                           <div className="flex gap-2">
                             {["consignor", "consignee"].map((type) => {
-                              const isSelected = selectedRecipient[item.awbNumber] === type;
+                              const isSelected =
+                                selectedRecipient[item.awbNumber] === type;
                               return (
                                 <label
                                   key={type}
                                   className={`px-3 py-1 rounded-md border cursor-pointer text-xs font-medium ${
-                                    isSelected ? "bg-purple-700 text-white" : "bg-gray-100 text-gray-700"
+                                    isSelected
+                                      ? "bg-purple-700 text-white"
+                                      : "bg-gray-100 text-gray-700"
                                   }`}
                                 >
                                   <input
@@ -369,12 +544,14 @@ export default function Myshipments() {
                             <button
                               onClick={async () => {
                                 const recipientPhone =
-                                  selectedRecipient[item.awbNumber] === "consignor"
+                                  selectedRecipient[item.awbNumber] ===
+                                  "consignor"
                                     ? item.consignorphonenumber
                                     : item.consigneephonenumber;
 
                                 const recipientname =
-                                  selectedRecipient[item.awbNumber] === "consignor"
+                                  selectedRecipient[item.awbNumber] ===
+                                  "consignor"
                                     ? item.consignorname
                                     : item.consigneename;
 
@@ -385,11 +562,16 @@ export default function Myshipments() {
                                     mode: item.service,
                                     destination: item.destination,
                                     phone: recipientPhone,
-                                    currentStatus: item?.currentStatus?.toLowerCase(),
-                                    packageConnectedDataTime: item.packageConnectedDataTime,
+                                    currentStatus:
+                                      item?.currentStatus?.toLowerCase(),
+                                    packageConnectedDataTime:
+                                      item.packageConnectedDataTime,
                                   });
                                 } catch (err) {
-                                  console.error("Error sharing tracking link:", err);
+                                  console.error(
+                                    "Error sharing tracking link:",
+                                    err
+                                  );
                                 }
                               }}
                               className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-1.5 rounded-md text-xs font-semibold flex items-center justify-center gap-1"
@@ -397,14 +579,20 @@ export default function Myshipments() {
                             >
                               {loading ? (
                                 <div className="w-4 h-4">
-                                  <Lottie animationData={loadingAnimation} loop autoplay />
+                                  <Lottie
+                                    animationData={loadingAnimation}
+                                    loop
+                                    autoplay
+                                  />
                                 </div>
                               ) : (
                                 "Share"
                               )}
                             </button>
                           ) : (
-                            <span className="text-gray-400 text-xs">Select first</span>
+                            <span className="text-gray-400 text-xs">
+                              Select first
+                            </span>
                           )}
                         </td>
 
@@ -412,7 +600,9 @@ export default function Myshipments() {
                           {item.currentStatus}
                         </td>
                         <td className="text-[12px] px-4 py-2 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
-                          {utilityFunctions.formateFirebaseTimestamp(item.lastStatusUpdated)}
+                          {utilityFunctions.formateFirebaseTimestamp(
+                            item.lastStatusUpdated
+                          )}
                         </td>
 
                         <td className="px-4 py-2  border text-center">
@@ -448,7 +638,11 @@ export default function Myshipments() {
                             </div>
                           ) : (
                             <div className="flex items-center justify-center gap-2">
-                              <Pill type={escStatus === "closed" ? "closed" : "pending"}>
+                              <Pill
+                                type={
+                                  escStatus === "closed" ? "closed" : "pending"
+                                }
+                              >
                                 {escStatus === "closed" ? "Closed" : "Pending"}
                               </Pill>
                               <button
@@ -462,6 +656,24 @@ export default function Myshipments() {
                           )}
                         </td>
                         {/* -------- End Escalation Column -------- */}
+
+                        {/* -------- Feedback Column -------- */}
+                        <td className="px-4 py-2 border text-center">
+                          <button
+                            onClick={() => openFeedbackModal(item)}
+                            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors duration-200 ${
+                              hasFeedback
+                                ? "bg-yellow-100 text-yellow-800 border border-yellow-600 hover:bg-yellow-200"
+                                : "bg-yellow-600 text-white hover:bg-yellow-700"
+                            }`}
+                            title={
+                              hasFeedback ? "View Feedback" : "Add Feedback"
+                            }
+                          >
+                            {hasFeedback ? "View" : "Feedback"}
+                          </button>
+                        </td>
+                        {/* -------- End Feedback Column -------- */}
                       </tr>
                     );
                   })
@@ -477,7 +689,10 @@ export default function Myshipments() {
         </div>
 
         {isModalOpen && selectedPickup && (
-          <ShipmentDetails selectedPickup={selectedPickup} closeModal={closeModal} />
+          <ShipmentDetails
+            selectedPickup={selectedPickup}
+            closeModal={closeModal}
+          />
         )}
       </div>
 
@@ -495,7 +710,9 @@ export default function Myshipments() {
             <div className="sticky top-0 z-10 bg-white border-b px-5 py-3 flex items-center justify-between">
               <h3 className="text-lg md:text-xl font-bold text-purple-700">
                 Escalations for this AWB
-                {escAwb ? <span className="text-purple-700"> — {escAwb}</span> : null}
+                {escAwb ? (
+                  <span className="text-purple-700"> — {escAwb}</span>
+                ) : null}
               </h3>
               <button
                 onClick={closeEscModal}
@@ -519,30 +736,51 @@ export default function Myshipments() {
               ) : (
                 escRows.map((r) => {
                   const status = String(r.escalationStatus || "").toLowerCase();
-                  const imgs = Array.isArray(r.escalationImages) ? r.escalationImages : [];
-                  const cimgs = Array.isArray(r.closureImages) ? r.closureImages : [];
+                  const imgs = Array.isArray(r.escalationImages)
+                    ? r.escalationImages
+                    : [];
+                  const cimgs = Array.isArray(r.closureImages)
+                    ? r.closureImages
+                    : [];
 
                   return (
-                    <div key={r.id} className="rounded-xl border border-gray-200 shadow-sm p-4">
+                    <div
+                      key={r.id}
+                      className="rounded-xl border border-gray-200 shadow-sm p-4"
+                    >
                       {/* Top meta row */}
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
                           <span>
-                            <span className="font-semibold text-purple-700">Status</span>
+                            <span className="font-semibold text-purple-700">
+                              Status
+                            </span>
                             <span className="text-black"> : </span>
                             <span className="text-black">
-                              {status === "pending" ? "Pending" : status === "closed" ? "Closed" : "—"}
+                              {status === "pending"
+                                ? "Pending"
+                                : status === "closed"
+                                ? "Closed"
+                                : "—"}
                             </span>
                           </span>
                           <span>
-                            <span className="font-semibold text-purple-700">Category</span>
+                            <span className="font-semibold text-purple-700">
+                              Category
+                            </span>
                             <span className="text-black"> : </span>
-                            <span className="text-black">{r.escalationCategory || "-"}</span>
+                            <span className="text-black">
+                              {r.escalationCategory || "-"}
+                            </span>
                           </span>
                           <span>
-                            <span className="font-semibold text-purple-700">AWB</span>
+                            <span className="font-semibold text-purple-700">
+                              AWB
+                            </span>
                             <span className="text-black"> : </span>
-                            <span className="text-black">{r.awbNumber || "-"}</span>
+                            <span className="text-black">
+                              {r.awbNumber || "-"}
+                            </span>
                           </span>
                         </div>
                         <div className="text-xs text-gray-600">
@@ -552,14 +790,23 @@ export default function Myshipments() {
 
                       {/* Details grid */}
                       <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
-                        <Field label="Created By" value={r.escalationCreatedBy || "-"} />
+                        <Field
+                          label="Created By"
+                          value={r.escalationCreatedBy || "-"}
+                        />
                         <Field label="—" value="" /> {/* spacer */}
-                        <Field label="Message" value={r.escalationMessage || "-"} multiline />
+                        <Field
+                          label="Message"
+                          value={r.escalationMessage || "-"}
+                          multiline
+                        />
                       </div>
 
                       {/* Submitted Images */}
                       <div className="mt-4">
-                        <div className="text-sm font-semibold text-purple-700 mb-1">Submitted Images</div>
+                        <div className="text-sm font-semibold text-purple-700 mb-1">
+                          Submitted Images
+                        </div>
                         {imgs.length > 0 ? (
                           <div className="flex flex-wrap gap-3">
                             {imgs.map((src, i2) => (
@@ -569,12 +816,18 @@ export default function Myshipments() {
                                 onClick={() => openLightbox(imgs, i2)}
                                 title={`Image ${i2 + 1}`}
                               >
-                                <img src={src} alt="" className="w-full h-full object-cover" />
+                                <img
+                                  src={src}
+                                  alt=""
+                                  className="w-full h-full object-cover"
+                                />
                               </button>
                             ))}
                           </div>
                         ) : (
-                          <div className="text-xs text-gray-500">No images provided.</div>
+                          <div className="text-xs text-gray-500">
+                            No images provided.
+                          </div>
                         )}
                       </div>
 
@@ -583,13 +836,25 @@ export default function Myshipments() {
                         <>
                           <hr className="my-4 border-gray-200" />
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
-                            <Field label="Closed By" value={r.escalationClosedBy || "-"} />
-                            <Field label="Closed At" value={formatTS(r.escalationClosedAt)} />
-                            <Field label="Closure Note" value={r.closureNote || "-"} multiline />
+                            <Field
+                              label="Closed By"
+                              value={r.escalationClosedBy || "-"}
+                            />
+                            <Field
+                              label="Closed At"
+                              value={formatTS(r.escalationClosedAt)}
+                            />
+                            <Field
+                              label="Closure Note"
+                              value={r.closureNote || "-"}
+                              multiline
+                            />
                           </div>
 
                           <div className="mt-3">
-                            <div className="text-sm font-semibold text-purple-700 mb-1">Closure Images</div>
+                            <div className="text-sm font-semibold text-purple-700 mb-1">
+                              Closure Images
+                            </div>
                             {cimgs.length > 0 ? (
                               <div className="flex flex-wrap gap-3">
                                 {cimgs.map((src, i3) => (
@@ -599,12 +864,18 @@ export default function Myshipments() {
                                     onClick={() => openLightbox(cimgs, i3)}
                                     title={`Closure Image ${i3 + 1}`}
                                   >
-                                    <img src={src} alt="" className="w-full h-full object-cover" />
+                                    <img
+                                      src={src}
+                                      alt=""
+                                      className="w-full h-full object-cover"
+                                    />
                                   </button>
                                 ))}
                               </div>
                             ) : (
-                              <div className="text-xs text-gray-500">No closure images.</div>
+                              <div className="text-xs text-gray-500">
+                                No closure images.
+                              </div>
                             )}
                           </div>
                         </>
@@ -617,6 +888,212 @@ export default function Myshipments() {
           </div>
         </div>
       )}
+
+      {/* -------- FEEDBACK MODAL -------- */}
+      {fbModalOpen && fbPickup && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={closeFeedbackModal}
+        >
+          <div
+            className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="sticky top-0 z-10 bg-white border-b px-5 py-3 flex items-center justify-between">
+              <h3 className="text-lg md:text-xl font-bold text-purple-700">
+                {fbMode === "view" ? "View Feedback" : "Feedback"} —{" "}
+                {fbPickup.awbNumber}
+              </h3>
+              <button
+                onClick={closeFeedbackModal}
+                className="bg-red-600 text-white rounded-full w-8 h-8 text-sm font-bold flex items-center justify-center hover:bg-red-700"
+                title="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <form
+              onSubmit={handleFeedbackSubmit}
+              className="px-5 py-4 space-y-4"
+            >
+              {/* Basic shipment info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                <Field label="AWB" value={fbPickup.awbNumber} />
+                <Field label="Service" value={fbPickup.service} />
+                <Field label="Vendor" value={fbPickup.vendorName} />
+                <Field label="Consignor" value={fbPickup.consignorname} />
+                <Field
+                  label="Consignor No."
+                  value={fbPickup.consignorphonenumber}
+                />
+                <Field label="Consignee" value={fbPickup.consigneename} />
+                <Field
+                  label="Consignee No."
+                  value={fbPickup.consigneephonenumber}
+                />
+                <Field
+                  label="Discount"
+                  value={
+                    fbForm.discount ||
+                    fbPickup.discount ||
+                    fbExisting?.discount ||
+                    ""
+                  }
+                />
+              </div>
+
+              <hr className="border-gray-200" />
+
+              {/* Feedback fields */}
+              <div className="space-y-4">
+                {/* Star Rating with SVG stars */}
+                <div>
+                  <label className="block text-sm font-semibold text-purple-700 mb-1">
+                    Star Rating
+                  </label>
+                  <div className="flex items-center gap-1 mb-1">
+                    {[...Array(5)].map((_, i) => {
+                      const starIndex = i + 1;
+                      const activeValue =
+                        fbMode === "add" ? hovered || rating : rating;
+                      const isFilled = starIndex <= activeValue;
+
+                      const clickable = fbMode === "add";
+
+                      return (
+                        <svg
+                          key={i}
+                          onClick={
+                            clickable ? () => setRating(starIndex) : undefined
+                          }
+                          onMouseEnter={
+                            clickable ? () => setHovered(starIndex) : undefined
+                          }
+                          onMouseLeave={
+                            clickable ? () => setHovered(0) : undefined
+                          }
+                          className={`w-7 h-7 transition-all duration-300 transform ${
+                            clickable ? "cursor-pointer" : "cursor-default"
+                          } ${
+                            isFilled
+                              ? "text-purple-500 scale-110"
+                              : "text-white"
+                          } ${
+                            clickable
+                              ? "hover:text-purple-400 hover:scale-125"
+                              : ""
+                          } fill-current stroke-purple-500 stroke-[1.8]`}
+                          viewBox="0 0 24 24"
+                        >
+                          <polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9" />
+                        </svg>
+                      );
+                    })}
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    {rating
+                      ? `${rating} / 5`
+                      : fbMode === "add"
+                      ? "Click on a star to rate"
+                      : "No rating"}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-purple-700 mb-1">
+                    Comments
+                  </label>
+                  <textarea
+                    className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none ${
+                      fbMode === "add"
+                        ? "focus:ring-2 focus:ring-purple-600"
+                        : "bg-gray-50"
+                    }`}
+                    rows={3}
+                    value={fbForm.comments}
+                    onChange={(e) =>
+                      fbMode === "add"
+                        ? setFbForm((prev) => ({
+                            ...prev,
+                            comments: e.target.value,
+                          }))
+                        : null
+                    }
+                    readOnly={fbMode === "view"}
+                    placeholder="Write your feedback here…"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-purple-700 mb-1">
+                    Discount
+                  </label>
+                  <input
+                    type="text"
+                    className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none ${
+                      fbMode === "add"
+                        ? "focus:ring-2 focus:ring-purple-600"
+                        : "bg-gray-50"
+                    }`}
+                    value={fbForm.discount}
+                    onChange={(e) =>
+                      fbMode === "add"
+                        ? setFbForm((prev) => ({
+                            ...prev,
+                            discount: e.target.value,
+                          }))
+                        : null
+                    }
+                    readOnly={fbMode === "view"}
+                    placeholder="Enter discount"
+                  />
+                </div>
+
+                {fbError && (
+                  <div className="text-sm text-rose-600 font-medium">
+                    {fbError}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="mt-4 flex items-center justify-end gap-3">
+                {fbMode === "add" ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={closeFeedbackModal}
+                      className="px-4 py-1.5 rounded-md border text-sm"
+                      disabled={fbSaving}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-1.5 rounded-md bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-semibold disabled:opacity-60"
+                      disabled={fbSaving}
+                    >
+                      {fbSaving ? "Saving..." : "Save Feedback"}
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={closeFeedbackModal}
+                    className="px-4 py-1.5 rounded-md border text-sm"
+                  >
+                    Close
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* -------- End Feedback Modal -------- */}
 
       {/* Lightbox — top-right close, footer controls (no overlay) */}
       {lightboxOpen && (
@@ -657,7 +1134,9 @@ export default function Myshipments() {
               </div>
               <button
                 onClick={() =>
-                  setLightboxIndex((i) => Math.min(lightboxImages.length - 1, i + 1))
+                  setLightboxIndex((i) =>
+                    Math.min(lightboxImages.length - 1, i + 1)
+                  )
                 }
                 disabled={lightboxIndex === lightboxImages.length - 1}
                 className="px-3 py-1.5 text-sm rounded border disabled:opacity-50"
@@ -672,11 +1151,17 @@ export default function Myshipments() {
                   key={src + idx}
                   onClick={() => setLightboxIndex(idx)}
                   className={`w-16 h-16 rounded overflow-hidden border ${
-                    idx === lightboxIndex ? "border-purple-700" : "border-gray-200"
+                    idx === lightboxIndex
+                      ? "border-purple-700"
+                      : "border-gray-200"
                   }`}
                   title={`Image ${idx + 1}`}
                 >
-                  <img src={src} alt="" className="w-full h-full object-cover" />
+                  <img
+                    src={src}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
                 </button>
               ))}
             </div>
