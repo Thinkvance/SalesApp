@@ -3,9 +3,9 @@ import Nav from "./Nav";
 import axios from "axios";
 
 function StarRating({ value }) {
-  const fullStars = Math.floor(value);
+  const fullStars = Math.round(value || 0);
   return (
-    <div className="text-yellow-500 text-xl">
+    <div className="text-yellow-500 text-xl flex">
       {"★".repeat(fullStars)}
       {"☆".repeat(5 - fullStars)}
     </div>
@@ -16,7 +16,7 @@ function ReviewDashboard() {
   const [stats, setStats] = useState({});
 
   function formatFirestoreTimestamp(timestamp) {
-    const date = new Date(timestamp._seconds * 1000); // Convert seconds to milliseconds
+    const date = new Date(timestamp?._seconds * 1000);
     const options = { year: "numeric", month: "long", day: "numeric" };
     return date.toLocaleDateString("en-US", options);
   }
@@ -24,7 +24,7 @@ function ReviewDashboard() {
   useEffect(() => {
     axios
       .post(
-        "https://review-management-ujtg.onrender.com/api/v1/getReviewDashboardData",
+        "https://reviewbackend.shiphit.in/api/v1/getReviewDashboardData",
         {},
         {
           headers: {
@@ -34,7 +34,6 @@ function ReviewDashboard() {
       )
       .then((result) => {
         setStats(result.data);
-        console.log("result",result.data);
       })
       .catch((error) => {
         console.log("error", error);
@@ -47,50 +46,57 @@ function ReviewDashboard() {
   );
 
   return (
-    <div>
+    <div className="min-h-screen bg-gray-50">
       <Nav />
-      <div className="h-fit bg-white px-4 md:px-8 lg:px-16 py-6 font-sans max-w-5xl mx-auto">
-        {/* Top Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-purple-800">Reviews</h1>
+
+      <div className="max-w-6xl mx-auto px-4 md:px-8 py-10 font-sans">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-10">
+          <h1 className="text-3xl md:text-4xl font-bold text-purple-800">
+            Reviews Dashboard
+          </h1>
         </div>
 
         {/* Stats Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          <div className="bg-purple-100 rounded-xl border p-5 shadow-md flex flex-col justify-around">
-            <p className="text-sm text-purple-600 font-bold">Total Reviews</p>
-            <div className="flex items-baseline gap-2 flex-col">
-              <h2 className="text-2xl font-bold text-gray-800">
-                {stats?.totalReviews}
-              </h2>
-              <p className="text-gray-500 text-sm leading-relaxed mt-2">
-                Growth in reviews on this year
-              </p>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          {/* Total Reviews */}
+          <div className="bg-white border rounded-xl shadow-sm p-6 hover:shadow-md transition">
+            <p className="text-sm text-purple-600 font-semibold">
+              Total Reviews
+            </p>
+            <h2 className="text-4xl font-bold mt-3 text-gray-800">
+              {stats?.totalReviews}
+            </h2>
+            <p className="text-gray-500 text-xs mt-3">
+              Growth in reviews this year
+            </p>
           </div>
 
-          <div className="bg-purple-100 rounded-xl border p-5 shadow-md flex flex-col justify-around">
-            <p className="text-sm text-purple-600 font-bold">Average Rating</p>
-            <div className="flex items-baseline flex-col">
-              <h2 className="text-2xl font-bold text-gray-800">
-                {stats?.averageRatings}
-              </h2>
-              <StarRating value={stats.averageRating} />
-              <p className="text-gray-500 text-sm leading-relaxed mt-2">
-                Average rating on this year
-              </p>
-            </div>
+          {/* Average Rating */}
+          <div className="bg-white border rounded-xl shadow-sm p-6 hover:shadow-md transition">
+            <p className="text-sm text-purple-600 font-semibold">
+              Average Rating
+            </p>
+            <h2 className="text-4xl font-bold mt-3 text-gray-800">
+              {stats?.averageRating?.toFixed(1)}
+            </h2>
+            <StarRating value={stats?.averageRating || 0} />
+            <p className="text-gray-500 text-xs mt-3">
+              Average rating this year
+            </p>
           </div>
 
-          <div className="bg-purple-100 rounded-xl border p-5 shadow-md">
+          {/* Rating Distribution */}
+          <div className="bg-white border rounded-xl shadow-sm p-6 hover:shadow-md transition">
+            <h3 className="text-sm text-purple-600 font-semibold mb-4">
+              Rating Breakdown
+            </h3>
             {stats?.ratingDistribution?.map(({ star, count, color }) => (
-              <div key={star} className="flex items-center gap-2 text-sm mb-1">
-                <span className="w-2 text-gray-600 font-bold text-[12px]">
-                  {star}
-                </span>
-                <div className="flex-1 h-1 rounded-full bg-white overflow-hidden">
+              <div key={star} className="flex items-center gap-2 text-sm mb-3">
+                <span className="w-6 text-gray-700 font-semibold">{star}★</span>
+                <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                   <div
-                    className={`${color} h-1`}
+                    className={`${color} h-2 rounded-full`}
                     style={{
                       width: `${
                         totalRatingCount === 0
@@ -100,7 +106,7 @@ function ReviewDashboard() {
                     }}
                   ></div>
                 </div>
-                <span className="w-12 text-right text-gray-600 font-medium text-xs">
+                <span className="w-10 text-right text-gray-600 text-xs">
                   {count}
                 </span>
               </div>
@@ -114,59 +120,41 @@ function ReviewDashboard() {
             stats.reviews.map((review, idx) => (
               <div
                 key={idx}
-                className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm mb-4"
+                className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition"
               >
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                   {/* Info Section */}
-                  <div className="md:col-span-4 md:border-r-2 md:pr-4">
+                  <div className="md:col-span-4 border-b md:border-b-0 md:border-r pb-4 md:pb-0 md:pr-4">
                     <h3 className="text-xl font-bold text-purple-700 mb-4">
                       {review.name}
                     </h3>
+
                     <div className="space-y-3 text-sm">
-                      <div className="flex justify-between">
-                        <span className="font-medium text-gray-600">
-                          Total Logistics Cost
-                        </span>
-                        <span className="text-purple-600 font-semibold">
-                          {review.logisticCost == null
+                      <Item label="AWB Number" value={review.awbNumber} />
+                      <Item
+                        label="Total Logistics Cost"
+                        value={
+                          review.logisticCost == null
                             ? "Pending"
-                            : `Rs ${review.logisticCost}`}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-medium text-gray-600">
-                          Pickup Booked By
-                        </span>
-                        <span className="text-purple-600 font-semibold">
-                          {review.pickupBookedBy}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-medium text-gray-600">
-                          Pickup Executive
-                        </span>
-                        <span className="text-purple-600 font-semibold">
-                          {review.pickUpPersonName}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-medium text-gray-600">
-                          T-shirt
-                        </span>
-                        <span className="text-purple-600 font-semibold">
-                          {review.ratings.dressCode}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-medium text-gray-600">
-                          On Time ?
-                        </span>
-                        <span className="text-purple-600 font-semibold">
-                          {review.ratings.timeliness}
-                        </span>
-                      </div>
+                            : `Rs ${review.logisticCost}`
+                        }
+                      />
+                      <Item
+                        label="Pickup Booked By"
+                        value={review.pickupBookedBy}
+                      />
+                      <Item
+                        label="Pickup Executive"
+                        value={review.pickUpPersonName}
+                      />
+                      <Item label="T-shirt" value={review.ratings.dressCode} />
+                      <Item
+                        label="On Time?"
+                        value={review.ratings.timeliness}
+                      />
                     </div>
                   </div>
+
                   {/* Review Section */}
                   <div className="md:col-span-8 flex flex-col">
                     <div className="flex justify-between items-start">
@@ -175,6 +163,7 @@ function ReviewDashboard() {
                         {formatFirestoreTimestamp(review.reviewCreatedAt)}
                       </span>
                     </div>
+
                     <p className="mt-4 text-gray-700 text-sm leading-relaxed">
                       {review.reviewText}
                     </p>
@@ -189,6 +178,15 @@ function ReviewDashboard() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function Item({ label, value }) {
+  return (
+    <div className="flex justify-between">
+      <span className="text-gray-600 font-medium">{label}</span>
+      <span className="text-purple-700 font-semibold">{value}</span>
     </div>
   );
 }
