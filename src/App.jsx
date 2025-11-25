@@ -195,7 +195,7 @@ function App() {
               element={user ? <SalesReport /> : <Navigate to="/signin" />}
             />
             <Route
-              path="/accounts"
+              path="/Vendor-Report"
               element={user ? <Accounts /> : <Navigate to="/signin" />}
             />
             <Route
