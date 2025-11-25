@@ -1,22 +1,22 @@
-name: Deploy to Subdomain (sales.shiphit.in)
+name: Deploy to Hostinger (sales.shiphit.in)
 
 on:
   push:
     branches:
-      - salesv4-db-updated # or whichever branch you want to trigger deployment
+      - salesv4-db-updated
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: "18"
+          node-version: 18
 
       - name: Install dependencies
         run: npm install
@@ -24,14 +24,14 @@ jobs:
       - name: Build project
         run: npm run build
 
-      - name: Deploy to Hostinger via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.HOSTINGER_HOST }}
-          username: u331486718
-          key: ${{ secrets.HOSTINGER_SSH_KEY }}
-          port: 65002
-          script: |
-            cd /home/u331486718/domains/shiphit.com/public_html/sales
-            rm -rf *
-            cp -r dist/* .
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p ${{ secrets.HOSTINGER_PORT }} ${{ secrets.HOSTINGER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy with rsync
+        run: |
+          rsync -avz --delete -e "ssh -p ${{ secrets.HOSTINGER_PORT }}" \
+            dist/ ${{ secrets.HOSTINGER_USER }}@${{ secrets.HOSTINGER_HOST }}:/home/${{ secrets.HOSTINGER_USER }}/domains/shiphit.in/public_html/sales/

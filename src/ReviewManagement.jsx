@@ -25,7 +25,7 @@ function ReviewDashboard() {
     axios
       .post(
         "https://review-management-ujtg.onrender.com/api/v1/getReviewDashboardData",
-        {}, // empty body (if required)
+        {},
         {
           headers: {
             "Content-Type": "application/json",
@@ -34,6 +34,7 @@ function ReviewDashboard() {
       )
       .then((result) => {
         setStats(result.data);
+        console.log("result",result.data);
       })
       .catch((error) => {
         console.log("error", error);
