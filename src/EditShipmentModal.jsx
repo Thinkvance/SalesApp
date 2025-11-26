@@ -46,7 +46,6 @@ const EditShipmentModal = ({
   onClose,
   onSave,
   loadingEdit,
-  awbNumber,
 }) => {
   const {
     register,
@@ -119,7 +118,8 @@ const EditShipmentModal = ({
               ]}
               error={errors.vendorName}
             />
-            {pickup.actualWeight && user?.role == "sales admin" ? (
+            {pickup.actualWeight &&
+            ["sales admin", "Manager"].includes(user?.role) ? (
               <InputField
                 label="Final Weight"
                 name="actualWeight"
@@ -130,7 +130,8 @@ const EditShipmentModal = ({
             ) : (
               ""
             )}
-            {pickup.vendorAwbnumber && user?.role == "OPS Head" ? (
+            {pickup.vendorAwbnumber &&
+            ["OPS Head", "Manager"].includes(user?.role) ? (
               <InputField
                 label="vendorAwbnumber"
                 name="vendorAwbnumber"

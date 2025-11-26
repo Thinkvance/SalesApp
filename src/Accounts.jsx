@@ -21,6 +21,7 @@ import ShipmentDetails from "./ShipmentDetails";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import SalesReportBarChartSVendor from "./Charts/SalesReportBarChartSVendor";
+import EditShipmentModal from "./EditShipmentModal";
 
 dayjs.extend(customParseFormat);
 dayjs.extend(isBetween);
@@ -51,6 +52,10 @@ function Accounts() {
   const [selectedPickup, setSelectedPickup] = useState(null); // State to hold the selected pickup for modal
 
   const [pickupPersons, setPickupPersons] = useState([""]);
+  const [editPickup, setEditPickup] = useState(null);
+  const [isModalOpenEdit, setModalOpenEdit] = useState(false);
+  const [loadingEdit, setLoadingEdit] = useState(false);
+  const [Editedvalue, setEditedvalue] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
@@ -405,6 +410,45 @@ function Accounts() {
     }
   };
 
+  const handleEditClick = (pickup) => {
+    console.log("test");
+    setEditPickup({ ...pickup });
+    setModalOpenEdit(true);
+  };
+  function formatString(input) {
+    return input.trim().replace(/\s+/g, " ");
+  }
+
+  const handleSave = async (value) => {
+    console.log("test handle save!", value);
+    setLoadingEdit(true);
+    try {
+      const q = query(
+        collection(db, DB.db_collection),
+        where("awbNumber", "==", value.awbNumber)
+      );
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        const docRef = querySnapshot.docs[0].ref;
+        await updateDoc(docRef, {
+          vendorName: value.vendorName,
+          consignorname: value.consignorname,
+          service: value.service,
+          actualWeight: formatString(value.actualWeight),
+          logisticCost: parseInt(value.logisticCost),
+          vendorAwbnumber: value.vendorAwbnumber,
+        });
+      } else {
+        console.error("No document found with the given AWB number.");
+      }
+    } catch (error) {
+      console.log("error", error);
+    } finally {
+      setLoadingEdit(false);
+      setModalOpenEdit(false);
+    }
+  };
+
   return (
     <>
       <Nav />
@@ -661,6 +705,7 @@ function Accounts() {
                   "Vendor Payment",
                   "Margin",
                   "Payment Proof",
+                  "Edit Details",
                   "Details",
                 ].map((head, i) => (
                   <th
@@ -769,11 +814,22 @@ function Accounts() {
                         )}
                       </td>
                       <td className="px-4 py-2 text-center">
-                        <img
-                          className="w-8 cursor-pointer mt-3"
-                          src="more-icon.svg"
+                        <button
+                          className="text-sm px-4 py-2 rounded-lg border border-purple-300 text-purple-700 
+             hover:bg-purple-50 transition-all duration-200"
+                          onClick={() => handleEditClick(pickup)}
+                        >
+                          Edit
+                        </button>
+                      </td>
+                      <td className="px-4 py-2 text-center">
+                        <button
+                          className="text-sm px-4 py-2 rounded-lg border border-purple-300 text-purple-700 
+             hover:bg-purple-50 transition-all duration-200"
                           onClick={() => handleMoreIconClick(pickup)}
-                        />
+                        >
+                          View More
+                        </button>
                       </td>
                     </tr>
                   ))
@@ -830,6 +886,15 @@ function Accounts() {
             </div>
           </div>
         </div>
+      )}
+      {isModalOpenEdit && (
+        <EditShipmentModal
+          onChange={setEditedvalue}
+          pickup={editPickup}
+          onClose={() => setModalOpenEdit(false)}
+          onSave={handleSave}
+          loadingEdit={loadingEdit}
+        />
       )}
     </>
   );

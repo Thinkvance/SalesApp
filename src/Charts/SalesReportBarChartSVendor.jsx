@@ -47,7 +47,7 @@ export default function SalesReportBarChartVendor({ pickups = [] }) {
       };
     }
     acc[key].totalMargin += Number(item.margin) || 0;
-    acc[key].totalWeight += Number(item.weight) || 0;
+    acc[key].totalWeight += Number(item.actualWeight) || 0;
     acc[key].salesCount += 1;
     return acc;
   }, {});

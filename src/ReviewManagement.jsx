@@ -33,6 +33,7 @@ function ReviewDashboard() {
         }
       )
       .then((result) => {
+        console.log("result.data", result.data);
         setStats(result.data);
       })
       .catch((error) => {
@@ -58,59 +59,73 @@ function ReviewDashboard() {
         </div>
 
         {/* Stats Section */}
+        {/* Stats Section */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           {/* Total Reviews */}
-          <div className="bg-white border rounded-xl shadow-sm p-6 hover:shadow-md transition">
+          <div className="bg-white border rounded-2xl shadow-sm p-6 hover:shadow-lg transition-all duration-200">
             <p className="text-sm text-purple-600 font-semibold">
               Total Reviews
             </p>
-            <h2 className="text-4xl font-bold mt-3 text-gray-800">
+
+            <h2 className="text-4xl font-bold mt-4 text-gray-900 tracking-tight">
               {stats?.totalReviews}
             </h2>
+
             <p className="text-gray-500 text-xs mt-3">
               Growth in reviews this year
             </p>
           </div>
 
           {/* Average Rating */}
-          <div className="bg-white border rounded-xl shadow-sm p-6 hover:shadow-md transition">
+          <div className="bg-white border rounded-2xl shadow-sm p-6 hover:shadow-lg transition-all duration-200">
             <p className="text-sm text-purple-600 font-semibold">
               Average Rating
             </p>
-            <h2 className="text-4xl font-bold mt-3 text-gray-800">
-              {stats?.averageRating?.toFixed(1)}
+
+            <h2 className="text-4xl font-bold mt-4 text-gray-900 tracking-tight">
+              {stats?.averageRatings?.toFixed(1) || "0.0"}
             </h2>
-            <StarRating value={stats?.averageRating || 0} />
+
+            <StarRating value={stats?.averageRatings || 0} className="mt-1" />
+
             <p className="text-gray-500 text-xs mt-3">
               Average rating this year
             </p>
           </div>
 
-          {/* Rating Distribution */}
-          <div className="bg-white border rounded-xl shadow-sm p-6 hover:shadow-md transition">
+          {/* Rating Breakdown */}
+          <div className="bg-white border rounded-2xl shadow-sm p-6 hover:shadow-lg transition-all duration-200">
             <h3 className="text-sm text-purple-600 font-semibold mb-4">
               Rating Breakdown
             </h3>
-            {stats?.ratingDistribution?.map(({ star, count, color }) => (
-              <div key={star} className="flex items-center gap-2 text-sm mb-3">
-                <span className="w-6 text-gray-700 font-semibold">{star}★</span>
-                <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className={`${color} h-2 rounded-full`}
-                    style={{
-                      width: `${
-                        totalRatingCount === 0
-                          ? 0
-                          : (count / totalRatingCount) * 100
-                      }%`,
-                    }}
-                  ></div>
+
+            {stats?.ratingDistribution?.map(({ star, count, color }) => {
+              const safeTotal = totalRatingCount || 1; // prevents divide-by-zero
+              const percentage = (count / safeTotal) * 100;
+
+              return (
+                <div
+                  key={star}
+                  className="flex items-center gap-3 text-sm mb-3"
+                >
+                  <span className="w-6 text-gray-700 font-semibold">
+                    {star}★
+                  </span>
+
+                  {/* Progress Bar */}
+                  <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className={`${color} h-full rounded-full transition-all duration-500`}
+                      style={{ width: `${percentage}%` }}
+                    ></div>
+                  </div>
+
+                  <span className="w-10 text-right text-gray-600 text-xs">
+                    {count}
+                  </span>
                 </div>
-                <span className="w-10 text-right text-gray-600 text-xs">
-                  {count}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -120,25 +135,31 @@ function ReviewDashboard() {
             stats.reviews.map((review, idx) => (
               <div
                 key={idx}
-                className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition"
+                className="bg-white rounded-2xl border border-gray-200 p-6 shadow-md hover:shadow-lg transition-all duration-200"
               >
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
                   {/* Info Section */}
-                  <div className="md:col-span-4 border-b md:border-b-0 md:border-r pb-4 md:pb-0 md:pr-4">
-                    <h3 className="text-xl font-bold text-purple-700 mb-4">
+                  <div className="md:col-span-4 border-b md:border-b-0 md:border-r border-gray-200 pb-6 md:pb-0 md:pr-6">
+                    <h3 className="text-2xl font-semibold text-purple-700 mb-5">
                       {review.name}
                     </h3>
 
-                    <div className="space-y-3 text-sm">
+                    <div className="space-y-4 text-sm">
                       <Item label="AWB Number" value={review.awbNumber} />
+
                       <Item
                         label="Total Logistics Cost"
                         value={
-                          review.logisticCost == null
-                            ? "Pending"
-                            : `Rs ${review.logisticCost}`
+                          review.logisticCost == null ? (
+                            <span className="text-yellow-600 font-medium">
+                              Pending
+                            </span>
+                          ) : (
+                            `Rs ${review.logisticCost}`
+                          )
                         }
                       />
+
                       <Item
                         label="Pickup Booked By"
                         value={review.pickupBookedBy}
@@ -147,6 +168,7 @@ function ReviewDashboard() {
                         label="Pickup Executive"
                         value={review.pickUpPersonName}
                       />
+
                       <Item label="T-shirt" value={review.ratings.dressCode} />
                       <Item
                         label="On Time?"
@@ -159,12 +181,13 @@ function ReviewDashboard() {
                   <div className="md:col-span-8 flex flex-col">
                     <div className="flex justify-between items-start">
                       <StarRating value={review.ratings.overallRating} />
-                      <span className="text-sm text-gray-400">
+
+                      <span className="text-xs text-gray-400 font-medium">
                         {formatFirestoreTimestamp(review.reviewCreatedAt)}
                       </span>
                     </div>
 
-                    <p className="mt-4 text-gray-700 text-sm leading-relaxed">
+                    <p className="mt-5 text-gray-700 text-sm leading-relaxed bg-gray-50 p-4 rounded-xl border border-gray-100">
                       {review.reviewText}
                     </p>
                   </div>
