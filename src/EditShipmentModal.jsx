@@ -109,12 +109,12 @@ const EditShipmentModal = ({
                 "DHL",
                 "Aramex",
                 "UPS",
-                "FedEx",
-                "DESK SELF",
-                "BOMBINO",
-                "ATLANTIC",
                 "ExPlus",
+                "DESK SELF",
                 "TurboFox",
+                "ICL SELF",
+                "ICL FedEx",
+                "ATLANTIC",
               ]}
               error={errors.vendorName}
             />
