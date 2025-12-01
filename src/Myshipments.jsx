@@ -29,7 +29,8 @@ export default function Myshipments() {
   const [data, setdata] = useState([]);
   const [loading, setLoading] = useState(false);
   const [awbSearchTerm, setAwbSearchTerm] = useState("");
-  const [consignorPhoneSearchTerm, setConsignorPhoneSearchTerm] = useState("");
+  const [consignorPhoneSearchTerm, setConsignorPhoneSearchTerm] =
+    useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPickup, setSelectedPickup] = useState(null);
 
@@ -182,6 +183,9 @@ export default function Myshipments() {
   const [fbMode, setFbMode] = useState("add"); // "add" | "view"
   const [fbExisting, setFbExisting] = useState(null);
 
+  // NEW: discount toggle (Yes/No)
+  const [discountEnabled, setDiscountEnabled] = useState(false);
+
   // Subscribe to all feedback docs and build a map by AWB
   useEffect(() => {
     const q = collection(db, "feedback");
@@ -206,10 +210,15 @@ export default function Myshipments() {
     setFbExisting(existing);
     setFbMode(existing ? "view" : "add");
 
+    const initialDiscount = existing?.discount ?? item.discount ?? "";
+
     setFbForm({
       comments: existing?.comments || "",
-      discount: existing?.discount ?? item.discount ?? "",
+      discount: initialDiscount,
     });
+
+    // Toggle YES if there is an existing discount; otherwise NO
+    setDiscountEnabled(!!initialDiscount);
 
     setRating(existing?.starRatings || 0);
     setHovered(0);
@@ -230,6 +239,7 @@ export default function Myshipments() {
     setRating(0);
     setHovered(0);
     setFbError("");
+    setDiscountEnabled(false);
   };
 
   const handleFeedbackSubmit = async (e) => {
@@ -253,6 +263,24 @@ export default function Myshipments() {
       return;
     }
 
+    // 💰 Discount validation (only if toggle is ON and field not empty)
+    let cleanedDiscount = null;
+    if (discountEnabled && fbForm.discount.trim() !== "") {
+      const d = fbForm.discount.trim();
+
+      if (!/^\d+$/.test(d)) {
+        setFbError("Discount must be numeric digits only.");
+        return;
+      }
+
+      if (d.length > 4) {
+        setFbError("Discount cannot exceed 4 digits.");
+        return;
+      }
+
+      cleanedDiscount = d;
+    }
+
     setFbSaving(true);
     setFbError("");
 
@@ -269,7 +297,8 @@ export default function Myshipments() {
 
         comments: fbForm.comments.trim(),
         starRatings: rating,
-        discount: fbForm.discount || fbPickup.discount || null,
+        // Store discount only if toggle ON and valid
+        discount: cleanedDiscount,
 
         createdBy: username || "",
         createdAt: serverTimestamp(),
@@ -726,16 +755,22 @@ export default function Myshipments() {
             {/* Body */}
             <div className="max-h-[80vh] overflow-y-auto px-5 py-4 space-y-4">
               {escLoading ? (
-                <div className="text-center text-gray-600 py-10">Loading…</div>
+                <div className="text-center text-gray-600 py-10">
+                  Loading…
+                </div>
               ) : escError ? (
-                <div className="text-center text-rose-600 py-6">{escError}</div>
+                <div className="text-center text-rose-600 py-6">
+                  {escError}
+                </div>
               ) : escRows.length === 0 ? (
                 <div className="text-center text-gray-600 py-10">
                   No escalations found for this AWB.
                 </div>
               ) : (
                 escRows.map((r) => {
-                  const status = String(r.escalationStatus || "").toLowerCase();
+                  const status = String(
+                    r.escalationStatus || ""
+                  ).toLowerCase();
                   const imgs = Array.isArray(r.escalationImages)
                     ? r.escalationImages
                     : [];
@@ -893,7 +928,6 @@ export default function Myshipments() {
       {fbModalOpen && fbPickup && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          // onClick={closeFeedbackModal}
         >
           <div
             className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden"
@@ -1012,8 +1046,7 @@ export default function Myshipments() {
                     </p>
                   ) : (
                     <textarea
-                      className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600
-                      }`}
+                      className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600`}
                       rows={3}
                       value={fbForm.comments}
                       onChange={(e) =>
@@ -1029,10 +1062,12 @@ export default function Myshipments() {
                   )}
                 </div>
 
+                {/* Discount with toggle */}
                 <div>
                   <label className="block text-sm font-semibold text-purple-700 mb-1">
                     Discount
                   </label>
+
                   {fbMode === "view" ? (
                     <p className="inline-block bg-gray-100 text-black px-2 py-1 rounded text-sm font-medium">
                       {fbForm.discount == null || fbForm.discount === ""
@@ -1040,25 +1075,53 @@ export default function Myshipments() {
                         : fbForm.discount}
                     </p>
                   ) : (
-                    <input
-                      type="text"
-                      className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none ${
-                        fbMode === "add"
-                          ? "focus:ring-2 focus:ring-purple-600"
-                          : "bg-gray-50"
-                      }`}
-                      value={fbForm.discount}
-                      onChange={(e) =>
-                        fbMode === "add"
-                          ? setFbForm((prev) => ({
+                    <>
+                      {/* Toggle row */}
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-xs text-gray-600">
+                          Apply discount?
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setDiscountEnabled((prev) => !prev)
+                          }
+                          className={`relative inline-flex items-center h-6 w-11 rounded-full transition-colors duration-200 ${
+                            discountEnabled ? "bg-purple-600" : "bg-gray-300"
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                              discountEnabled
+                                ? "translate-x-5"
+                                : "translate-x-1"
+                            }`}
+                          />
+                        </button>
+                        <span className="text-xs text-gray-700">
+                          {discountEnabled ? "Yes" : "No"}
+                        </span>
+                      </div>
+
+                      {/* Discount input only when toggle is YES */}
+                      {discountEnabled && (
+                        <input
+                          type="text"
+                          className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600"
+                          value={fbForm.discount}
+                          onChange={(e) =>
+                            setFbForm((prev) => ({
                               ...prev,
-                              discount: e.target.value,
+                              // only digits, max 4 chars
+                              discount: e.target.value
+                                .replace(/\D/g, "")
+                                .slice(0, 4),
                             }))
-                          : null
-                      }
-                      readOnly={fbMode === "view"}
-                      placeholder="Enter discount"
-                    />
+                          }
+                          placeholder="Enter discount (max 4 digits)"
+                        />
+                      )}
+                    </>
                   )}
                 </div>
 

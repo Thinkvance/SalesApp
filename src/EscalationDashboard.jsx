@@ -4,10 +4,12 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import DB from "./DB/DB";
@@ -56,7 +58,7 @@ export default function EscalationDashboard() {
   const [activeRow, setActiveRow] = useState(null);
   const [shipment, setShipment] = useState(null);
 
-  // Lightbox (submitted images)
+  // Lightbox (submitted / closure images)
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImages, setLightboxImages] = useState([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -86,11 +88,10 @@ export default function EscalationDashboard() {
   const isPrivileged = roleLower === "manager" || roleLower === "sales admin";
   const isManager = roleLower === "manager";
 
-  // Subscribe to escalations; order OLDEST FIRST (asc) — available to Manager + Sales Admin
+  // Subscribe to escalations; order OLDEST FIRST (asc)
   useEffect(() => {
     if (!role) return;
     if (!isPrivileged) {
-      // Non-privileged users do not load escalations
       setLoading(false);
       return;
     }
@@ -150,7 +151,6 @@ export default function EscalationDashboard() {
           .includes(s)
       );
 
-    // safety-net sort: OLDEST FIRST
     res.sort(
       (a, b) =>
         getMillis(a.escalationCreatedAt) - getMillis(b.escalationCreatedAt)
@@ -176,14 +176,71 @@ export default function EscalationDashboard() {
     setLightboxIndex(0);
 
     try {
+      let shipmentData = null;
+
+      // 1) Try via stored pickupDocId / shipmentDocId
       const shipId = row.pickupDocId || row.shipmentDocId;
       if (shipId) {
         const shipRef = doc(db, DB.db_collection, shipId);
         const snap = await getDoc(shipRef);
-        if (snap.exists()) setShipment(snap.data());
+        if (snap.exists()) {
+          shipmentData = { id: snap.id, ...snap.data() };
+        }
+      }
+
+      // 2) Fallback: look up by AWB number in shipment collection
+      if (!shipmentData && row.awbNumber != null) {
+        const awb = row.awbNumber;
+        const awbNum = Number(awb);
+        const isNum = !Number.isNaN(awbNum);
+
+        // Try numeric AWB
+        if (isNum) {
+          try {
+            const qNum = query(
+              collection(db, DB.db_collection),
+              where("awbNumber", "==", awbNum)
+            );
+            const snapNum = await getDocs(qNum);
+            if (!snapNum.empty) {
+              const d = snapNum.docs[0];
+              shipmentData = { id: d.id, ...d.data() };
+            }
+          } catch (e) {
+            console.warn("Numeric AWB shipment query failed:", e);
+          }
+        }
+
+        // Try string AWB if still not found
+        if (!shipmentData) {
+          try {
+            const qStr = query(
+              collection(db, DB.db_collection),
+              where("awbNumber", "==", String(awb))
+            );
+            const snapStr = await getDocs(qStr);
+            if (!snapStr.empty) {
+              const d = snapStr.docs[0];
+              shipmentData = { id: d.id, ...d.data() };
+            }
+          } catch (e) {
+            console.warn("String AWB shipment query failed:", e);
+          }
+        }
+      }
+
+      if (shipmentData) {
+        setShipment(shipmentData);
+      } else {
+        console.warn(
+          "No linked shipment found for escalation with AWB:",
+          row.awbNumber
+        );
+        setShipment(null);
       }
     } catch (e) {
       console.warn("Failed to load shipment for escalation:", e);
+      setShipment(null);
     }
 
     setModalOpen(true);
@@ -247,7 +304,7 @@ export default function EscalationDashboard() {
     return urls;
   };
 
-  // Validation: min 100 chars note + min 1 image
+  // Validation: min 15 chars note + min 1 image
   const canClose =
     isManager &&
     String(activeRow?.escalationStatus || "").toLowerCase() === "pending" &&
@@ -357,7 +414,6 @@ export default function EscalationDashboard() {
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-3 mb-4">
           <div className="flex items-center gap-2">
-            {/* Quick filters including "Closed Reports" (closed only shown to privileged users) */}
             <button
               onClick={() => setStatusFilter("pending")}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold border ${
@@ -403,7 +459,7 @@ export default function EscalationDashboard() {
             className="border border-gray-300 rounded py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600"
           />
         </div>
-        {/* Table (Images column removed) */}
+
         <div className="overflow-x-auto border rounded-lg shadow">
           <table className="min-w-full bg-white text-sm">
             <thead className="bg-purple-700 text-white text-left">
@@ -514,12 +570,10 @@ export default function EscalationDashboard() {
             </tbody>
           </table>
         </div>
+
         {/* Modal */}
         {modalOpen && activeRow && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-            // onClick={closeModal}
-          >
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
             <div
               className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
@@ -570,38 +624,67 @@ export default function EscalationDashboard() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
                     <Info
                       label="Consignor Name"
-                      value={shipment?.consignorname || "-"}
+                      value={
+                        shipment?.consignorname ??
+                        activeRow?.consignorname ??
+                        "-"
+                      }
                     />
                     <Info
                       label="Consignor Phone No"
-                      value={shipment?.consignorphonenumber || "-"}
+                      value={
+                        shipment?.consignorphonenumber ??
+                        activeRow?.consignorphonenumber ??
+                        "-"
+                      }
                     />
                     <Info
                       label="Consignee Name"
-                      value={shipment?.consigneename || "-"}
+                      value={
+                        shipment?.consigneename ??
+                        activeRow?.consigneename ??
+                        "-"
+                      }
                     />
                     <Info
                       label="Consignee Phone No"
-                      value={shipment?.consigneephonenumber || "-"}
+                      value={
+                        shipment?.consigneephonenumber ??
+                        activeRow?.consigneephonenumber ??
+                        "-"
+                      }
                     />
                     <Info
                       label="Destination"
-                      value={shipment?.destination || "-"}
+                      value={
+                        shipment?.destination ?? activeRow?.destination ?? "-"
+                      }
                     />
-                    <Info label="Vendor" value={shipment?.vendorName || "-"} />
-                    <Info label="Service" value={shipment?.service || "-"} />
+                    <Info
+                      label="Vendor"
+                      value={
+                        shipment?.vendorName ?? activeRow?.vendorName ?? "-"
+                      }
+                    />
+                    <Info
+                      label="Service"
+                      value={shipment?.service ?? activeRow?.service ?? "-"}
+                    />
                     <div className="flex items-center gap-3 bg-gray-50 border border-purple-200 rounded-xl px-4 py-2 w-fit shadow-sm">
                       <span className="font-semibold text-purple-700 text-base">
                         Escalation Category:
                       </span>
                       <p
                         className={`text-base px-3 py-1 rounded-md text-white font-medium ${
-                          shipment?.escalationCategory
+                          shipment?.escalationCategory ??
+                          activeRow?.escalationCategory
                             ? "bg-red-500"
                             : "bg-gray-400"
                         }`}
                       >
-                        {shipment?.escalationCategory || "Not Assigned"}
+                        {shipment?.escalationCategory ??
+                          activeRow?.escalationCategory ??
+                          "Not Assigned"}
                       </p>
                     </div>
                   </div>
@@ -613,9 +696,10 @@ export default function EscalationDashboard() {
                   <h3 className="text-lg font-semibold text-purple-700 mb-2">
                     Submitted Images
                   </h3>
-                  {lightboxImages.length > 0 ? (
+                  {Array.isArray(activeRow.escalationImages) &&
+                  activeRow.escalationImages.length > 0 ? (
                     <div className="flex flex-wrap gap-3">
-                      {lightboxImages.map((src, idx) => (
+                      {activeRow.escalationImages.map((src, idx) => (
                         <button
                           key={src + idx}
                           className={`w-20 h-20 rounded overflow-hidden border ${
@@ -624,6 +708,7 @@ export default function EscalationDashboard() {
                               : "border-gray-200"
                           }`}
                           onClick={() => {
+                            setLightboxImages(activeRow.escalationImages);
                             setLightboxIndex(idx);
                             setLightboxOpen(true);
                           }}
@@ -645,6 +730,67 @@ export default function EscalationDashboard() {
                   <hr className="mt-4 border-gray-200" />
                 </section>
 
+                {/* Closure Details (for closed) */}
+                {String(activeRow.escalationStatus || "").toLowerCase() ===
+                  "closed" && (
+                  <section>
+                    <h3 className="text-lg font-semibold text-purple-700 mb-2">
+                      Closure Details
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+                      <Info
+                        label="Closed By"
+                        value={activeRow.escalationClosedBy || "-"}
+                      />
+                      <Info
+                        label="Closed At"
+                        value={formatTimestamp(activeRow.escalationClosedAt)}
+                      />
+                      <Info
+                        label="Closure Note"
+                        value={activeRow.closureNote || "-"}
+                        multiline
+                      />
+                    </div>
+
+                    <div className="mt-3">
+                      <h4 className="text-sm font-semibold text-purple-700 mb-1">
+                        Closure Images
+                      </h4>
+                      {Array.isArray(activeRow.closureImages) &&
+                      activeRow.closureImages.length > 0 ? (
+                        <div className="flex flex-wrap gap-3">
+                          {activeRow.closureImages.map((src, idx) => (
+                            <button
+                              key={src + idx}
+                              className="w-20 h-20 rounded overflow-hidden border border-gray-200"
+                              onClick={() => {
+                                setLightboxImages(activeRow.closureImages);
+                                setLightboxIndex(idx);
+                                setLightboxOpen(true);
+                              }}
+                              title={`Closure Image ${idx + 1}`}
+                            >
+                              <img
+                                src={src}
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-gray-500">
+                          No closure images.
+                        </div>
+                      )}
+                    </div>
+
+                    <hr className="mt-4 border-gray-200" />
+                  </section>
+                )}
+
                 {/* Close section (Manager only + pending) */}
                 {String(activeRow.escalationStatus || "").toLowerCase() ===
                   "pending" &&
@@ -654,7 +800,7 @@ export default function EscalationDashboard() {
                         Close Escalation
                       </h3>
 
-                      {/* Description to close (min 100 chars) */}
+                      {/* Description to close */}
                       <div className="mb-3">
                         <div className="text-sm font-semibold text-purple-700">
                           Description to Close{" "}
@@ -677,7 +823,7 @@ export default function EscalationDashboard() {
                         )}
                       </div>
 
-                      {/* Proof Images (min 1) */}
+                      {/* Proof Images */}
                       <div className="mb-3">
                         <div className="text-sm font-semibold text-purple-700">
                           Proof Images <span className="text-rose-600">*</span>
@@ -751,7 +897,8 @@ export default function EscalationDashboard() {
             </div>
           </div>
         )}
-        {/* Lightbox — close at top-right, Prev/Next in footer (no overlay) */}
+
+        {/* Lightbox */}
         {lightboxOpen && (
           <div
             className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
@@ -761,7 +908,6 @@ export default function EscalationDashboard() {
               className="relative bg-white rounded-lg shadow-xl max-w-3xl w-full p-4"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Close button top-right */}
               <button
                 onClick={() => setLightboxOpen(false)}
                 className="absolute top-2 right-2 bg-red-600 text-white rounded-full w-8 h-8 text-sm font-bold flex items-center justify-center hover:bg-red-700"
@@ -770,7 +916,6 @@ export default function EscalationDashboard() {
                 ✕
               </button>
 
-              {/* Image area */}
               <div className="w-full max-h-[70vh] overflow-hidden flex items-center justify-center pt-6">
                 <img
                   src={lightboxImages[lightboxIndex]}
@@ -779,7 +924,6 @@ export default function EscalationDashboard() {
                 />
               </div>
 
-              {/* Footer controls to avoid overlay */}
               <div className="mt-4 flex items-center justify-between">
                 <button
                   onClick={() => setLightboxIndex((i) => Math.max(0, i - 1))}
@@ -804,7 +948,6 @@ export default function EscalationDashboard() {
                 </button>
               </div>
 
-              {/* Thumbs row */}
               <div className="mt-3 flex flex-wrap gap-2">
                 {lightboxImages.map((src, idx) => (
                   <button
