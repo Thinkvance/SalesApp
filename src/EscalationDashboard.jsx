@@ -183,6 +183,7 @@ export default function EscalationDashboard() {
       if (shipId) {
         const shipRef = doc(db, DB.db_collection, shipId);
         const snap = await getDoc(shipRef);
+        console.log("snap", snap.data());
         if (snap.exists()) {
           shipmentData = { id: snap.id, ...snap.data() };
         }
@@ -390,6 +391,8 @@ export default function EscalationDashboard() {
       </div>
     );
   }
+
+  console.log("shipment", shipment);
 
   return (
     <div>
