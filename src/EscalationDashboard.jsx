@@ -543,6 +543,10 @@ export default function EscalationDashboard() {
                 {/* Submitted escalation core */}
                 <section className="space-y-2">
                   <Info
+                    label="Escalation Category"
+                    value={String(activeRow.escalationCategory || "-")}
+                  />
+                  <Info
                     label="Status"
                     value={String(activeRow.escalationStatus || "-")}
                   />
