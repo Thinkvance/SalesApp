@@ -3,7 +3,7 @@ name: Deploy to Hostinger (sales.shiphit.in)
 on:
   push:
     branches:
-      - main-dev
+      - salesv4-db-updated
 
 jobs:
   deploy:
