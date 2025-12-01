@@ -22,6 +22,7 @@ import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import SalesReportBarChartSVendor from "./Charts/SalesReportBarChartSVendor";
 import EditShipmentModal from "./EditShipmentModal";
+import { FiCheck, FiClipboard } from "react-icons/fi";
 
 dayjs.extend(customParseFormat);
 dayjs.extend(isBetween);
@@ -56,6 +57,7 @@ function Accounts() {
   const [isModalOpenEdit, setModalOpenEdit] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [Editedvalue, setEditedvalue] = useState(null);
+  const [copied, setCopied] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
@@ -448,6 +450,11 @@ function Accounts() {
       setModalOpenEdit(false);
     }
   };
+  const handleCopy = (vendorAwbnumber) => {
+    navigator.clipboard.writeText(vendorAwbnumber);
+    setCopied(vendorAwbnumber); // mark only this awb as copied
+    setTimeout(() => setCopied(null), 1500);
+  };
 
   return (
     <>
@@ -692,7 +699,6 @@ function Accounts() {
                   "Consignor Name",
                   "Phone",
                   "Destination",
-                  "Weight",
                   "Vendor",
                   "Source",
                   "Pickup Area",
@@ -701,9 +707,11 @@ function Accounts() {
                   "Booked By",
                   "Pickup Person",
                   "Status",
+                  "Weight",
                   "Sales Close",
                   "Vendor Payment",
                   "Margin",
+                  "Vendor AWB Number",
                   "Payment Proof",
                   "Edit Details",
                   "Details",
@@ -743,9 +751,7 @@ function Accounts() {
                         {pickup.consignorphonenumber}
                       </td>
                       <td className="py-3 px-4 border">{pickup.destination}</td>
-                      <td className="py-3 px-4 border">
-                        {pickup.internalWeight}
-                      </td>
+
                       <td className="py-3 px-4 border">{pickup.vendorName}</td>
                       <td className="py-3 px-4 border">{pickup.Source}</td>
                       <td className="py-3 px-4 border">{pickup.pickuparea}</td>
@@ -763,6 +769,9 @@ function Accounts() {
                       </td>
                       <td className="py-3 px-4 border text-center">
                         {pickup.status}
+                      </td>
+                      <td className="py-3 px-4 border">
+                        {pickup.internalWeight}
                       </td>
                       <td className="py-3 px-4 border">
                         {pickup.logisticCost || "--"}
@@ -797,6 +806,30 @@ function Accounts() {
                       </td>
                       <td className="py-3 px-4 border">
                         {pickup.margin || "--"}
+                      </td>
+                      <td className="py-3 px-4 border">
+                        <div className="flex justify-between">
+                          {pickup.vendorAwbnumber || "--"}
+                          {pickup.vendorAwbnumber && (
+                            <button
+                              onClick={() => handleCopy(pickup.vendorAwbnumber)}
+                              className="text-purple-600 hover:text-purple-800 transition-colors duration-200"
+                              title="Copy AWB"
+                            >
+                              {copied === pickup.vendorAwbnumber ? (
+                                <FiCheck
+                                  size={20}
+                                  className="text-green-600 animate-bounce"
+                                />
+                              ) : (
+                                <FiClipboard
+                                  size={20}
+                                  className="hover:scale-110 transition-transform"
+                                />
+                              )}
+                            </button>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-4 border">
                         {pickup.paymentProof ? (
