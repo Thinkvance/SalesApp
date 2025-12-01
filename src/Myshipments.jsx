@@ -29,11 +29,9 @@ export default function Myshipments() {
   const [data, setdata] = useState([]);
   const [loading, setLoading] = useState(false);
   const [awbSearchTerm, setAwbSearchTerm] = useState("");
-  const [consignorPhoneSearchTerm, setConsignorPhoneSearchTerm] =
-    useState("");
+  const [consignorPhoneSearchTerm, setConsignorPhoneSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPickup, setSelectedPickup] = useState(null);
-
   // -------- Escalation helpers --------
   const ORIGIN = typeof window !== "undefined" ? window.location.origin : "";
   const ESCALATION_ADD_URL = (awb, escalationId) =>
@@ -452,6 +450,40 @@ export default function Myshipments() {
     );
   };
 
+  const tableHeader =
+    role === "Manager" || role === "sales admin"
+      ? [
+          "AWB",
+          "Consignor Name",
+          "Consignor No.",
+          "Consignee No.",
+          "Vendor",
+          "Status",
+          "Send To",
+          "Share",
+          "Current Status",
+          "Last Update",
+          "Track",
+          "Details",
+          "Escalation",
+          "Feedback",
+        ]
+      : [
+          "AWB",
+          "Consignor Name",
+          "Consignor No.",
+          "Consignee No.",
+          "Vendor",
+          "Status",
+          "Send To",
+          "Share",
+          "Current Status",
+          "Last Update",
+          "Track",
+          "Details",
+          "Escalation",
+        ];
+
   return (
     <>
       <Nav />
@@ -480,22 +512,7 @@ export default function Myshipments() {
           <table className="min-w-full bg-white text-sm">
             <thead className="bg-purple-700 text-white text-left">
               <tr>
-                {[
-                  "AWB",
-                  "Consignor Name",
-                  "Consignor No.",
-                  "Consignee No.",
-                  "Vendor",
-                  "Status",
-                  "Send To",
-                  "Share",
-                  "Current Status",
-                  "Last Update",
-                  "Track",
-                  "Details",
-                  "Escalation",
-                  "Feedback",
-                ].map((header) => (
+                {tableHeader.map((header) => (
                   <th
                     key={header}
                     className="py-3 px-4 whitespace-nowrap font-medium border"
@@ -687,21 +704,25 @@ export default function Myshipments() {
                         {/* -------- End Escalation Column -------- */}
 
                         {/* -------- Feedback Column -------- */}
-                        <td className="px-4 py-2 border text-center">
-                          <button
-                            onClick={() => openFeedbackModal(item)}
-                            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors duration-200 ${
-                              hasFeedback
-                                ? "bg-yellow-100 text-yellow-800 border border-yellow-600 hover:bg-yellow-200"
-                                : "bg-yellow-600 text-white hover:bg-yellow-700"
-                            }`}
-                            title={
-                              hasFeedback ? "View Feedback" : "Add Feedback"
-                            }
-                          >
-                            {hasFeedback ? "View" : "Feedback"}
-                          </button>
-                        </td>
+                        {role == "Manager" || role == "sales admin" ? (
+                          <td className="px-4 py-2 border text-center">
+                            <button
+                              onClick={() => openFeedbackModal(item)}
+                              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors duration-200 ${
+                                hasFeedback
+                                  ? "bg-yellow-100 text-yellow-800 border border-yellow-600 hover:bg-yellow-200"
+                                  : "bg-yellow-600 text-white hover:bg-yellow-700"
+                              }`}
+                              title={
+                                hasFeedback ? "View Feedback" : "Add Feedback"
+                              }
+                            >
+                              {hasFeedback ? "View" : "Feedback"}
+                            </button>
+                          </td>
+                        ) : (
+                          ""
+                        )}
                         {/* -------- End Feedback Column -------- */}
                       </tr>
                     );
@@ -755,22 +776,16 @@ export default function Myshipments() {
             {/* Body */}
             <div className="max-h-[80vh] overflow-y-auto px-5 py-4 space-y-4">
               {escLoading ? (
-                <div className="text-center text-gray-600 py-10">
-                  Loading…
-                </div>
+                <div className="text-center text-gray-600 py-10">Loading…</div>
               ) : escError ? (
-                <div className="text-center text-rose-600 py-6">
-                  {escError}
-                </div>
+                <div className="text-center text-rose-600 py-6">{escError}</div>
               ) : escRows.length === 0 ? (
                 <div className="text-center text-gray-600 py-10">
                   No escalations found for this AWB.
                 </div>
               ) : (
                 escRows.map((r) => {
-                  const status = String(
-                    r.escalationStatus || ""
-                  ).toLowerCase();
+                  const status = String(r.escalationStatus || "").toLowerCase();
                   const imgs = Array.isArray(r.escalationImages)
                     ? r.escalationImages
                     : [];
@@ -926,9 +941,7 @@ export default function Myshipments() {
 
       {/* -------- FEEDBACK MODAL -------- */}
       {fbModalOpen && fbPickup && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-        >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div
             className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
@@ -1083,9 +1096,7 @@ export default function Myshipments() {
                         </span>
                         <button
                           type="button"
-                          onClick={() =>
-                            setDiscountEnabled((prev) => !prev)
-                          }
+                          onClick={() => setDiscountEnabled((prev) => !prev)}
                           className={`relative inline-flex items-center h-6 w-11 rounded-full transition-colors duration-200 ${
                             discountEnabled ? "bg-purple-600" : "bg-gray-300"
                           }`}
