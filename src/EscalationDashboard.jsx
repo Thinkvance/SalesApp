@@ -1,5 +1,5 @@
 // EscalationDashboard.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import {
   collection,
   doc,
@@ -8,6 +8,8 @@ import {
   orderBy,
   query,
   updateDoc,
+  arrayUnion,
+  Timestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import DB from "./DB/DB";
@@ -72,6 +74,14 @@ export default function EscalationDashboard() {
   // Flash banner on success
   const [flash, setFlash] = useState("");
 
+  // 💬 Chat / updates input state
+  const [chatInput, setChatInput] = useState("");
+  const [sendingChat, setSendingChat] = useState(false);
+  const [chatError, setChatError] = useState("");
+
+  // scroll ref for updates area
+  const updatesScrollRef = useRef(null);
+
   const storage = getStorage();
 
   // Load user
@@ -86,6 +96,18 @@ export default function EscalationDashboard() {
   const isPrivileged = roleLower === "manager" || roleLower === "sales admin";
   const isManager = roleLower === "manager";
 
+  // helper to get millis safely for client-side sort
+  const getMillis = (ts) => {
+    try {
+      const d = ts?.toDate?.();
+      if (d) return d.getTime();
+      const n = new Date(ts).getTime();
+      return Number.isFinite(n) ? n : 0;
+    } catch {
+      return 0;
+    }
+  };
+
   // Subscribe to escalations; order OLDEST FIRST (asc) — available to Manager + Sales Admin
   useEffect(() => {
     if (!role) return;
@@ -99,7 +121,8 @@ export default function EscalationDashboard() {
     const unsub = onSnapshot(
       qRef,
       (snap) => {
-        setRows(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        setRows(docs);
         setLoading(false);
       },
       (err) => {
@@ -110,6 +133,13 @@ export default function EscalationDashboard() {
     );
     return () => unsub();
   }, [role, isPrivileged]);
+
+  // Keep activeRow in sync with latest snapshot (for live updates array)
+  useEffect(() => {
+    if (!modalOpen || !activeRow) return;
+    const updated = rows.find((r) => r.id === activeRow.id);
+    if (updated) setActiveRow(updated);
+  }, [rows, modalOpen, activeRow?.id]);
 
   // Lock background scroll for modal
   useEffect(() => {
@@ -124,18 +154,6 @@ export default function EscalationDashboard() {
     const t = setTimeout(() => setFlash(""), 4000);
     return () => clearTimeout(t);
   }, [flash]);
-
-  // helper to get millis safely for client-side sort
-  const getMillis = (ts) => {
-    try {
-      const d = ts?.toDate?.();
-      if (d) return d.getTime();
-      const n = new Date(ts).getTime();
-      return Number.isFinite(n) ? n : 0;
-    } catch {
-      return 0;
-    }
-  };
 
   const filtered = useMemo(() => {
     const s = awbSearch.trim().toLowerCase();
@@ -158,7 +176,23 @@ export default function EscalationDashboard() {
     return res;
   }, [rows, statusFilter, awbSearch]);
 
-  // Open modal, load shipment, prep images
+  // updates array for the active escalation (sorted oldest->newest)
+  const updates = useMemo(() => {
+    const arr = Array.isArray(activeRow?.updates) ? [...activeRow.updates] : [];
+    arr.sort((a, b) => getMillis(a.createdAt) - getMillis(b.createdAt));
+    return arr;
+  }, [activeRow]);
+
+  // auto-scroll updates to bottom whenever updates change or modal opens
+  useEffect(() => {
+    if (!modalOpen) return;
+    if (updatesScrollRef.current) {
+      const el = updatesScrollRef.current;
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [updates.length, modalOpen]);
+
+  // Open modal, load shipment, prep images & reset chat input
   const handleView = async (row) => {
     setActiveRow(row);
     setShipment(null);
@@ -168,6 +202,8 @@ export default function EscalationDashboard() {
     setClosePreviews([]);
     setImgError("");
     setNoteError("");
+    setChatInput("");
+    setChatError("");
 
     const imgs = Array.isArray(row.escalationImages)
       ? row.escalationImages
@@ -247,7 +283,7 @@ export default function EscalationDashboard() {
     return urls;
   };
 
-  // Validation: min 100 chars note + min 1 image
+  // Validation: min 15 chars note + min 1 image
   const canClose =
     isManager &&
     String(activeRow?.escalationStatus || "").toLowerCase() === "pending" &&
@@ -276,7 +312,9 @@ export default function EscalationDashboard() {
       // Upload closure images
       const closureImages = await uploadClosureImages(awb);
 
-      // Update escalation doc
+      const prevStatus = activeRow?.escalationStatus || "pending";
+
+      // Update escalation doc + append status-change update
       const escRef = doc(db, "ecalatoins", escId);
       await updateDoc(escRef, {
         escalationStatus: "closed",
@@ -284,6 +322,15 @@ export default function EscalationDashboard() {
         closureImages,
         escalationClosedAt: new Date(),
         escalationClosedBy: username || "",
+        updates: arrayUnion({
+          type: "status-change",
+          from: prevStatus,
+          to: "closed",
+          note: closeNote.trim(),
+          authorName: username || "",
+          authorRole: role || "",
+          createdAt: Timestamp.now(),
+        }),
       });
 
       // Update linked shipment (so My Shipments shows Closed)
@@ -312,6 +359,42 @@ export default function EscalationDashboard() {
       alert("Failed to close escalation. Please try again.");
     } finally {
       setClosing(false);
+    }
+  };
+
+  // 💬 send chat/update -> Firestore updates array
+  const handleSendChat = async () => {
+    const text = chatInput.trim();
+    if (!text) return;
+
+    if (text.length > 200) {
+      setChatError("Message cannot exceed 200 characters.");
+      return;
+    }
+
+    if (!activeRow?.id) return;
+
+    try {
+      setSendingChat(true);
+      const escRef = doc(db, "ecalatoins", activeRow.id);
+      const payload = {
+        type: "chat",
+        message: text,
+        authorName: username || "Unknown",
+        authorRole: role || "",
+        createdAt: Timestamp.now(),
+      };
+      await updateDoc(escRef, {
+        updates: arrayUnion(payload),
+      });
+      setChatInput("");
+      setChatError("");
+      // snapshot will refresh `rows` and thus `activeRow` + `updates`
+    } catch (e) {
+      console.error("Failed to send update:", e);
+      alert("Failed to send update. Please try again.");
+    } finally {
+      setSendingChat(false);
     }
   };
 
@@ -516,10 +599,7 @@ export default function EscalationDashboard() {
         </div>
         {/* Modal */}
         {modalOpen && activeRow && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-            // onClick={closeModal}
-          >
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
             <div
               className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
@@ -608,145 +688,300 @@ export default function EscalationDashboard() {
                   <hr className="mt-4 border-gray-200" />
                 </section>
 
-                {/* Submitted images */}
-                <section>
-                  <h3 className="text-lg font-semibold text-purple-700 mb-2">
-                    Submitted Images
-                  </h3>
-                  {lightboxImages.length > 0 ? (
-                    <div className="flex flex-wrap gap-3">
-                      {lightboxImages.map((src, idx) => (
-                        <button
-                          key={src + idx}
-                          className={`w-20 h-20 rounded overflow-hidden border ${
-                            idx === lightboxIndex
-                              ? "border-purple-700"
-                              : "border-gray-200"
-                          }`}
-                          onClick={() => {
-                            setLightboxIndex(idx);
-                            setLightboxOpen(true);
-                          }}
-                          title={`Image ${idx + 1}`}
-                        >
-                          <img
-                            src={src}
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-xs text-gray-500">
-                      No images provided.
-                    </div>
-                  )}
-                  <hr className="mt-4 border-gray-200" />
-                </section>
-
-                {/* Close section (Manager only + pending) */}
-                {String(activeRow.escalationStatus || "").toLowerCase() ===
-                  "pending" &&
-                  isManager && (
+                {/* === Two-column layout: left (images + close) / right (updates) === */}
+                <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)] gap-6 items-start">
+                  {/* LEFT COLUMN */}
+                  <div className="space-y-6">
+                    {/* Submitted images */}
                     <section>
                       <h3 className="text-lg font-semibold text-purple-700 mb-2">
-                        Close Escalation
+                        Submitted Images
                       </h3>
-
-                      {/* Description to close (min 100 chars) */}
-                      <div className="mb-3">
-                        <div className="text-sm font-semibold text-purple-700">
-                          Description to Close{" "}
-                          <span className="text-rose-600">*</span>
+                      {lightboxImages.length > 0 ? (
+                        <div className="flex flex-wrap gap-3">
+                          {lightboxImages.map((src, idx) => (
+                            <button
+                              key={src + idx}
+                              className={`w-16 h-16 rounded overflow-hidden border ${
+                                idx === lightboxIndex
+                                  ? "border-purple-700"
+                                  : "border-gray-200"
+                              }`}
+                              onClick={() => {
+                                setLightboxIndex(idx);
+                                setLightboxOpen(true);
+                              }}
+                              title={`Image ${idx + 1}`}
+                            >
+                              <img
+                                src={src}
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                            </button>
+                          ))}
                         </div>
-                        <textarea
-                          rows={4}
-                          className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600"
-                          placeholder="Write at least 15 characters describing the resolution / action taken…"
-                          value={closeNote}
-                          onChange={(e) => setCloseNote(e.target.value)}
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                          {closeNote.trim().length} / 200 characters
-                        </p>
-                        {noteError && (
-                          <div className="text-xs text-rose-600 mt-1">
-                            {noteError}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Proof Images (min 1) */}
-                      <div className="mb-3">
-                        <div className="text-sm font-semibold text-purple-700">
-                          Proof Images <span className="text-rose-600">*</span>
-                          <span className="text-xs text-gray-500 ml-1">
-                            (Min 1, Max {MAX_IMAGES}, ≤ {MAX_MB}MB each)
-                          </span>
+                      ) : (
+                        <div className="text-xs text-gray-500">
+                          No images provided.
                         </div>
+                      )}
+                      <hr className="mt-4 border-gray-200" />
+                    </section>
 
-                        {closePreviews.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-3">
-                            {closePreviews.map((src, idx) => (
-                              <div
-                                key={src + idx}
-                                className="relative w-20 h-20"
-                              >
-                                <img
-                                  src={src}
-                                  alt=""
-                                  className="w-full h-full rounded object-cover border"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => removeCloseImage(idx)}
-                                  className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full w-5 h-5 text-xs font-bold flex items-center justify-center hover:bg-red-700"
-                                  title="Remove"
-                                >
-                                  ✕
-                                </button>
+                    {/* Close section (Manager only + pending) */}
+                    {String(activeRow.escalationStatus || "").toLowerCase() ===
+                      "pending" &&
+                      isManager && (
+                        <section className="space-y-3">
+                          <h3 className="text-lg font-semibold text-purple-700">
+                            Close Escalation
+                          </h3>
+
+                          {/* Description to close */}
+                          <div>
+                            <div className="text-sm font-semibold text-purple-700">
+                              Description to Close{" "}
+                              <span className="text-rose-600">*</span>
+                            </div>
+                            <textarea
+                              rows={3}
+                              className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600"
+                              placeholder="Write at least 15 characters describing the resolution / action taken…"
+                              value={closeNote}
+                              onChange={(e) => setCloseNote(e.target.value)}
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              {closeNote.trim().length} / 200 characters
+                            </p>
+                            {noteError && (
+                              <div className="text-xs text-rose-600 mt-1">
+                                {noteError}
                               </div>
-                            ))}
+                            )}
                           </div>
-                        )}
 
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          className="mt-2 text-sm"
-                          onChange={(e) => handleFilesSelected(e.target.files)}
+                          {/* Proof Images (min 1) */}
+                          <div>
+                            <div className="text-sm font-semibold text-purple-700">
+                              Proof Images{" "}
+                              <span className="text-rose-600">*</span>
+                              <span className="text-xs text-gray-500 ml-1">
+                                (Min 1, Max {MAX_IMAGES}, ≤ {MAX_MB}MB each)
+                              </span>
+                            </div>
+
+                            {closePreviews.length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-3">
+                                {closePreviews.map((src, idx) => (
+                                  <div
+                                    key={src + idx}
+                                    className="relative w-16 h-16"
+                                  >
+                                    <img
+                                      src={src}
+                                      alt=""
+                                      className="w-full h-full rounded object-cover border"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => removeCloseImage(idx)}
+                                      className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full w-5 h-5 text-xs font-bold flex items-center justify-center hover:bg-red-700"
+                                      title="Remove"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              className="mt-2 text-sm"
+                              onChange={(e) =>
+                                handleFilesSelected(e.target.files)
+                              }
+                            />
+                            {imgError && (
+                              <div className="text-xs text-rose-600 mt-1">
+                                {imgError}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex gap-2">
+                            <button
+                              disabled={!canClose || closing}
+                              onClick={handleCloseSubmit}
+                              className={`px-4 py-2 rounded-md text-white text-sm font-semibold ${
+                                !canClose || closing
+                                  ? "bg-gray-300 cursor-not-allowed"
+                                  : "bg-rose-600 hover:bg-rose-700"
+                              }`}
+                            >
+                              {closing ? "Closing…" : "Mark as Closed"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={closeModal}
+                              className="px-4 py-2 rounded-md border text-sm text-gray-700 bg-gray-100 hover:bg-gray-200"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </section>
+                      )}
+                  </div>
+
+                  {/* RIGHT COLUMN — Updates / Chat box */}
+                  <section className="border border-purple-200 rounded-2xl bg-white px-4 py-3 flex flex-col max-h-[420px]">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-base font-semibold text-purple-700">
+                        Escalation Updates
+                      </h3>
+                      <span className="text-[11px] text-gray-500">
+                        Internal notes &amp; history
+                      </span>
+                    </div>
+
+                    {/* Messages area */}
+                    <div
+                      ref={updatesScrollRef}
+                      className="flex-1 min-h-[200px] max-h-[260px] overflow-y-auto rounded-xl bg-gray-50 border border-purple-100 px-3 py-3 space-y-3 text-xs"
+                    >
+                      {updates.length === 0 ? (
+                        <div className="h-full flex items-center justify-center text-gray-400 text-[11px] text-center px-4">
+                          No updates yet. Use this panel for internal discussion
+                          and decisions about this escalation.
+                        </div>
+                      ) : (
+                        updates.map((u, idx) => {
+                          const isChat = u.type === "chat";
+                          const timeLabel = u.createdAt
+                            ? formatTime(u.createdAt)
+                            : "";
+                          const author =
+                            u.authorName || u.author || "Unknown user";
+                          const roleLabel = u.authorRole || "";
+                          const isOwn =
+                            author?.toLowerCase() ===
+                            (username || "").toLowerCase();
+
+                          const messageText = isChat
+                            ? u.message
+                            : u.message ||
+                              u.note ||
+                              (u.from && u.to
+                                ? `Status updated from "${u.from}" to "${u.to}".`
+                                : "Update added.");
+
+                          return (
+                            <div
+                              key={u.id || idx}
+                              className={`flex ${
+                                isOwn ? "justify-end" : "justify-start"
+                              }`}
+                            >
+                              <div className="max-w-[90%]">
+                                {/* Header row: author, role, time */}
+                                <div className="flex items-center gap-2 mb-1">
+                                  {/* Avatar */}
+                                  <div className="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center text-[9px] font-semibold text-white shadow-sm">
+                                    {author
+                                      .split(" ")
+                                      .map((p) => p[0])
+                                      .join("")
+                                      .slice(0, 2)
+                                      .toUpperCase()}
+                                  </div>
+
+                                  <div className="flex flex-col">
+                                    <div className="flex items-center gap-1">
+                                      <span className="font-semibold text-[11px] text-purple-800">
+                                        {author}
+                                      </span>
+                                      {roleLabel && (
+                                        <span className="text-[10px] text-gray-500">
+                                          ({roleLabel})
+                                        </span>
+                                      )}
+                                    </div>
+                                    {timeLabel && (
+                                      <span className="text-[10px] text-gray-400">
+                                        {timeLabel}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Bubble */}
+                                <div
+                                  className={`px-3 py-2 rounded-2xl text-[12px] leading-snug shadow-sm border ${
+                                    isOwn
+                                      ? "bg-purple-500 text-white border-purple-500"
+                                      : "bg-purple-50 text-gray-900 border-purple-100"
+                                  }`}
+                                >
+                                  {messageText}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {/* Input */}
+                    <div className="mt-3 space-y-2">
+                      <div className="relative">
+                        <textarea
+                          rows={2}
+                          value={chatInput}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val.length > 200) {
+                              setChatError("Maximum 200 characters allowed.");
+                            } else {
+                              setChatError("");
+                            }
+                            setChatInput(val);
+                          }}
+                          placeholder="Type an internal note or comment…"
+                          maxLength={200}
+                          className="w-full border border-purple-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-purple-600 bg-white"
                         />
-                        {imgError && (
-                          <div className="text-xs text-rose-600 mt-1">
-                            {imgError}
-                          </div>
-                        )}
+                        <span className="absolute right-3 bottom-2 text-[10px] text-gray-400">
+                          {chatInput.trim().length}/200
+                        </span>
                       </div>
-
-                      <div className="flex gap-2">
-                        <button
-                          disabled={!canClose || closing}
-                          onClick={handleCloseSubmit}
-                          className={`px-4 py-2 rounded-md text-white text-sm font-semibold ${
-                            !canClose || closing
-                              ? "bg-gray-300 cursor-not-allowed"
-                              : "bg-rose-600 hover:bg-rose-700"
-                          }`}
-                        >
-                          {closing ? "Closing…" : "Mark as Closed"}
-                        </button>
+                      {chatError && (
+                        <div className="text-[11px] text-rose-600">
+                          {chatError}
+                        </div>
+                      )}
+                      <div className="flex justify-end">
                         <button
                           type="button"
-                          onClick={closeModal}
-                          className="px-4 py-2 rounded-md border text-sm text-gray-700 bg-gray-100 hover:bg-gray-200"
+                          onClick={handleSendChat}
+                          disabled={
+                            !chatInput.trim() || sendingChat || !!chatError
+                          }
+                          className={`px-4 py-1.5 rounded-full text-xs font-semibold shadow-sm transition ${
+                            !chatInput.trim() || sendingChat || !!chatError
+                              ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                              : "bg-purple-700 text-white hover:bg-purple-800"
+                          }`}
                         >
-                          Cancel
+                          {sendingChat ? "Sending…" : "Send"}
                         </button>
                       </div>
-                    </section>
-                  )}
+                    </div>
+                  </section>
+                </div>
+                {/* === end two-column layout === */}
               </div>
             </div>
           </div>
@@ -858,5 +1093,15 @@ function formatTimestamp(ts) {
     return d.toLocaleString();
   } catch {
     return "-";
+  }
+}
+
+function formatTime(ts) {
+  try {
+    const d = ts?.toDate?.() || null;
+    if (!d) return "";
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return "";
   }
 }

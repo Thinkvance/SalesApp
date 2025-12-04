@@ -29,7 +29,8 @@ export default function Myshipments() {
   const [data, setdata] = useState([]);
   const [loading, setLoading] = useState(false);
   const [awbSearchTerm, setAwbSearchTerm] = useState("");
-  const [consignorPhoneSearchTerm, setConsignorPhoneSearchTerm] = useState("");
+  const [consignorPhoneSearchTerm, setConsignorPhoneSearchTerm] =
+    useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPickup, setSelectedPickup] = useState(null);
 
@@ -76,6 +77,26 @@ export default function Myshipments() {
       return d.toLocaleString();
     } catch {
       return "-";
+    }
+  };
+
+  const formatTime = (ts) => {
+    try {
+      const d = ts?.toDate?.() || null;
+      if (!d) return "";
+      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    } catch {
+      return "";
+    }
+  };
+
+  const getMillis = (ts) => {
+    try {
+      const d = ts?.toDate?.() || new Date(ts);
+      const n = d.getTime();
+      return Number.isFinite(n) ? n : 0;
+    } catch {
+      return 0;
     }
   };
 
@@ -627,7 +648,7 @@ export default function Myshipments() {
                         {/* -------- Escalation Column -------- */}
                         <td className="px-4 py-2 border text-center">
                           {escStatus === "none" ? (
-                            <div className="flex items-center justify-center gap-2">
+                            <div className="flex itemscenter justify-center gap-2">
                               <button
                                 onClick={() => handleAddReport(item)}
                                 className="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-md text-xs font-semibold transition-colors duration-200"
@@ -741,6 +762,14 @@ export default function Myshipments() {
                     : [];
                   const cimgs = Array.isArray(r.closureImages)
                     ? r.closureImages
+                    : [];
+
+                  // sort updates oldest -> newest
+                  const updates = Array.isArray(r.updates)
+                    ? [...r.updates].sort(
+                        (a, b) =>
+                          getMillis(a.createdAt) - getMillis(b.createdAt)
+                      )
                     : [];
 
                   return (
@@ -880,6 +909,86 @@ export default function Myshipments() {
                           </div>
                         </>
                       )}
+
+                      {/* -------- Escalation Updates (always shown + auto-scroll to latest) -------- */}
+                      <hr className="my-4 border-gray-200" />
+                      <div className="mt-2">
+                        <div className="text-sm font-semibold text-purple-700 mb-2">
+                          Escalation Updates
+                        </div>
+
+                        <div
+                          className="rounded-xl bg-gray-50 border border-purple-100 px-4 py-3 space-y-3 text-xs max-h-64 overflow-y-auto"
+                          ref={(el) => {
+                            if (!el) return;
+                            // jump to latest update (bottom)
+                            el.scrollTop = el.scrollHeight;
+                          }}
+                        >
+                          {updates.length === 0 ? (
+                            <div className="text-[12px] text-gray-500 py-1 text-center">
+                              No updates are provided.
+                            </div>
+                          ) : (
+                            updates.map((u, idx2) => {
+                              const timeLabel = u.createdAt
+                                ? formatTime(u.createdAt)
+                                : "";
+                              const author =
+                                u.authorName || u.author || "Unknown user";
+                              const roleLabel = u.authorRole || "";
+
+                              const messageText =
+                                u.message ||
+                                u.note ||
+                                (u.from && u.to
+                                  ? `Status updated from "${u.from}" to "${u.to}".`
+                                  : "Update added.");
+
+                              return (
+                                <div
+                                  key={u.id || idx2}
+                                  className="flex gap-3"
+                                >
+                                  {/* Timeline rail */}
+                                  <div className="flex flex-col items-center mt-1">
+                                    <span className="w-2 h-2 rounded-full bg-purple-600 shadow-sm" />
+                                    {idx2 !== updates.length - 1 && (
+                                      <span className="flex-1 w-px bg-purple-200 mt-1" />
+                                    )}
+                                  </div>
+
+                                  {/* Card */}
+                                  <div className="flex-1 rounded-lg bg-white border border-purple-100 shadow-sm px-3 py-2">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="font-semibold text-[11px] text-purple-800">
+                                        {author}
+                                      </span>
+
+                                      {roleLabel && (
+                                        <span className="text-[10px] text-gray-500">
+                                          ({roleLabel})
+                                        </span>
+                                      )}
+
+                                      {timeLabel && (
+                                        <span className="text-[10px] text-gray-400">
+                                          • {timeLabel}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <div className="text-[12px] text-gray-900 leading-snug">
+                                      {messageText}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                      {/* -------- End Escalation Updates -------- */}
                     </div>
                   );
                 })
@@ -893,7 +1002,6 @@ export default function Myshipments() {
       {fbModalOpen && fbPickup && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          // onClick={closeFeedbackModal}
         >
           <div
             className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden"
@@ -1012,8 +1120,7 @@ export default function Myshipments() {
                     </p>
                   ) : (
                     <textarea
-                      className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600
-                      }`}
+                      className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600`}
                       rows={3}
                       value={fbForm.comments}
                       onChange={(e) =>
