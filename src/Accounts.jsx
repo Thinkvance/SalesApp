@@ -374,6 +374,7 @@ function Accounts() {
             pickuparea: item.pickuparea || "",
             destination: item.destination || "",
             logisticCost: item.logisticCost || "",
+            paymentMode: item.paymentMode || "",
           });
         });
 
@@ -398,6 +399,7 @@ function Accounts() {
         { header: "Pickup Area", key: "pickuparea", width: 20 },
         { header: "Country", key: "destination", width: 20 },
         { header: "Sale price", key: "logisticCost", width: 15 },
+        { header: "Payment Mode", key: "paymentMode", width: 15 },
       ];
 
       octoberData.forEach((row) => ws.addRow(row));
