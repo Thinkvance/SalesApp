@@ -40,14 +40,7 @@ import VersionUpdateModal from "./VersionUpdateModal"; // Version modal
 import appVersion from "./functions/appVersion";
 import EscalationDashboard from "./EscalationDashboard"; // ✅ import
 import ReportForm from "./ReportForm";
-
-function PrivilegedOnly({ children }) {
-  const stored = JSON.parse(localStorage.getItem("LoginCredentials") || "{}");
-  const role = String(stored?.role || "").toLowerCase();
-  // ✅ Allow Manager and Sales Admin
-  const allowed = ["manager", "sales admin"];
-  return allowed.includes(role) ? children : <Navigate to="/" replace />;
-}
+import { RequireAuth, RequireRole } from "./RouteGuards";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -58,7 +51,7 @@ function App() {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [updateMessage, setUpdateMessage] = useState("");
 
-  console.log("Build: 25-11-2025!");
+  console.log("Build: 04-12-2025!");
 
   // ✅ Notifications
   useEffect(() => {
@@ -184,101 +177,212 @@ function App() {
           <Routes>
             <Route
               path="/"
-              element={user ? <PickupBooking /> : <Navigate to="/signin" />}
+              element={
+                <RequireAuth user={user}>
+                  <PickupBooking />
+                </RequireAuth>
+              }
             />
             <Route
               path="/Pickup-Booking"
-              element={user ? <PickupBooking /> : <Navigate to="/signin" />}
+              element={
+                <RequireAuth user={user}>
+                  <PickupBooking />
+                </RequireAuth>
+              }
             />
             <Route
               path="/Sales-Report"
-              element={user ? <SalesReport /> : <Navigate to="/signin" />}
+              element={
+                <RequireAuth user={user}>
+                  <SalesReport />
+                </RequireAuth>
+              }
             />
             <Route
               path="/Vendor-Report"
-              element={user ? <Accounts /> : <Navigate to="/signin" />}
+              element={
+                <RequireAuth user={user}>
+                  <RequireRole
+                    role={
+                      JSON.parse(localStorage.getItem("LoginCredentials"))?.role
+                    }
+                    allowed={["Manager"]}
+                  >
+                    <Accounts />
+                  </RequireRole>
+                </RequireAuth>
+              }
             />
             <Route
               path="/Cancel-or-reschedule"
-              element={user ? <CancelOrReshedule /> : <Navigate to="/signin" />}
+              element={
+                <RequireAuth user={user}>
+                  <CancelOrReshedule />
+                </RequireAuth>
+              }
             />
             <Route
               path="/addExtraCharges"
               element={
-                user ? <ExtraChargesModule /> : <Navigate to="/signin" />
+                <RequireAuth user={user}>
+                  <ExtraChargesModule />
+                </RequireAuth>
               }
             />
             <Route
               path="/Pickups"
-              element={user ? <Pickups /> : <Navigate to="/signin" />}
+              element={
+                <RequireAuth user={user}>
+                  <Pickups />
+                </RequireAuth>
+              }
             />
             <Route
               path="/all-Pickups"
-              element={user ? <AllPickups /> : <Navigate to="/signin" />}
+              element={
+                <RequireAuth user={user}>
+                  <RequireRole
+                    role={
+                      JSON.parse(localStorage.getItem("LoginCredentials"))?.role
+                    }
+                    allowed={["Manager"]}
+                  >
+                    <AllPickups />
+                  </RequireRole>
+                </RequireAuth>
+              }
             />
             <Route
               path="/Sale-rates"
-              element={user ? <RateCardForm /> : <Navigate to="/signin" />}
+              element={
+                <RequireAuth user={user}>
+                  <RateCardForm />
+                </RequireAuth>
+              }
             />
             <Route
               path="/vendor-rates"
-              element={user ? <VendorRates /> : <Navigate to="/signin" />}
+              element={
+                <RequireAuth user={user}>
+                  <RequireRole
+                    role={
+                      JSON.parse(localStorage.getItem("LoginCredentials"))?.role
+                    }
+                    allowed={["Manager"]}
+                  >
+                    <VendorRates />
+                  </RequireRole>
+                </RequireAuth>
+              }
             />
             <Route
               path="/Payment-confirm"
-              element={user ? <PaymentConfirm /> : <Navigate to="/signin" />}
+              element={
+                <RequireAuth user={user}>
+                  <PaymentConfirm />
+                </RequireAuth>
+              }
             />
             <Route
               path="/logistics-Dashboard"
               element={
-                user ? <LogisticsDashboard /> : <Navigate to="/signin" />
+                <RequireAuth user={user}>
+                  <LogisticsDashboard />
+                </RequireAuth>
               }
             />
             <Route
               path="/Payment-confirmation-form/:awbnumber"
               element={
-                user ? <PaymentConfirmationForm /> : <Navigate to="/signin" />
+                <RequireAuth user={user}>
+                  <PaymentConfirmationForm />
+                </RequireAuth>
               }
             />
             <Route
               path="/Sales-Incentive"
-              element={user ? <SalesIncentive /> : <Navigate to="/signin" />}
+              element={
+                <RequireAuth user={user}>
+                  <SalesIncentive />
+                </RequireAuth>
+              }
             />
             <Route
               path="/Pickup-Incentive"
-              element={user ? <PickupIncentive /> : <Navigate to="/signin" />}
+              element={
+                <RequireAuth user={user}>
+                  <PickupIncentive />
+                </RequireAuth>
+              }
             />
             <Route
               path="/My-Shipments"
-              element={user ? <Myshipments /> : <Navigate to="/signin" />}
+              element={
+                <RequireAuth user={user}>
+                  <Myshipments />
+                </RequireAuth>
+              }
             />
             {/* Report form public route */}
-            <Route path="/ReportForm" element={<ReportForm />} />
+            <Route
+              path="/ReportForm"
+              element={
+                <RequireAuth user={user}>
+                  <ReportForm />
+                </RequireAuth>
+              }
+            />
             <Route
               path="/review-management"
-              element={user ? <ReviewManagement /> : <Navigate to="/signin" />}
+              element={
+                <RequireAuth user={user}>
+                  <RequireRole
+                    role={
+                      JSON.parse(localStorage.getItem("LoginCredentials"))?.role
+                    }
+                    allowed={["Manager"]}
+                  >
+                    <ReviewManagement />
+                  </RequireRole>
+                </RequireAuth>
+              }
             />
             <Route
               path="/PickuPersonIncentive-Report"
               element={
-                user ? <PickupPersonIncentive /> : <Navigate to="/signin" />
+                <RequireAuth user={user}>
+                  <PickupPersonIncentive />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/escalations"
+              element={
+                <RequireAuth user={user}>
+                  <RequireRole
+                    role={
+                      JSON.parse(localStorage.getItem("LoginCredentials"))?.role
+                    }
+                    allowed={["Manager"]}
+                  >
+                    <EscalationDashboard />
+                  </RequireRole>
+                </RequireAuth>
               }
             />
             <Route
               path="/signin"
-              element={!user ? <SignIn /> : <Navigate to="/Pickup-Booking" />}
-            />
-
-            {/* ✅ Escalation Dashboard for Manager and Sales Admin */}
-            <Route
-              path="/escalations"
               element={
-                <PrivilegedOnly>
-                  <EscalationDashboard />
-                </PrivilegedOnly>
+                loading ? (
+                  <div>Loading...</div>
+                ) : user ? (
+                  <Navigate to="/" replace />
+                ) : (
+                  <SignIn />
+                )
               }
             />
-
             {/* 404 fallback */}
             <Route
               path="*"
