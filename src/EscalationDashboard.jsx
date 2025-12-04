@@ -840,150 +840,155 @@ export default function EscalationDashboard() {
                       )}
                   </div>
 
-                  {/* RIGHT COLUMN — Updates / Chat box */}
-                  <section className="border border-purple-200 rounded-2xl bg-white px-4 py-3 flex flex-col max-h-[420px]">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-base font-semibold text-purple-700">
-                        Escalation Updates
-                      </h3>
-                      <span className="text-[11px] text-gray-500">
-                        Internal notes &amp; history
-                      </span>
-                    </div>
+                  {shipment.escalationStatus === "closed" ? (
+                    ""
+                  ) : (
+                    <section className="border border-purple-200 rounded-2xl bg-white px-4 py-3 flex flex-col max-h-[420px]">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-base font-semibold text-purple-700">
+                          Escalation Updates
+                        </h3>
+                        <span className="text-[11px] text-gray-500">
+                          Internal notes &amp; history
+                        </span>
+                      </div>
 
-                    {/* Messages area */}
-                    <div
-                      ref={updatesScrollRef}
-                      className="flex-1 min-h-[200px] max-h-[260px] overflow-y-auto rounded-xl bg-gray-50 border border-purple-100 px-3 py-3 space-y-3 text-xs"
-                    >
-                      {updates.length === 0 ? (
-                        <div className="h-full flex items-center justify-center text-gray-400 text-[11px] text-center px-4">
-                          No updates yet. Use this panel for internal discussion
-                          and decisions about this escalation.
-                        </div>
-                      ) : (
-                        updates.map((u, idx) => {
-                          const isChat = u.type === "chat";
-                          const timeLabel = u.createdAt
-                            ? formatTime(u.createdAt)
-                            : "";
-                          const author =
-                            u.authorName || u.author || "Unknown user";
-                          const roleLabel = u.authorRole || "";
-                          const isOwn =
-                            author?.toLowerCase() ===
-                            (username || "").toLowerCase();
+                      {/* Messages area */}
+                      <div
+                        ref={updatesScrollRef}
+                        className="flex-1 min-h-[200px] max-h-[260px] overflow-y-auto rounded-xl bg-gray-50 border border-purple-100 px-3 py-3 space-y-3 text-xs"
+                      >
+                        {updates.length === 0 ? (
+                          <div className="h-full flex items-center justify-center text-gray-400 text-[11px] text-center px-4">
+                            No updates yet. Use this panel for internal
+                            discussion and decisions about this escalation.
+                          </div>
+                        ) : (
+                          updates.map((u, idx) => {
+                            const isChat = u.type === "chat";
+                            const timeLabel = u.createdAt
+                              ? formatTime(u.createdAt)
+                              : "";
+                            const author =
+                              u.authorName || u.author || "Unknown user";
+                            const roleLabel = u.authorRole || "";
+                            const isOwn =
+                              author?.toLowerCase() ===
+                              (username || "").toLowerCase();
 
-                          const messageText = isChat
-                            ? u.message
-                            : u.message ||
-                              u.note ||
-                              (u.from && u.to
-                                ? `Status updated from "${u.from}" to "${u.to}".`
-                                : "Update added.");
+                            const messageText = isChat
+                              ? u.message
+                              : u.message ||
+                                u.note ||
+                                (u.from && u.to
+                                  ? `Status updated from "${u.from}" to "${u.to}".`
+                                  : "Update added.");
 
-                          return (
-                            <div
-                              key={u.id || idx}
-                              className={`flex ${
-                                isOwn ? "justify-end" : "justify-start"
-                              }`}
-                            >
-                              <div className="max-w-[90%]">
-                                {/* Header row: author, role, time */}
-                                <div className="flex items-center gap-2 mb-1">
-                                  {/* Avatar */}
-                                  <div className="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center text-[9px] font-semibold text-white shadow-sm">
-                                    {author
-                                      .split(" ")
-                                      .map((p) => p[0])
-                                      .join("")
-                                      .slice(0, 2)
-                                      .toUpperCase()}
-                                  </div>
+                            return (
+                              <div
+                                key={u.id || idx}
+                                className={`flex ${
+                                  isOwn ? "justify-end" : "justify-start"
+                                }`}
+                              >
+                                <div className="max-w-[90%]">
+                                  {/* Header row: author, role, time */}
+                                  <div className="flex items-center gap-2 mb-1">
+                                    {/* Avatar */}
+                                    <div className="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center text-[9px] font-semibold text-white shadow-sm">
+                                      {author
+                                        .split(" ")
+                                        .map((p) => p[0])
+                                        .join("")
+                                        .slice(0, 2)
+                                        .toUpperCase()}
+                                    </div>
 
-                                  <div className="flex flex-col">
-                                    <div className="flex items-center gap-1">
-                                      <span className="font-semibold text-[11px] text-purple-800">
-                                        {author}
-                                      </span>
-                                      {roleLabel && (
-                                        <span className="text-[10px] text-gray-500">
-                                          ({roleLabel})
+                                    <div className="flex flex-col">
+                                      <div className="flex items-center gap-1">
+                                        <span className="font-semibold text-[11px] text-purple-800">
+                                          {author}
+                                        </span>
+                                        {roleLabel && (
+                                          <span className="text-[10px] text-gray-500">
+                                            ({roleLabel})
+                                          </span>
+                                        )}
+                                      </div>
+                                      {timeLabel && (
+                                        <span className="text-[10px] text-gray-400">
+                                          {timeLabel}
                                         </span>
                                       )}
                                     </div>
-                                    {timeLabel && (
-                                      <span className="text-[10px] text-gray-400">
-                                        {timeLabel}
-                                      </span>
-                                    )}
+                                  </div>
+
+                                  {/* Bubble */}
+                                  <div
+                                    className={`px-3 py-2 rounded-2xl text-[12px] leading-snug shadow-sm border ${
+                                      isOwn
+                                        ? "bg-purple-500 text-white border-purple-500"
+                                        : "bg-purple-50 text-gray-900 border-purple-100"
+                                    }`}
+                                  >
+                                    {messageText}
                                   </div>
                                 </div>
-
-                                {/* Bubble */}
-                                <div
-                                  className={`px-3 py-2 rounded-2xl text-[12px] leading-snug shadow-sm border ${
-                                    isOwn
-                                      ? "bg-purple-500 text-white border-purple-500"
-                                      : "bg-purple-50 text-gray-900 border-purple-100"
-                                  }`}
-                                >
-                                  {messageText}
-                                </div>
                               </div>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
+                            );
+                          })
+                        )}
+                      </div>
 
-                    {/* Input */}
-                    <div className="mt-3 space-y-2">
-                      <div className="relative">
-                        <textarea
-                          rows={2}
-                          value={chatInput}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val.length > 200) {
-                              setChatError("Maximum 200 characters allowed.");
-                            } else {
-                              setChatError("");
-                            }
-                            setChatInput(val);
-                          }}
-                          placeholder="Type an internal note or comment…"
-                          maxLength={200}
-                          className="w-full border border-purple-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-purple-600 bg-white"
-                        />
-                        <span className="absolute right-3 bottom-2 text-[10px] text-gray-400">
-                          {chatInput.trim().length}/200
-                        </span>
-                      </div>
-                      {chatError && (
-                        <div className="text-[11px] text-rose-600">
-                          {chatError}
+                      {/* Input */}
+                      <div className="mt-3 space-y-2">
+                        <div className="relative">
+                          <textarea
+                            rows={2}
+                            value={chatInput}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val.length > 200) {
+                                setChatError("Maximum 200 characters allowed.");
+                              } else {
+                                setChatError("");
+                              }
+                              setChatInput(val);
+                            }}
+                            placeholder="Type an internal note or comment…"
+                            maxLength={200}
+                            className="w-full border border-purple-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-purple-600 bg-white"
+                          />
+                          <span className="absolute right-3 bottom-2 text-[10px] text-gray-400">
+                            {chatInput.trim().length}/200
+                          </span>
                         </div>
-                      )}
-                      <div className="flex justify-end">
-                        <button
-                          type="button"
-                          onClick={handleSendChat}
-                          disabled={
-                            !chatInput.trim() || sendingChat || !!chatError
-                          }
-                          className={`px-4 py-1.5 rounded-full text-xs font-semibold shadow-sm transition ${
-                            !chatInput.trim() || sendingChat || !!chatError
-                              ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                              : "bg-purple-700 text-white hover:bg-purple-800"
-                          }`}
-                        >
-                          {sendingChat ? "Sending…" : "Send"}
-                        </button>
+                        {chatError && (
+                          <div className="text-[11px] text-rose-600">
+                            {chatError}
+                          </div>
+                        )}
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            onClick={handleSendChat}
+                            disabled={
+                              !chatInput.trim() || sendingChat || !!chatError
+                            }
+                            className={`px-4 py-1.5 rounded-full text-xs font-semibold shadow-sm transition ${
+                              !chatInput.trim() || sendingChat || !!chatError
+                                ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                                : "bg-purple-700 text-white hover:bg-purple-800"
+                            }`}
+                          >
+                            {sendingChat ? "Sending…" : "Send"}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  </section>
+                    </section>
+                  )}
+
+                  {/* RIGHT COLUMN — Updates / Chat box */}
                 </div>
                 {/* === end two-column layout === */}
               </div>
