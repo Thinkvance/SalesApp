@@ -517,34 +517,43 @@ export default function Myshipments() {
 
     // Ensure integer 1–5
     const r = Math.max(1, Math.min(5, Number(rating || 0)));
-
     switch (r) {
       case 1:
-        // Very poor – soft red
-        return base + "bg-red-50 text-red-700 border-red-300 hover:bg-red-100";
+        // Very Poor – Soft Red
+        return base + "bg-red-100 text-red-700 border-red-300 hover:bg-red-200";
+
       case 2:
-        // Poor – soft orange
+        // Poor – Soft Orange
         return (
           base +
-          "bg-orange-50 text-orange-700 border-orange-300 hover:bg-orange-100"
+          "bg-orange-100 text-orange-700 border-orange-300 hover:bg-orange-200"
         );
+
       case 3:
-        // Average – soft amber
+        // Average – Soft Amber/Yellow
         return (
           base +
-          "bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100"
+          "bg-amber-100 text-amber-700 border-amber-300 hover:bg-amber-200"
         );
+
       case 4:
-        // Good – soft teal
+        // Good – Soft Teal
         return (
-          base + "bg-teal-50 text-teal-700 border-teal-300 hover:bg-teal-100"
+          base + "bg-teal-100 text-teal-700 border-teal-300 hover:bg-teal-200"
         );
+
       case 5:
-      default:
-        // Excellent – soft emerald
+        // Excellent – Soft Emerald/Green
         return (
           base +
-          "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
+          "bg-emerald-100 text-emerald-700 border-emerald-300 hover:bg-emerald-200"
+        );
+
+      default:
+        // Fallback – Neutral Green
+        return (
+          base +
+          "bg-emerald-100 text-emerald-700 border-emerald-300 hover:bg-emerald-200"
         );
     }
   };
@@ -766,8 +775,6 @@ export default function Myshipments() {
                             </div>
                           )}
                         </td>
-                        {/* -------- End Escalation Column -------- */}
-
                         {/* -------- Feedback Column -------- */}
                         {role == "Manager" || role == "sales admin" ? (
                           <td className="px-4 py-2 border text-center">
