@@ -503,6 +503,51 @@ export default function Myshipments() {
           "Details",
           "Escalation",
         ];
+  // Soft color palette based on rating 1–5
+  const getFeedbackButtonClasses = (hasFeedback, rating) => {
+    const base =
+      "px-3 py-1.5 rounded-md text-xs font-semibold transition-colors duration-200 border ";
+
+    if (!hasFeedback) {
+      // No feedback yet -> default yellow "Feedback" button
+      return (
+        base + "bg-yellow-500 text-white border-yellow-600 hover:bg-yellow-600"
+      );
+    }
+
+    // Ensure integer 1–5
+    const r = Math.max(1, Math.min(5, Number(rating || 0)));
+
+    switch (r) {
+      case 1:
+        // Very poor – soft red
+        return base + "bg-red-50 text-red-700 border-red-300 hover:bg-red-100";
+      case 2:
+        // Poor – soft orange
+        return (
+          base +
+          "bg-orange-50 text-orange-700 border-orange-300 hover:bg-orange-100"
+        );
+      case 3:
+        // Average – soft amber
+        return (
+          base +
+          "bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100"
+        );
+      case 4:
+        // Good – soft teal
+        return (
+          base + "bg-teal-50 text-teal-700 border-teal-300 hover:bg-teal-100"
+        );
+      case 5:
+      default:
+        // Excellent – soft emerald
+        return (
+          base +
+          "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
+        );
+    }
+  };
 
   return (
     <>
@@ -726,19 +771,29 @@ export default function Myshipments() {
                         {/* -------- Feedback Column -------- */}
                         {role == "Manager" || role == "sales admin" ? (
                           <td className="px-4 py-2 border text-center">
-                            <button
-                              onClick={() => openFeedbackModal(item)}
-                              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors duration-200 ${
-                                hasFeedback
-                                  ? "bg-yellow-100 text-yellow-800 border border-yellow-600 hover:bg-yellow-200"
-                                  : "bg-yellow-600 text-white hover:bg-yellow-700"
-                              }`}
-                              title={
-                                hasFeedback ? "View Feedback" : "Add Feedback"
-                              }
-                            >
-                              {hasFeedback ? "View" : "Feedback"}
-                            </button>
+                            {(() => {
+                              const fbDoc = feedbackByAwb[fbKey];
+                              const ratingValue = fbDoc?.starRatings || 0;
+
+                              return (
+                                <button
+                                  onClick={() => openFeedbackModal(item)}
+                                  className={getFeedbackButtonClasses(
+                                    hasFeedback,
+                                    ratingValue
+                                  )}
+                                  title={
+                                    hasFeedback
+                                      ? `View Feedback — Rating: ${
+                                          ratingValue || "N/A"
+                                        }`
+                                      : "Add Feedback"
+                                  }
+                                >
+                                  {hasFeedback ? "View" : "Feedback"}
+                                </button>
+                              );
+                            })()}
                           </td>
                         ) : (
                           ""

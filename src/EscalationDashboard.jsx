@@ -398,6 +398,8 @@ export default function EscalationDashboard() {
     }
   };
 
+  const statusLower = String(activeRow?.escalationStatus || "").toLowerCase();
+
   if (!role) {
     return <div className="p-6 text-sm text-gray-600">Loading user…</div>;
   }
@@ -692,7 +694,7 @@ export default function EscalationDashboard() {
                   <hr className="mt-4 border-gray-200" />
                 </section>
 
-                {/* === Two-column layout: left (images + close) / right (updates) === */}
+                {/* === Two-column layout: left (images + close/closure) / right (updates) === */}
                 <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)] gap-6 items-start">
                   {/* LEFT COLUMN */}
                   <div className="space-y-6">
@@ -733,111 +735,164 @@ export default function EscalationDashboard() {
                       <hr className="mt-4 border-gray-200" />
                     </section>
 
+                    {/* Closure details for CLOSED reports */}
+                    {statusLower === "closed" && (
+                      <section className="space-y-3">
+                        <h3 className="text-lg font-semibold text-purple-700">
+                          Closure Details
+                        </h3>
+                        <Info
+                          label="Closed By"
+                          value={activeRow.escalationClosedBy || "-"}
+                        />
+                        <Info
+                          label="Closed At"
+                          value={formatTimestamp(activeRow.escalationClosedAt)}
+                        />
+                        <Info
+                          label="Closure Note"
+                          value={activeRow.closureNote || "-"}
+                          multiline
+                        />
+
+                        <div>
+                          <div className="text-sm font-semibold text-purple-700 mb-1">
+                            Closure Images
+                          </div>
+                          {Array.isArray(activeRow.closureImages) &&
+                          activeRow.closureImages.length > 0 ? (
+                            <div className="flex flex-wrap gap-3">
+                              {activeRow.closureImages.map((src, idx) => (
+                                <button
+                                  key={src + idx}
+                                  className="w-16 h-16 rounded overflow-hidden border border-gray-200"
+                                  onClick={() => {
+                                    setLightboxImages(activeRow.closureImages);
+                                    setLightboxIndex(idx);
+                                    setLightboxOpen(true);
+                                  }}
+                                  title={`Closure Image ${idx + 1}`}
+                                >
+                                  <img
+                                    src={src}
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                  />
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-gray-500">
+                              No closure images.
+                            </div>
+                          )}
+                        </div>
+                      </section>
+                    )}
+
                     {/* Close section (Manager only + pending) */}
-                    {String(activeRow.escalationStatus || "").toLowerCase() ===
-                      "pending" &&
-                      isManager && (
-                        <section className="space-y-3">
-                          <h3 className="text-lg font-semibold text-purple-700">
-                            Close Escalation
-                          </h3>
+                    {statusLower === "pending" && isManager && (
+                      <section className="space-y-3">
+                        <h3 className="text-lg font-semibold text-purple-700">
+                          Close Escalation
+                        </h3>
 
-                          {/* Description to close */}
-                          <div>
-                            <div className="text-sm font-semibold text-purple-700">
-                              Description to Close{" "}
-                              <span className="text-rose-600">*</span>
+                        {/* Description to close */}
+                        <div>
+                          <div className="text-sm font-semibold text-purple-700">
+                            Description to Close{" "}
+                            <span className="text-rose-600">*</span>
+                          </div>
+                          <textarea
+                            rows={3}
+                            className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600"
+                            placeholder="Write at least 15 characters describing the resolution / action taken…"
+                            value={closeNote}
+                            onChange={(e) => setCloseNote(e.target.value)}
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            {closeNote.trim().length} / 200 characters
+                          </p>
+                          {noteError && (
+                            <div className="text-xs text-rose-600 mt-1">
+                              {noteError}
                             </div>
-                            <textarea
-                              rows={3}
-                              className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600"
-                              placeholder="Write at least 15 characters describing the resolution / action taken…"
-                              value={closeNote}
-                              onChange={(e) => setCloseNote(e.target.value)}
-                            />
-                            <p className="text-xs text-gray-500 mt-1">
-                              {closeNote.trim().length} / 200 characters
-                            </p>
-                            {noteError && (
-                              <div className="text-xs text-rose-600 mt-1">
-                                {noteError}
-                              </div>
-                            )}
+                          )}
+                        </div>
+
+                        {/* Proof Images (min 1) */}
+                        <div>
+                          <div className="text-sm font-semibold text-purple-700">
+                            Proof Images{" "}
+                            <span className="text-rose-600">*</span>
+                            <span className="text-xs text-gray-500 ml-1">
+                              (Min 1, Max {MAX_IMAGES}, ≤ {MAX_MB}MB each)
+                            </span>
                           </div>
 
-                          {/* Proof Images (min 1) */}
-                          <div>
-                            <div className="text-sm font-semibold text-purple-700">
-                              Proof Images{" "}
-                              <span className="text-rose-600">*</span>
-                              <span className="text-xs text-gray-500 ml-1">
-                                (Min 1, Max {MAX_IMAGES}, ≤ {MAX_MB}MB each)
-                              </span>
-                            </div>
-
-                            {closePreviews.length > 0 && (
-                              <div className="mt-2 flex flex-wrap gap-3">
-                                {closePreviews.map((src, idx) => (
-                                  <div
-                                    key={src + idx}
-                                    className="relative w-16 h-16"
+                          {closePreviews.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-3">
+                              {closePreviews.map((src, idx) => (
+                                <div
+                                  key={src + idx}
+                                  className="relative w-16 h-16"
+                                >
+                                  <img
+                                    src={src}
+                                    alt=""
+                                    className="w-full h-full rounded object-cover border"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => removeCloseImage(idx)}
+                                    className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full w-5 h-5 text-xs font-bold flex items-center justify-center hover:bg-red-700"
+                                    title="Remove"
                                   >
-                                    <img
-                                      src={src}
-                                      alt=""
-                                      className="w-full h-full rounded object-cover border"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => removeCloseImage(idx)}
-                                      className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full w-5 h-5 text-xs font-bold flex items-center justify-center hover:bg-red-700"
-                                      title="Remove"
-                                    >
-                                      ✕
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+                                    ✕
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
 
-                            <input
-                              type="file"
-                              accept="image/*"
-                              multiple
-                              className="mt-2 text-sm"
-                              onChange={(e) =>
-                                handleFilesSelected(e.target.files)
-                              }
-                            />
-                            {imgError && (
-                              <div className="text-xs text-rose-600 mt-1">
-                                {imgError}
-                              </div>
-                            )}
-                          </div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="mt-2 text-sm"
+                            onChange={(e) =>
+                              handleFilesSelected(e.target.files)
+                            }
+                          />
+                          {imgError && (
+                            <div className="text-xs text-rose-600 mt-1">
+                              {imgError}
+                            </div>
+                          )}
+                        </div>
 
-                          <div className="flex gap-2">
-                            <button
-                              disabled={!canClose || closing}
-                              onClick={handleCloseSubmit}
-                              className={`px-4 py-2 rounded-md text-white text-sm font-semibold ${
-                                !canClose || closing
-                                  ? "bg-gray-300 cursor-not-allowed"
-                                  : "bg-rose-600 hover:bg-rose-700"
-                              }`}
-                            >
-                              {closing ? "Closing…" : "Mark as Closed"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={closeModal}
-                              className="px-4 py-2 rounded-md border text-sm text-gray-700 bg-gray-100 hover:bg-gray-200"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </section>
-                      )}
+                        <div className="flex gap-2">
+                          <button
+                            disabled={!canClose || closing}
+                            onClick={handleCloseSubmit}
+                            className={`px-4 py-2 rounded-md text-white text-sm font-semibold ${
+                              !canClose || closing
+                                ? "bg-gray-300 cursor-not-allowed"
+                                : "bg-rose-600 hover:bg-rose-700"
+                            }`}
+                          >
+                            {closing ? "Closing…" : "Mark as Closed"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={closeModal}
+                            className="px-4 py-2 rounded-md border text-sm text-gray-700 bg-gray-100 hover:bg-gray-200"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </section>
+                    )}
                   </div>
 
                   {/* RIGHT COLUMN — Updates / Chat box */}
@@ -938,51 +993,55 @@ export default function EscalationDashboard() {
                       )}
                     </div>
 
-                    {/* Input */}
-                    <div className="mt-3 space-y-2">
-                      <div className="relative">
-                        <textarea
-                          rows={2}
-                          value={chatInput}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val.length > 200) {
-                              setChatError("Maximum 200 characters allowed.");
-                            } else {
-                              setChatError("");
-                            }
-                            setChatInput(val);
-                          }}
-                          placeholder="Type an internal note or comment…"
-                          maxLength={200}
-                          className="w-full border border-purple-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-purple-600 bg-white"
-                        />
-                        <span className="absolute right-3 bottom-2 text-[10px] text-gray-400">
-                          {chatInput.trim().length}/200
-                        </span>
-                      </div>
-                      {chatError && (
-                        <div className="text-[11px] text-rose-600">
-                          {chatError}
+                    {/* Input – only for PENDING escalations */}
+                    {statusLower === "pending" && (
+                      <div className="mt-3 space-y-2">
+                        <div className="relative">
+                          <textarea
+                            rows={2}
+                            value={chatInput}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val.length > 200) {
+                                setChatError("Maximum 200 characters allowed.");
+                              } else {
+                                setChatError("");
+                              }
+                              setChatInput(val);
+                            }}
+                            placeholder="Type an internal note or comment…"
+                            maxLength={200}
+                            className="w-full border border-purple-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-purple-600 bg-white"
+                          />
+                          <span className="absolute right-3 bottom-2 text-[10px] text-gray-400">
+                            {chatInput.trim().length}/200
+                          </span>
                         </div>
-                      )}
-                      <div className="flex justify-end">
-                        <button
-                          type="button"
-                          onClick={handleSendChat}
-                          disabled={
-                            !chatInput.trim() || sendingChat || !!chatError
-                          }
-                          className={`px-4 py-1.5 rounded-full text-xs font-semibold shadow-sm transition ${
-                            !chatInput.trim() || sendingChat || !!chatError
-                              ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                              : "bg-purple-700 text-white hover:bg-purple-800"
-                          }`}
-                        >
-                          {sendingChat ? "Sending…" : "Send"}
-                        </button>
+                        {chatError && (
+                          <div className="text-[11px] text-rose-600">
+                            {chatError}
+                          </div>
+                        )}
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            onClick={handleSendChat}
+                            disabled={
+                              !chatInput.trim() || sendingChat || !!chatError
+                            }
+                            className={`px-4 py-1.5 rounded-full text-xs font-semibold shadow-sm transition ${
+                              !chatInput.trim() ||
+                              sendingChat ||
+                              !!chatError
+                                ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                                : "bg-purple-700 text-white hover:bg-purple-800"
+                            }`}
+                          >
+                            {sendingChat ? "Sending…" : "Send"}
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </section>
                 </div>
                 {/* === end two-column layout === */}
@@ -1036,7 +1095,8 @@ export default function EscalationDashboard() {
                       Math.min(lightboxImages.length - 1, i + 1)
                     )
                   }
-                  disabled={lightboxIndex === lightboxImages.length - 1}
+                  disabled={lightboxImages.length === 0 ||
+                    lightboxIndex === lightboxImages.length - 1}
                   className="px-3 py-1.5 text-sm rounded border disabled:opacity-50"
                 >
                   Next
