@@ -564,7 +564,7 @@ function PickupBooking() {
             <div>
               <div className="mb-4">
                 <label className="block text-gray-700 font-semibold mb-2">
-                  AWB Number:
+                  AWB Number
                 </label>
                 <input
                   type="text"
@@ -576,7 +576,7 @@ function PickupBooking() {
               </div>
               <div className="mb-4">
                 <label className="block text-gray-700 font-semibold mb-2">
-                  Consignor Name:
+                  Consignor Name
                 </label>
                 <input
                   type="text"
@@ -596,7 +596,7 @@ function PickupBooking() {
               </div>
               <div className="mb-4">
                 <label className="block text-gray-700 font-semibold mb-2">
-                  Consignor Phone Number:
+                  Consignor Phone Number
                 </label>
                 <input
                   type="text"
@@ -631,7 +631,7 @@ function PickupBooking() {
               </div>
               <div className="mb-4">
                 <label className="block text-gray-700 font-semibold mb-2">
-                  Consignor address:
+                  Consignor address
                 </label>
                 <input
                   type="text"
@@ -657,7 +657,7 @@ function PickupBooking() {
               <div>
                 <div className="mb-4">
                   <label className="block text-gray-700 font-semibold mb-2">
-                    Country (Destination):
+                    Country (Destination)
                   </label>
                   <select
                     {...register("country", {
@@ -686,7 +686,7 @@ function PickupBooking() {
                 </div>
                 <div className="mb-4">
                   <label className="block text-gray-700 font-semibold mb-2">
-                    Consignee Name:
+                    Consignee Name
                   </label>
                   <input
                     type="text"
@@ -708,7 +708,7 @@ function PickupBooking() {
                 </div>
                 <div className="flex flex-col">
                   <label className="block text-gray-700 font-semibold mb-2">
-                    Consignee Phone Number:
+                    Consignee Phone Number
                   </label>
                   <div className="flex">
                     <ConsigneePhoneNumberInput
@@ -751,7 +751,7 @@ function PickupBooking() {
               </div>
               <div className="mb-4">
                 <label className="block text-gray-700 font-semibold mb-2">
-                  Consignee address:
+                  Consignee address
                 </label>
                 <input
                   type="text"
@@ -777,7 +777,7 @@ function PickupBooking() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="mb-4">
                 <label className="block text-gray-700 font-semibold mb-2">
-                  Pickup Pincode:
+                  Pickup Pincode
                 </label>
                 <input
                   type="text"
@@ -822,7 +822,7 @@ function PickupBooking() {
               </div>
               <div className="mb-4">
                 <label className="block text-gray-700 font-semibold mb-2">
-                  Pickup Area:
+                  Pickup Area
                 </label>
                 <input
                   type="text"
@@ -892,7 +892,7 @@ function PickupBooking() {
               </div>
               <div className="mb-6">
                 <label className="block text-gray-700 font-semibold mb-2">
-                  Weight (approx):
+                  Weight (approx)
                 </label>
                 <input
                   type="number"
@@ -915,7 +915,7 @@ function PickupBooking() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="mb-4">
                 <label className="block text-gray-700 font-semibold mb-2">
-                  Vendor:
+                  Vendor
                 </label>
                 <select
                   {...register("vendor", { required: "Vendor is required" })}
@@ -942,7 +942,7 @@ function PickupBooking() {
               </div>
               <div className="mb-6">
                 <label className="block text-gray-700 font-semibold mb-2">
-                  Content (Products):
+                  Content (Products)
                 </label>
                 <textarea
                   type="text"
@@ -1005,7 +1005,7 @@ function PickupBooking() {
               </div>
               <div className="mb-4">
                 <label className="block text-gray-700 font-semibold mb-2">
-                  Pickup Date:
+                  Pickup Date
                 </label>
                 <input
                   type="date"
@@ -1024,7 +1024,7 @@ function PickupBooking() {
               </div>
               <div className="mb-4">
                 <label className="block text-gray-700 font-semibold mb-2">
-                  Pickup Time:
+                  Pickup Time
                 </label>
                 <div className="flex space-x-2">
                   <select
@@ -1074,7 +1074,7 @@ function PickupBooking() {
           </div>
           <div className="mb-4">
             <label className="block text-gray-700 font-semibold mb-2">
-              Upload KYC Image (PDF Only):
+              Upload KYC Image (PDF Only)
             </label>
             <Controller
               name="kycFile"

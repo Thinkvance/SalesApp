@@ -1,41 +1,57 @@
-// VersionUpdateModal.js
-
 import React from "react";
 
 function VersionUpdateModal({ message, onRefresh }) {
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh",
-        backgroundColor: "rgba(0, 0, 0, 0.9)",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        zIndex: 9999,
-        padding: "1rem",
-      }}
-    >
+    <div>
+      <style>
+        {`
+          /* Ultra-Realistic Spring Bounce (UNCHANGED) */
+          @keyframes ultraSpringBounce {
+            0%   { transform: translateY(0); }
+            6%   { transform: translateY(-65px); }
+            16%  { transform: translateY(12px); }
+            26%  { transform: translateY(-8px); }
+            36%  { transform: translateY(5px); }
+            46%  { transform: translateY(-3px); }
+            56%  { transform: translateY(2px); }
+            66%  { transform: translateY(-1px); }
+            76%  { transform: translateY(0); }
+            100% { transform: translateY(0); }
+          }
+
+          .ultra-spring {
+            animation: ultraSpringBounce 3.8s cubic-bezier(.17,.89,.32,1.27) infinite;
+            transform-origin: bottom center;
+            will-change: transform;
+          }
+        `}
+      </style>
+
       <div
+        className="ultra-spring"
         style={{
-          background: "#ffffff",
-          padding: "2rem",
-          borderRadius: "12px",
+          position: "fixed",
+          background: "rgba(255, 255, 255, 0.96)",
+          backdropFilter: "blur(10px)",
+          padding: "1.8rem 1.6rem",
+          borderRadius: "16px",
           maxWidth: "90%",
-          width: "400px",
-          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.1)",
+          width: "360px",
+          boxShadow:
+            "0 6px 20px rgba(0,0,0,0.15), 0 0 0 1.5px rgba(139,92,246,0.25)",
+          border: "1px solid rgba(139,92,246,0.45)",
           textAlign: "center",
-          fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+          right: 24,
+          bottom: 24,
+          zIndex: 99999,
         }}
       >
         <h2
           style={{
-            marginBottom: "1rem",
-            color: "#333",
-            fontSize: "1.5rem",
+            marginBottom: "0.6rem",
+            color: "#1e1e1e",
+            fontSize: "1.45rem",
+            fontWeight: 600,
           }}
         >
           🚀 Update Available
@@ -43,9 +59,11 @@ function VersionUpdateModal({ message, onRefresh }) {
 
         <p
           style={{
-            fontSize: "1rem",
-            color: "#555",
-            marginBottom: "1.5rem",
+            marginBottom: "1.4rem",
+            color: "#4b4b4b",
+            fontSize: "1.05rem",
+            lineHeight: 1.45,
+            fontWeight: 400,
           }}
         >
           {message}
@@ -54,17 +72,20 @@ function VersionUpdateModal({ message, onRefresh }) {
         <button
           onClick={onRefresh}
           style={{
-            backgroundColor: "#6f42c1", // Bootstrap purple
+            backgroundColor: "#6f42c1",
             color: "#fff",
             border: "none",
-            padding: "0.75rem 1.5rem",
-            borderRadius: "6px",
+            padding: "0.75rem 1.4rem",
+            borderRadius: "8px",
             fontSize: "1rem",
+            fontWeight: 500,
             cursor: "pointer",
-            transition: "background 0.3s ease",
+            width: "100%",
+            transition: "0.2s",
+            boxShadow: "0 3px 10px rgba(111,66,193,0.25)",
           }}
           onMouseOver={(e) => {
-            e.target.style.backgroundColor = "#5a32a3"; // Darker purple on hover
+            e.target.style.backgroundColor = "#5a32a3";
           }}
           onMouseOut={(e) => {
             e.target.style.backgroundColor = "#6f42c1";
