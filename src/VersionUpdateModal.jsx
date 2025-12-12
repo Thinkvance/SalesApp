@@ -1,34 +1,23 @@
-import React from "react";
-
 function VersionUpdateModal({ message, onRefresh }) {
   return (
     <div>
       <style>
         {`
-          /* Ultra-Realistic Spring Bounce (UNCHANGED) */
-          @keyframes ultraSpringBounce {
-            0%   { transform: translateY(0); }
-            6%   { transform: translateY(-65px); }
-            16%  { transform: translateY(12px); }
-            26%  { transform: translateY(-8px); }
-            36%  { transform: translateY(5px); }
-            46%  { transform: translateY(-3px); }
-            56%  { transform: translateY(2px); }
-            66%  { transform: translateY(-1px); }
-            76%  { transform: translateY(0); }
-            100% { transform: translateY(0); }
+          /* Animation removed */
+
+          .update-btn {
+            background-color: #6f42c1;
+            transition: 0.25s ease;
           }
 
-          .ultra-spring {
-            animation: ultraSpringBounce 3.8s cubic-bezier(.17,.89,.32,1.27) infinite;
-            transform-origin: bottom center;
-            will-change: transform;
+          .update-btn:hover {
+            filter: brightness(0.92);
           }
         `}
       </style>
 
       <div
-        className="ultra-spring"
+        className=""
         style={{
           position: "fixed",
           background: "rgba(255, 255, 255, 0.96)",
@@ -70,9 +59,9 @@ function VersionUpdateModal({ message, onRefresh }) {
         </p>
 
         <button
+          className="update-btn"
           onClick={onRefresh}
           style={{
-            backgroundColor: "#6f42c1",
             color: "#fff",
             border: "none",
             padding: "0.75rem 1.4rem",
@@ -81,14 +70,7 @@ function VersionUpdateModal({ message, onRefresh }) {
             fontWeight: 500,
             cursor: "pointer",
             width: "100%",
-            transition: "0.2s",
             boxShadow: "0 3px 10px rgba(111,66,193,0.25)",
-          }}
-          onMouseOver={(e) => {
-            e.target.style.backgroundColor = "#5a32a3";
-          }}
-          onMouseOut={(e) => {
-            e.target.style.backgroundColor = "#6f42c1";
           }}
         >
           Refresh Now
