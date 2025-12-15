@@ -422,7 +422,7 @@ function ShipmentDetails({ selectedPickup, closeModal }) {
                   </div>
                   <div className="mt-5">
                     <a
-                      href={`https://shiphittracking.web.app/TrackingDetails/${selectedPickup.awbNumber}`}
+                      href={`https://shiphit.in/track-your-courier/${selectedPickup.awbHashedValue}`}
                       target="_blank"
                     >
                       <button className="bg-purple-600 text-white px-4 py-1  rounded-md">
