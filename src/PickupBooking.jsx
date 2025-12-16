@@ -24,7 +24,6 @@ import "react-phone-input-2/lib/style.css";
 import sha256 from "crypto-js/sha256";
 import countryList from "../src/CountryDialCode.json";
 import ConsigneePhoneNumberInput from "./ConsigneePhoneNumberInput";
-import utilityFunctions from "./Utility/utilityFunctions";
 
 function PickupBooking() {
   const [loading, setLoading] = useState(false);

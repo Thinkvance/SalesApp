@@ -336,6 +336,7 @@ export default function Myshipments() {
   async function Sharetrackinglink({
     name,
     awb,
+    awbHashedValue,
     mode,
     destination,
     phone,
@@ -376,7 +377,7 @@ export default function Myshipments() {
                   },
                 ],
               },
-              templateName: "shareshipmentstatus",
+              templateName: "shareshipmentstatus_test_3",
             },
             from: "+919600690881",
             to: `+91${phone}`,
@@ -679,6 +680,7 @@ export default function Myshipments() {
                                   await Sharetrackinglink({
                                     name: recipientname,
                                     awb: item.awbNumber,
+                                    awb: item.awbHashedValue,
                                     mode: item.service,
                                     destination: item.destination,
                                     phone: recipientPhone,
