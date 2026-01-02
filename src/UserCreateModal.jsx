@@ -30,15 +30,18 @@ export default function UserCreateModal({ isOpen, onClose }) {
     };
 
     try {
-      const response = await fetch("http://localhost:3000/create-user", {
-        method: "POST",
-        headers: {
-          Authorization:
-            "Bearer 39dd3954c00c5132153c267a818a08c22d80931a8a5a8ac12facf18964066456",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      const response = await fetch(
+        "https://user-management-d2f8.onrender.com/create-user",
+        {
+          method: "POST",
+          headers: {
+            Authorization:
+              "Bearer 39dd3954c00c5132153c267a818a08c22d80931a8a5a8ac12facf18964066456",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
       const result = await response.json();
 

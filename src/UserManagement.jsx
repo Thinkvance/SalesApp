@@ -169,7 +169,7 @@ export default function UserManagement() {
       });
       setListOfUserInDB(list);
       await axios
-        .get("http://localhost:3000/auth-users", {
+        .get("https://user-management-d2f8.onrender.com/auth-users", {
           headers: {
             Authorization:
               "Bearer 39dd3954c00c5132153c267a818a08c22d80931a8a5a8ac12facf18964066456",
