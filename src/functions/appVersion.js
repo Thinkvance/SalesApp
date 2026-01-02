@@ -1,1 +1,1 @@
-export default { appversion: "6.2.0" };
+export default { appversion: "6.2.1" };
