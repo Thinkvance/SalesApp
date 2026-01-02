@@ -20,6 +20,7 @@ import {
   getDownloadURL,
 } from "firebase/storage";
 import Nav from "./Nav";
+import ShipmentDetails from "./ShipmentDetails";
 
 const MAX_IMAGES = 3;
 const MAX_MB = 3;
@@ -57,7 +58,8 @@ export default function EscalationDashboard() {
   const [modalOpen, setModalOpen] = useState(false);
   const [activeRow, setActiveRow] = useState(null);
   const [shipment, setShipment] = useState(null);
-
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPickup, setSelectedPickup] = useState(null);
   // Lightbox (submitted images)
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImages, setLightboxImages] = useState([]);
@@ -213,6 +215,7 @@ export default function EscalationDashboard() {
 
     try {
       const shipId = row.pickupDocId || row.shipmentDocId;
+
       if (shipId) {
         const shipRef = doc(db, DB.db_collection, shipId);
         const snap = await getDoc(shipRef);
@@ -400,6 +403,28 @@ export default function EscalationDashboard() {
 
   const statusLower = String(activeRow?.escalationStatus || "").toLowerCase();
 
+  const closeModalShipmentDetails = () => {
+    setIsModalOpen(false);
+    setSelectedPickup(null);
+  };
+  const handleMoreIconClick = async (row) => {
+    console.log("row", row);
+    try {
+      const shipId = row.pickupDocId || row.shipmentDocId;
+      if (shipId) {
+        const shipRef = doc(db, DB.db_collection, shipId);
+        const snap = await getDoc(shipRef);
+        if (snap.exists()) {
+          setSelectedPickup(snap.data());
+          setIsModalOpen(true);
+          console.log("test");
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to load shipment for escalation:", e);
+    }
+  };
+
   if (!role) {
     return <div className="p-6 text-sm text-gray-600">Loading user…</div>;
   }
@@ -418,7 +443,6 @@ export default function EscalationDashboard() {
       </div>
     );
   }
-
   return (
     <div>
       <Nav />
@@ -499,6 +523,7 @@ export default function EscalationDashboard() {
                   "Created At",
                   "Created By",
                   "Message",
+                  "View More",
                   "Actions",
                 ].map((h) => (
                   <th
@@ -534,7 +559,6 @@ export default function EscalationDashboard() {
                   <tr
                     key={row.id}
                     className="border-b hover:bg-gray-50 transition"
-                    onClick={() => handleView(row)}
                   >
                     <td className="px-4 py-2">{row.awbNumber || "-"}</td>
                     <td className="px-4 py-2">
@@ -553,6 +577,13 @@ export default function EscalationDashboard() {
                       >
                         {row.escalationMessage || "-"}
                       </span>
+                    </td>
+                    <td className="px-4 py-2 whitespace-nowrap">
+                      <img
+                        className="w-8 cursor-pointer mt-3"
+                        src="more-icon.svg"
+                        onClick={async () => await handleMoreIconClick(row)}
+                      />
                     </td>
                     <td className="px-4 py-2 whitespace-nowrap">
                       {String(row.escalationStatus).toLowerCase() ===
@@ -599,6 +630,13 @@ export default function EscalationDashboard() {
             </tbody>
           </table>
         </div>
+
+        {isModalOpen && selectedPickup && (
+          <ShipmentDetails
+            selectedPickup={selectedPickup}
+            closeModal={closeModalShipmentDetails}
+          />
+        )}
         {/* Modal */}
         {modalOpen && activeRow && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">

@@ -455,7 +455,12 @@ function rolesPermissions() {
         "Payment-confirm",
       ],
       RateManagement: ["Sale-rates", "vendor-rates"],
-      Reports: ["Sales-Report", "Vendor-Report", "review-management"],
+      Reports: [
+        "Sales-Report",
+        "Vendor-Report",
+        "review-management",
+        "user-management",
+      ],
     };
   }
   if (role == "sales associate") {

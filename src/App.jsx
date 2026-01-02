@@ -41,6 +41,7 @@ import appVersion from "./functions/appVersion";
 import EscalationDashboard from "./EscalationDashboard"; // ✅ import
 import ReportForm from "./ReportForm";
 import { RequireAuth, RequireRole } from "./RouteGuards";
+import UserManagement from "./UserManagement";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -192,6 +193,22 @@ function App() {
               }
             />
             <Route
+              path="/User-Management"
+              element={
+                <RequireAuth user={user}>
+                  <RequireRole
+                    role={
+                      JSON.parse(localStorage.getItem("LoginCredentials"))?.role
+                    }
+                    allowed={["Manager"]}
+                  >
+                    <UserManagement />
+                  </RequireRole>
+                </RequireAuth>
+              }
+            />
+
+            <Route
               path="/Sales-Report"
               element={
                 <RequireAuth user={user}>
@@ -226,7 +243,14 @@ function App() {
               path="/addExtraCharges"
               element={
                 <RequireAuth user={user}>
-                  <ExtraChargesModule />
+                  <RequireRole
+                    role={
+                      JSON.parse(localStorage.getItem("LoginCredentials"))?.role
+                    }
+                    allowed={["Manager"]}
+                  >
+                    <ExtraChargesModule />
+                  </RequireRole>
                 </RequireAuth>
               }
             />
@@ -288,7 +312,14 @@ function App() {
               path="/logistics-Dashboard"
               element={
                 <RequireAuth user={user}>
-                  <LogisticsDashboard />
+                  <RequireRole
+                    role={
+                      JSON.parse(localStorage.getItem("LoginCredentials"))?.role
+                    }
+                    allowed={["Manager"]}
+                  >
+                    <LogisticsDashboard />
+                  </RequireRole>
                 </RequireAuth>
               }
             />
@@ -304,7 +335,14 @@ function App() {
               path="/Sales-Incentive"
               element={
                 <RequireAuth user={user}>
-                  <SalesIncentive />
+                  <RequireRole
+                    role={
+                      JSON.parse(localStorage.getItem("LoginCredentials"))?.role
+                    }
+                    allowed={["Manager"]}
+                  >
+                    <SalesIncentive />
+                  </RequireRole>
                 </RequireAuth>
               }
             />
@@ -312,7 +350,14 @@ function App() {
               path="/Pickup-Incentive"
               element={
                 <RequireAuth user={user}>
-                  <PickupIncentive />
+                  <RequireRole
+                    role={
+                      JSON.parse(localStorage.getItem("LoginCredentials"))?.role
+                    }
+                    allowed={["Manager"]}
+                  >
+                    <PickupIncentive />
+                  </RequireRole>
                 </RequireAuth>
               }
             />
@@ -352,7 +397,14 @@ function App() {
               path="/PickuPersonIncentive-Report"
               element={
                 <RequireAuth user={user}>
-                  <PickupPersonIncentive />
+                  <RequireRole
+                    role={
+                      JSON.parse(localStorage.getItem("LoginCredentials"))?.role
+                    }
+                    allowed={["Manager"]}
+                  >
+                    <PickupPersonIncentive />
+                  </RequireRole>
                 </RequireAuth>
               }
             />
