@@ -32,6 +32,7 @@ function Pickups() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPickup, setSelectedPickup] = useState(null);
   const [loadingEdit, setLoadingEdit] = useState(false);
+  const [selectedVendorAWBnumber, setselectedVendorAWBnumber] = useState("");
 
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("LoginCredentials"));
@@ -150,7 +151,17 @@ function Pickups() {
     const personMatch = pickup.pickUpPersonName
       .toLowerCase()
       .includes(PickupPersonName.toLowerCase());
-    return awbMatch && consignorPhoneMatch && personMatch;
+
+    const matchedVendorAWBnumber =
+      selectedVendorAWBnumber === ""
+        ? true // include all
+        : pickup?.vendorAwbnumber != null &&
+          String(pickup.vendorAwbnumber).toLowerCase() ===
+            String(selectedVendorAWBnumber).toLowerCase();
+
+    return (
+      awbMatch && consignorPhoneMatch && personMatch && matchedVendorAWBnumber
+    );
   });
 
   function formatString(input) {
@@ -208,13 +219,20 @@ function Pickups() {
             : `Pickups Booked by ${username}`}
         </h1>
 
-        <div className="mb-6 flex flex-wrap gap-6 sm:gap-10 ">
+        <div className="mb-6 flex flex-wrap gap-4 sm:gap-6 ">
           <input
             type="text"
             placeholder="Search by AWB Number"
             value={awbSearchTerm}
             onChange={(e) => setAwbSearchTerm(e.target.value)}
             className="border  border-gray-300 rounded py-2 px-4 w-fit mb-2 focus:outline-none focus:ring-2 focus:ring-purple-600"
+          />
+          <input
+            className="border border-gray-300 rounded py-2 px-4 w-fit mb-2 focus:outline-none focus:ring-2 focus:ring-purple-600"
+            value={selectedVendorAWBnumber}
+            onChange={(e) => setselectedVendorAWBnumber(e.target.value)}
+            type="text"
+            placeholder="Vendor AWB Number"
           />
           <input
             type="date"
@@ -233,14 +251,14 @@ function Pickups() {
           />
           <input
             type="text"
-            placeholder="Search by Consignor Phone Number"
+            placeholder="Search by Consignor Number"
             value={consignorPhoneSearchTerm}
             onChange={(e) => setConsignorPhoneSearchTerm(e.target.value)}
             className="border border-gray-300 rounded py-2 px-4 w-[290px] mb-2 focus:outline-none focus:ring-2 focus:ring-purple-600"
           />
           <input
             type="text"
-            placeholder="Search by Pickup Person"
+            placeholder="Search Pickup Person"
             value={PickupPersonName}
             onChange={(e) => setPickUpPersonName(e.target.value)}
             className="border border-gray-300 rounded py-2 px-4 w-fit mb-2 focus:outline-none focus:ring-2 focus:ring-purple-600"
