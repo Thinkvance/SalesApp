@@ -67,7 +67,7 @@ function Accounts() {
         querySnapshot.forEach((doc) => {
           const data = doc.data();
           Object.values(data).forEach((arr) => {
-            if (["sales admin", "sales associate"].includes(arr[2]))
+            if (["sales admin", "sales associate", "Manager"].includes(arr[2]))
               names.push(arr[0]); // Push only the name (index 0)
           });
         });
