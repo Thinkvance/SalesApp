@@ -56,7 +56,12 @@ function PickupBooking() {
   const [city, setcity] = useState("");
   const [source, setsource] = useState("Select");
   const [newAwbNumber, setnewAwbNumber] = useState();
-
+  const [companyName, setcompanyName] = useState("");
+  const [currentUser, setcurrentUser] = useState({});
+  const [OnboradedClients, setOnboradedClients] = useState([]);
+  const [AllOnboradedClients, setAllOnboradedClients] = useState([]);
+  const [isOnboarded, setIsOnboarded] = useState(false); // false = NO
+  const [ClientKYC, setClientKYC] = useState(""); // false = NO
   function splitLati_Logi(value) {
     const [lat, long] = value.split(",").map(Number);
     // Format the latitude and longitude to match the output precision
@@ -78,7 +83,7 @@ function PickupBooking() {
           if (pickupData.awbNumber) {
             maxAwbNumber = Math.max(
               maxAwbNumber,
-              parseInt(pickupData.awbNumber)
+              parseInt(pickupData.awbNumber),
             );
           }
         });
@@ -133,7 +138,7 @@ function PickupBooking() {
     countryData.push({ code: "UAE", name: "United Arab Emirates" });
 
     countryData = countryData.map((country) =>
-      country.code == "GB" ? { ...country, name: "United Kingdom" } : country
+      country.code == "GB" ? { ...country, name: "United Kingdom" } : country,
     );
 
     const topCountries = [
@@ -153,7 +158,7 @@ function PickupBooking() {
 
     // Sort countries alphabetically
     const sortedCountries = countryData.sort((a, b) =>
-      a.name.localeCompare(b.name)
+      a.name.localeCompare(b.name),
     );
 
     // Map top countries to their data
@@ -163,7 +168,7 @@ function PickupBooking() {
 
     // Filter out top countries from sorted list
     const remainingCountries = sortedCountries.filter(
-      (country) => !topCountries.includes(country.name)
+      (country) => !topCountries.includes(country.name),
     );
 
     // Combine top countries with remaining countries
@@ -194,7 +199,7 @@ function PickupBooking() {
       try {
         const q = query(
           collection(db, DB.db_collection),
-          where("consignorphonenumber", "==", phoneNumber)
+          where("consignorphonenumber", "==", phoneNumber),
         );
         const querySnapshot = await getDocs(q);
 
@@ -205,7 +210,7 @@ function PickupBooking() {
           const recentShipment = getRecentData(data);
           console.log("recentShipment", recentShipment);
           setSourceOptions((prev) =>
-            prev.includes(dynamicSource) ? prev : [...prev, dynamicSource]
+            prev.includes(dynamicSource) ? prev : [...prev, dynamicSource],
           );
 
           // Wait for state update before setting value
@@ -284,7 +289,7 @@ function PickupBooking() {
   async function checkRepeatedCustomer(phoneNumber) {
     const q = query(
       collection(db, DB.db_collection),
-      where("consignorphonenumber", "==", phoneNumber)
+      where("consignorphonenumber", "==", phoneNumber),
     );
     const querySnapshot = await getDocs(q);
     if (!querySnapshot.empty) {
@@ -298,7 +303,7 @@ function PickupBooking() {
   async function sinceDatefun(phoneNumber) {
     const q = query(
       collection(db, DB.db_collection),
-      where("consignorphonenumber", "==", phoneNumber)
+      where("consignorphonenumber", "==", phoneNumber),
     );
     const querySnapshot = await getDocs(q);
     if (!querySnapshot.empty) {
@@ -348,7 +353,7 @@ function PickupBooking() {
           if (pickupData.awbNumber) {
             maxAwbNumber = Math.max(
               maxAwbNumber,
-              parseInt(pickupData.awbNumber)
+              parseInt(pickupData.awbNumber),
             );
           }
         });
@@ -378,7 +383,7 @@ function PickupBooking() {
         pickupInstructions: data.instructions,
         weightapx: data.weight + " KG",
         pickupDatetime: convertToFirebaseTimestamp(
-          `${data.pickupDate + " " + data.pickupHour + " " + data.pickupPeriod}`
+          `${data.pickupDate + " " + data.pickupHour + " " + data.pickupPeriod}`,
         ),
         franchise: frachise,
         awbNumber: newAwbNumber, // Add the new awbNumber here
@@ -401,7 +406,11 @@ function PickupBooking() {
         rtoIfAny: null,
         packageConnectedDataTime: null,
         logisticCost: null,
-        KycImage: uploadedImageURLs.length == 0 ? "" : uploadedImageURLs[0],
+        KycImage: isOnboarded
+          ? ClientKYC
+          : uploadedImageURLs.length == 0
+            ? ""
+            : uploadedImageURLs[0],
         Source: source,
         City: city,
       });
@@ -439,7 +448,7 @@ function PickupBooking() {
           options.data,
           {
             headers: options.headers,
-          }
+          },
         );
       } else {
         const options = {
@@ -476,7 +485,7 @@ function PickupBooking() {
           options.data,
           {
             headers: options.headers,
-          }
+          },
         );
       }
 
@@ -484,7 +493,10 @@ function PickupBooking() {
       setIsSourceFixed(false);
       setsource("");
       reset();
+      setIsOnboarded(false);
       setShowModal(true);
+      setcompanyName("");
+      setlatitudelongitude("");
       setTimeout(() => {
         setShowModal(false);
       }, 1000);
@@ -511,7 +523,7 @@ function PickupBooking() {
           "state_changed",
           (snapshot) => {
             const progress = Math.round(
-              (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+              (snapshot.bytesTransferred / snapshot.totalBytes) * 100,
             );
             setUploadProgress((prev) => ({ ...prev, [index]: progress }));
           },
@@ -524,7 +536,7 @@ function PickupBooking() {
             } catch (error) {
               reject(error);
             }
-          }
+          },
         );
       });
     });
@@ -548,19 +560,113 @@ function PickupBooking() {
     }
   }, [selectedCountryCode, setValue]);
 
+  useEffect(() => {
+    const data = JSON.parse(localStorage.getItem("LoginCredentials"));
+    setcurrentUser(data);
+  }, []);
+
+  function auto_populate_BtoC(CompanyName) {
+    const client = AllOnboradedClients.find(
+      (client) => client.companyName == CompanyName,
+    );
+
+    console.log("client", client);
+
+    if (client) {
+      setValue("Consignorname", client.consignorName);
+      setValue("Consignornumber", client.consignorPhone);
+      setValue("Consignorlocation", client.consignorAddress);
+      setValue("pincode", client.pincode);
+      setcity(client.city);
+      setValue("pickuparea", client.pickupArea);
+      setsource("B To C");
+      setValue("instructions", client.specialInstructions);
+      setlatitudelongitude(client.coordinates);
+      setClientKYC(client.kycFileUrl);
+    } else {
+      setValue("Consignorname", "");
+      setValue("Consignornumber", "");
+      setValue("Consignorlocation", "");
+      setValue("pincode", "");
+      setcity("");
+      setValue("pickuparea", "");
+      setsource("");
+      setValue("instructions", "");
+    }
+  }
+
+  const fetchClientOnboardingData = async (currentUser) => {
+    if (!currentUser?.name || !currentUser?.email) {
+      console.log("Current user not ready, skipping fetch");
+      return [];
+    }
+
+    try {
+      const q = query(
+        collection(db, "ClientOnboarding"),
+        where("CreatedBy", "==", currentUser.name),
+        where("CreatedByEmail", "==", currentUser.email),
+        where("isApproved", "==", true),
+      );
+
+      const querySnapshot = await getDocs(q);
+
+      return querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+    } catch (error) {
+      console.error("Error fetching ClientOnboarding data:", error);
+      throw error;
+    }
+  };
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const loadData = async () => {
+      const data = await fetchClientOnboardingData(currentUser);
+      const onboardedClients = [
+        ...new Set(data.map((item) => item.companyName).filter(Boolean)),
+      ];
+
+      setOnboradedClients(onboardedClients);
+      setAllOnboradedClients(data);
+    };
+
+    loadData();
+  }, [currentUser]);
+
   return (
     <div className="">
       <Nav />
       <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4 flex-col gap-4">
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="bg-white p-6  rounded-md shadow-none w-full max-w-4xl"
+          className="bg-white p-6  rounded-md shadow-none w-full max-w-4xl relative"
         >
-          <h2 className="text-xl font-bold text-center mb-6 text-gray-800">
+          <h2 className="text-sm sm:text-xl font-bold text-center mb-12 sm:mb-6 text-gray-800">
             Submit Pickup Details
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
             <div>
+              {OnboradedClients.length >= 1 && (
+                <div className="flex items-center gap-3 mb-6 absolute top-14 sm:top-7">
+                  <span className="font-semibold ">B To C</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsOnboarded((prev) => !prev)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300
+      ${isOnboarded ? "bg-purple-600" : "bg-gray-300"}`}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-300
+        ${isOnboarded ? "translate-x-5" : "translate-x-1"}`}
+                    />
+                  </button>
+                </div>
+              )}
+
               <div className="mb-4">
                 <label className="block text-gray-700 font-semibold mb-2">
                   AWB Number
@@ -573,6 +679,29 @@ function PickupBooking() {
                   className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#8847D9]`}
                 />
               </div>
+
+              {/* Company Name */}
+              {isOnboarded && (
+                <div className="mb-4">
+                  <label className="block text-gray-700 font-semibold mb-2">
+                    Company Name
+                  </label>
+                  <select
+                    className="px-3 py-2 w-full border rounded-md focus:outline-none focus:border-[#8847D9]"
+                    value={companyName}
+                    onChange={(e) => {
+                      setcompanyName(e.target.value);
+                      auto_populate_BtoC(e.target.value);
+                    }}
+                  >
+                    <option value={"select client"}>select client</option>
+
+                    {OnboradedClients.map((client) => (
+                      <option value={client}>{client}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="mb-4">
                 <label className="block text-gray-700 font-semibold mb-2">
                   Consignor Name
@@ -983,7 +1112,7 @@ function PickupBooking() {
                   <label className="block text-gray-700 font-semibold mb-2">
                     Latitude & Longitude
                   </label>
-                  {latitudelongitude ? (
+                  {/* {latitudelongitude ? (
                     <div
                       onClick={() => openMap()}
                       className="px-3 py-1 rounded-sm text-white bg-red-500 cursor-pointer"
@@ -992,10 +1121,11 @@ function PickupBooking() {
                     </div>
                   ) : (
                     ""
-                  )}
+                  )} */}
                 </div>
                 <input
                   type="text"
+                  value={latitudelongitude}
                   placeholder="E.g. 11.00000 , 12.00000"
                   className={`w-fit px-3 py-2 border "border-gray-300 rounded-md focus:outline-none focus:border-[#8847D9]`}
                   onChange={(e) => setlatitudelongitude(e.target.value)}
@@ -1071,48 +1201,50 @@ function PickupBooking() {
               </div>
             </div>
           </div>
-          <div className="mb-4">
-            <label className="block text-gray-700 font-semibold mb-2">
-              Upload KYC Image (PDF Only)
-            </label>
-            <Controller
-              name="kycFile"
-              control={control}
-              // Remove required here or any validation related to file presence
-              render={({ field }) => (
-                <input
-                  type="file"
-                  accept=".pdf"
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      setFiles([file]); // Update state with the selected file
-                      field.onChange(e.target.files); // Update form state
-                    } else {
-                      setFiles([]); // Clear files if no file is selected
-                      field.onChange([]); // Clear form state
-                    }
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#8847D9]"
-                />
+          {!isOnboarded && (
+            <div className="mb-4">
+              <label className="block text-gray-700 font-semibold mb-2">
+                Upload KYC Image (PDF Only)
+              </label>
+              <Controller
+                name="kycFile"
+                control={control}
+                // Remove required here or any validation related to file presence
+                render={({ field }) => (
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        setFiles([file]); // Update state with the selected file
+                        field.onChange(e.target.files); // Update form state
+                      } else {
+                        setFiles([]); // Clear files if no file is selected
+                        field.onChange([]); // Clear form state
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#8847D9]"
+                  />
+                )}
+              />
+              {errors.kycFile && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.kycFile.message}
+                </p>
               )}
-            />
-            {errors.kycFile && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.kycFile.message}
-              </p>
-            )}
-            {files.length > 0 && (
-              <div className="mt-2">
-                <p className="text-gray-700">{files[0].name}</p>
-              </div>
-            )}
-          </div>
+              {files.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-gray-700">{files[0].name}</p>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="flex justify-center">
             <button
               type="submit"
-              className={`bg-[#8847D9]  text-white font-semibold py-2 px-4 rounded-md transition duration-300 ${
+              className={`bg-[#8847D9]  text-white font-semibold py-2 px-10 rounded-md transition duration-300 ${
                 loading ? "opacity-50 cursor-not-allowed" : ""
               }`}
               disabled={loading}

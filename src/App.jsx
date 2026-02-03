@@ -42,6 +42,9 @@ import EscalationDashboard from "./EscalationDashboard"; // ✅ import
 import ReportForm from "./ReportForm";
 import { RequireAuth, RequireRole } from "./RouteGuards";
 import UserManagement from "./UserManagement";
+import ClientApprovals from "./ClientApprovals";
+import ExecutiveClientsScreen from "./ExecutiveClientsScreen";
+import ClientOnboarding from "./ClientOnboarding";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -60,7 +63,7 @@ function App() {
       try {
         const permission = await Notification.requestPermission();
         if (permission !== "granted") return;
-        utilityFunctions.SuccessNotify("Notification permission granted");
+        // utilityFunctions.SuccessNotify("Notification permission granted");
       } catch (error) {
         console.error("Notification permission error:", error);
       }
@@ -193,6 +196,40 @@ function App() {
               }
             />
             <Route
+              path="/Client-Onboarding"
+              element={
+                <RequireAuth user={user}>
+                  <ClientOnboarding />
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/Client-Overview"
+              element={
+                <RequireAuth user={user}>
+                  <ExecutiveClientsScreen />
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/client-approvals"
+              element={
+                <RequireAuth user={user}>
+                  <RequireRole
+                    role={
+                      JSON.parse(localStorage.getItem("LoginCredentials"))?.role
+                    }
+                    allowed={["Manager"]}
+                  >
+                    <ClientApprovals />
+                  </RequireRole>
+                </RequireAuth>
+              }
+            />
+
+            <Route
               path="/User-Management"
               element={
                 <RequireAuth user={user}>
@@ -207,7 +244,6 @@ function App() {
                 </RequireAuth>
               }
             />
-
             <Route
               path="/Sales-Report"
               element={

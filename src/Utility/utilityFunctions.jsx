@@ -89,18 +89,18 @@ const lastWeekStart = subWeeks(currentWeekStart, 1);
 const lastWeekEnd = addDays(lastWeekStart, 6);
 // Format dates to "yyyy-MM-dd" format for comparison
 const formattedStartDate = Timestamp.fromDate(
-  new Date(format(currentWeekStart, "yyyy-MM-dd"))
+  new Date(format(currentWeekStart, "yyyy-MM-dd")),
 );
 const formattedEndDate = Timestamp.fromDate(
-  new Date(format(currentWeekEnd, "yyyy-MM-dd"))
+  new Date(format(currentWeekEnd, "yyyy-MM-dd")),
 );
 
 const formattedLastWeekStart = Timestamp.fromDate(
-  new Date(format(lastWeekStart, "yyyy-MM-dd"))
+  new Date(format(lastWeekStart, "yyyy-MM-dd")),
 );
 
 const formattedLastWeekEnd = Timestamp.fromDate(
-  new Date(format(lastWeekEnd, "yyyy-MM-dd"))
+  new Date(format(lastWeekEnd, "yyyy-MM-dd")),
 );
 
 async function fetchStartEndDate(DateRange, startendrange) {
@@ -117,17 +117,17 @@ async function fetchData(DateRange, startendrange) {
     if (DateRange === "This Week") {
       queryRef = query(
         collection(db, DB.db_collection),
-        where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"])
+        where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"]),
       );
     } else if (DateRange === "Last Week") {
       queryRef = query(
         collection(db, DB.db_collection),
-        where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"])
+        where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"]),
       );
     } else if (DateRange == "Select range") {
       queryRef = query(
         collection(db, DB.db_collection),
-        where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"])
+        where("status", "in", ["PAYMENT DONE", "SHIPMENT CONNECTED"]),
       );
     }
 
@@ -147,7 +147,7 @@ async function fetchData(DateRange, startendrange) {
         ? item.pickupDatetime.seconds >= startendrange?.start?.seconds &&
           item.pickupDatetime.seconds <= startendrange?.end?.seconds
         : item.pickupDatetime.seconds >= startendrange?.start?.seconds &&
-          item.pickupDatetime.seconds <= startendrange?.end?.seconds
+          item.pickupDatetime.seconds <= startendrange?.end?.seconds,
     );
 
     return filteredData;
@@ -240,7 +240,7 @@ async function TopPerformer(DateRange, startendrange) {
     const bookings = data[person].bookings;
     const totalCost = bookings.reduce(
       (sum, booking) => sum + (booking.logisticCost || 0),
-      0
+      0,
     );
     const totalBookings = bookings.length;
     if (totalCost > topPerformer.totalCost) {
@@ -319,7 +319,7 @@ const transformData = async (DateRange, startendrange) => {
         pickupDatetime: formattedDate,
       });
       return result;
-    }, {})
+    }, {}),
   );
 };
 
@@ -408,7 +408,7 @@ const downloadCSV = async (person, DateRange, startendrange) => {
       .map((row) =>
         headers
           .map((header) => (row[header] !== undefined ? row[header] : ""))
-          .join(",")
+          .join(","),
       )
       .join("\n");
 
@@ -453,6 +453,7 @@ function rolesPermissions() {
         "all-pickups",
         "Cancel-or-reschedule",
         "Payment-confirm",
+        "Client-Onboarding",
       ],
       RateManagement: ["Sale-rates", "vendor-rates"],
       Reports: [
@@ -460,6 +461,7 @@ function rolesPermissions() {
         "Vendor-Report",
         "review-management",
         "user-management",
+        "client-approvals",
       ],
     };
   }
@@ -470,6 +472,8 @@ function rolesPermissions() {
         "Pickups",
         "Cancel-or-reschedule",
         "Payment-confirm",
+        "Client-Onboarding",
+        "Client-Overview",
       ],
       RateManagement: ["Sale-rates"],
       Reports: ["Sales-Report"],
@@ -482,6 +486,8 @@ function rolesPermissions() {
         "Pickups",
         "Cancel-or-reschedule",
         "Payment-confirm",
+        "Client-Onboarding",
+        "Client-Overview",
       ],
       RateManagement: ["Sale-rates"],
       Reports: ["Sales-Report"],
@@ -679,7 +685,7 @@ async function fetchLoginedUserEmail() {
 
 async function fetchLoginedUserName() {
   return JSON.parse(
-    localStorage.getItem("LoginCredentials")
+    localStorage.getItem("LoginCredentials"),
   ).name.toUpperCase();
 }
 
@@ -710,13 +716,13 @@ const sendNotification = async () => {
   try {
     // Send both notifications concurrently using Promise.all
     await Promise.all([
+      // axios.post(
+      //   "https://shiphit-backend.onrender.com/sendNotification",
+      //   notificationPayload1
+      // ),
       axios.post(
         "https://shiphit-backend.onrender.com/sendNotification",
-        notificationPayload1
-      ),
-      axios.post(
-        "https://shiphit-backend.onrender.com/sendNotification",
-        notificationPayload2
+        notificationPayload2,
       ),
     ]);
   } catch (error) {
@@ -758,10 +764,10 @@ function getEstimatedDate(packageConnectedDataTime, service) {
     service === "Express"
       ? { start: 3, end: 4 }
       : service === "Economy"
-      ? { start: 5, end: 7 }
-      : service === "Duty Free"
-      ? { start: 10, end: 14 }
-      : null;
+        ? { start: 5, end: 7 }
+        : service === "Duty Free"
+          ? { start: 10, end: 14 }
+          : null;
 
   if (!estimatedDays) return "-";
 
@@ -788,14 +794,14 @@ async function growth() {
   const previousStartDate = new Date(
     today.getFullYear(),
     today.getMonth() - 1,
-    1
+    1,
   );
 
   // Calculate the corresponding day in the previous month
   const previousEndDate = new Date(
     today.getFullYear(),
     today.getMonth() - 1,
-    today.getDate()
+    today.getDate(),
   );
 
   // Handle cases where today's date in the previous month might not exist (e.g., May 31st for April)
@@ -809,7 +815,7 @@ async function growth() {
 
   const formatDate = (date) =>
     `${String(date.getDate()).padStart(2, "0")}-${String(
-      date.getMonth() + 1
+      date.getMonth() + 1,
     ).padStart(2, "0")}-${date.getFullYear()}`;
 
   const currentMonthSales = await getRevenue("Select range", {
