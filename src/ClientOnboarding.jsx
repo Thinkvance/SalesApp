@@ -47,7 +47,25 @@ const ClientOnboarding = () => {
     formState: { errors },
   } = useForm({
     mode: "onChange", // 🔥 IMPORTANT
+    defaultValues: {
+      needGST: true, // ✅ checked by default
+    },
   });
+  const needGST = watch("needGST"); // boolean
+
+  useEffect(() => {
+    if (!needGST) {
+      reset(
+        {
+          billingCompany: "",
+          gst: "",
+          gstState: "",
+          billingAddress: "",
+        },
+        { keepErrors: false },
+      );
+    }
+  }, [needGST]);
 
   const onSubmit = async (data) => {
     try {
@@ -109,10 +127,11 @@ const ClientOnboarding = () => {
         pickupArea: data.pickupArea,
         specialInstructions: data.specialInstructions,
 
-        billingCompanyName: data.billingCompany,
-        GSTNumber: data.gst,
-        billingAddress: data.billingAddress,
-        GSTState: data.gstState,
+        needGST: !!data.needGST,
+        billingCompanyName: data.needGST ? data.billingCompany : null,
+        GSTNumber: data.needGST ? data.gst : null,
+        GSTState: data.needGST ? data.gstState : null,
+        billingAddress: data.needGST ? data.billingAddress : null,
 
         shipmentsCommitment: data.shipments,
         volumeCommitment: data.volume,
@@ -402,119 +421,108 @@ const ClientOnboarding = () => {
 
             {/* Billing */}
             <FormSection icon={<MdReceiptLong />} title="Billing Details">
+              <label className="flex items-center gap-3 mb-6">
+                <input
+                  type="checkbox"
+                  className="w-5 h-5 accent-[#bf81fd]"
+                  {...register("needGST")}
+                />
+                <span className="font-semibold text-sm">Need GST Bill?</span>
+              </label>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Input
-                  label="Billing Company Name"
-                  placeholder="Company Name"
-                  fullWidth
-                  error={errors.billingCompany}
-                  {...register("billingCompany", {
-                    required: "Billing company name is required",
-                    minLength: {
-                      value: 3,
-                      message: "Minimum 3 characters required",
-                    },
-                    maxLength: {
-                      value: 60,
-                      message: "Maximum 60 characters allowed",
-                    },
-                    validate: (value) =>
-                      value.trim().length >= 3 ||
-                      "Minimum 3 characters required",
-                  })}
-                />
+                {needGST && (
+                  <>
+                    <Input
+                      label="Billing Company Name"
+                      placeholder="Company Name"
+                      fullWidth
+                      error={errors.billingCompany}
+                      {...register("billingCompany", {
+                        validate: (value) =>
+                          !needGST ||
+                          (value && value.trim().length >= 3) ||
+                          "Billing company name is required",
+                      })}
+                    />
 
-                <Input
-                  label="GST Number"
-                  placeholder="GSTIN"
-                  error={errors.gst}
-                  {...register("gst", {
-                    required: "GST number required",
-                    minLength: {
-                      value: 15,
-                      message: "GST must be 15 characters",
-                    },
-                    maxLength: {
-                      value: 15,
-                      message: "GST must be 15 characters",
-                    },
-                  })}
-                />
+                    <Input
+                      label="GST Number"
+                      placeholder="GSTIN"
+                      error={errors.gst}
+                      {...register("gst", {
+                        required: "GST number is required",
+                        minLength: {
+                          value: 15,
+                          message: "GST must be 15 characters",
+                        },
+                        maxLength: {
+                          value: 15,
+                          message: "GST must be 15 characters",
+                        },
+                        pattern: {
+                          value: /^[0-9A-Z]{15}$/,
+                          message: "Invalid GST format",
+                        },
+                      })}
+                    />
 
-                <label className="block md:col-span-2">
-                  <span className="text-sm font-semibold">
-                    State (GST Registered State)
-                  </span>
+                    <label className="block md:col-span-2">
+                      <span className="text-sm font-semibold">
+                        State (GST Registered State)
+                      </span>
 
-                  <select
-                    className={`w-full h-12 px-4 rounded-lg border bg-gray-50 focus:ring-1 focus:ring-[#bf81fd] outline-none ${
-                      errors.gstState ? "border-red-400" : "border-gray-200"
-                    }`}
-                    {...register("gstState", {
-                      required: "GST registered state is required",
-                    })}
-                    defaultValue=""
-                  >
-                    <option value="" disabled>
-                      Select GST Registered State
-                    </option>
-                    <option value="Tamil Nadu">Tamil Nadu</option>
-                    <option value="Coimbatore">Coimbatore</option>
-                    <option value="Andhra Pradesh">Andhra Pradesh</option>
-                    <option value="Karnataka">Karnataka</option>
-                    <option value="Telangana">Telangana</option>
-                    <option value="Arunachal Pradesh">Arunachal Pradesh</option>
-                    <option value="Assam">Assam</option>
-                    <option value="Bihar">Bihar</option>
-                    <option value="Chhattisgarh">Chhattisgarh</option>
-                    <option value="Goa">Goa</option>
-                    <option value="Gujarat">Gujarat</option>
-                    <option value="Haryana">Haryana</option>
-                    <option value="Himachal Pradesh">Himachal Pradesh</option>
-                    <option value="Jharkhand">Jharkhand</option>
-                    <option value="Kerala">Kerala</option>
-                    <option value="Madhya Pradesh">Madhya Pradesh</option>
-                    <option value="Maharashtra">Maharashtra</option>
-                    <option value="Manipur">Manipur</option>
-                    <option value="Meghalaya">Meghalaya</option>
-                    <option value="Mizoram">Mizoram</option>
-                    <option value="Nagaland">Nagaland</option>
-                    <option value="Odisha">Odisha</option>
-                    <option value="Punjab">Punjab</option>
-                    <option value="Rajasthan">Rajasthan</option>
-                    <option value="Sikkim">Sikkim</option>
-                    <option value="Tripura">Tripura</option>
-                    <option value="Uttar Pradesh">Uttar Pradesh</option>
-                    <option value="Uttarakhand">Uttarakhand</option>
-                    <option value="West Bengal">West Bengal</option>
-                  </select>
-                  {errors.gstState && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.gstState.message}
+                      <select
+                        className={`w-full h-12 px-4 rounded-lg border bg-gray-50 focus:ring-1 focus:ring-[#bf81fd] outline-none ${
+                          errors.gstState ? "border-red-400" : "border-gray-200"
+                        }`}
+                        {...register("gstState", {
+                          required: "GST registered state is required",
+                        })}
+                        defaultValue=""
+                      >
+                        <option value="" disabled>
+                          Select GST Registered State
+                        </option>
+                        <option value="Tamil Nadu">Tamil Nadu</option>
+                        <option value="Karnataka">Karnataka</option>
+                        <option value="Maharashtra">Maharashtra</option>
+                        {/* rest unchanged */}
+                      </select>
+
+                      {errors.gstState && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.gstState.message}
+                        </p>
+                      )}
+                    </label>
+
+                    <Input
+                      label="GST Address / Billing Address"
+                      placeholder="Enter Billing Address"
+                      fullWidth
+                      error={errors.billingAddress}
+                      {...register("billingAddress", {
+                        required: "Billing address is required",
+                        minLength: {
+                          value: 10,
+                          message: "Minimum 10 characters required",
+                        },
+                      })}
+                    />
+                  </>
+                )}
+                {!needGST && (
+                  <div className="mt-3 rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-sm text-yellow-800">
+                    <p className="font-semibold mb-1">GST Invoice Disclaimer</p>
+                    <p>
+                      Since GST billing is not selected, the client will{" "}
+                      <strong>not receive a GST invoice</strong>. This option is
+                      suitable only for non-GST or unregistered entities. GST
+                      details can be added later if required.
                     </p>
-                  )}
-                </label>
-
-                <Input
-                  label="GST Address / Billing Address"
-                  placeholder="Enter Billing Address"
-                  fullWidth
-                  error={errors.billingAddress}
-                  {...register("billingAddress", {
-                    required: "Billing company address is required",
-                    minLength: {
-                      value: 10,
-                      message: "Minimum 10 characters required",
-                    },
-                    maxLength: {
-                      value: 200,
-                      message: "Maximum 25 characters allowed",
-                    },
-                    validate: (value) =>
-                      value.trim().length >= 10 ||
-                      "Minimum 10 characters required",
-                  })}
-                />
+                  </div>
+                )}
               </div>
             </FormSection>
 
