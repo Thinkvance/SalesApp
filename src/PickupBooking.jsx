@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { getData } from "country-list";
 import Nav from "./Nav";
@@ -24,6 +24,7 @@ import "react-phone-input-2/lib/style.css";
 import sha256 from "crypto-js/sha256";
 import countryList from "../src/CountryDialCode.json";
 import ConsigneePhoneNumberInput from "./ConsigneePhoneNumberInput";
+import createDefaultInternalTracking from "./Utility/createDefaultInternalTracking";
 
 function PickupBooking() {
   const [loading, setLoading] = useState(false);
@@ -39,20 +40,27 @@ function PickupBooking() {
   const [error, seterror] = useState("");
   const [isSourceFixed, setIsSourceFixed] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState(null);
-  const [sourceOptions, setSourceOptions] = useState([
-    "B To C",
-    "B To B",
-    "FB Ad",
-    "Google Ad",
-    "Website Ad",
-    "Direct Ad",
-    "Whatsapp Campaign",
-    "Repeated Customer",
-    "Customer Refer",
-    "Employee Refer",
-    "Offline Ad",
-    "GMB",
-  ]);
+  const [awbLoading, setAwbLoading] = useState(true);
+  const baseSourceOptions = useMemo(
+    () => [
+      "B To C",
+      "B To B",
+      "FB Ad",
+      "Google Ad",
+      "Website Ad",
+      "Direct Ad",
+      "Whatsapp Campaign",
+      "Repeated Customer",
+      "Customer Refer",
+      "Employee Refer",
+      "Offline Ad",
+      "GMB",
+    ],
+    [],
+  );
+
+  const [sourceOptions, setSourceOptions] = useState(baseSourceOptions);
+
   const [city, setcity] = useState("");
   const [source, setsource] = useState("Select");
   const [newAwbNumber, setnewAwbNumber] = useState();
@@ -62,6 +70,25 @@ function PickupBooking() {
   const [AllOnboradedClients, setAllOnboradedClients] = useState([]);
   const [isOnboarded, setIsOnboarded] = useState(false); // false = NO
   const [ClientKYC, setClientKYC] = useState(""); // false = NO
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [networkError, setNetworkError] = useState(false);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => {
+      setIsOnline(false);
+      setNetworkError(true);
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
   function splitLati_Logi(value) {
     const [lat, long] = value.split(",").map(Number);
     // Format the latitude and longitude to match the output precision
@@ -89,6 +116,7 @@ function PickupBooking() {
         });
 
         setnewAwbNumber(maxAwbNumber + 1);
+        setAwbLoading(false);
       });
     }
 
@@ -230,7 +258,7 @@ function PickupBooking() {
           // setValue("consigneephonenumber", ""); // Set form value dynamically
           // setValue("consigneename", ""); // Set form value dynamically
           // setValue("consigneelocation", ""); // Set form value dynamically
-          setValue("Consignorlocation", ""); // Set form value dynamically
+          // setValue("Consignorlocation", ""); // Set form value dynamically
           setValue("source", source); // Set form value dynamically
           setsource(source);
           setIsSourceFixed(false);
@@ -315,6 +343,13 @@ function PickupBooking() {
   }
 
   const onSubmit = async (data) => {
+    if (!navigator.onLine) {
+      setNetworkError(true);
+      return;
+    }
+
+    if (loading) return; // 🔒 prevents double click submit
+
     function removeSpaces(text) {
       if (typeof text !== "string") {
         console.warn("Input is not a string. Returning as is.");
@@ -339,25 +374,13 @@ function PickupBooking() {
       }
       setLoading(true);
       seterror("");
+      const internalTracking = createDefaultInternalTracking();
       const result = splitLati_Logi(latitudelongitude);
       const destinationCountryName =
         countryCodeToName[data.country] || data.country;
       // Step 1: Fetch current maximum awbNumber
       const pickupsRef = collection(db, DB.db_collection);
-      const snapshot = await getDocs(pickupsRef);
-      let maxAwbNumber = collectionName_baseAwb.getFranchiseBasedAWb("CHENNAI"); // Initialize to 0
-      // testing
-      if (!snapshot.empty) {
-        snapshot.forEach((doc) => {
-          const pickupData = doc.data();
-          if (pickupData.awbNumber) {
-            maxAwbNumber = Math.max(
-              maxAwbNumber,
-              parseInt(pickupData.awbNumber),
-            );
-          }
-        });
-      }
+
       // Step 2: Increment awbNumber
       const newAwbNumber = await getNextAwbNumber();
       const uploadedImageURLs = await uploadImages(files, newAwbNumber);
@@ -366,6 +389,7 @@ function PickupBooking() {
       await addDoc(pickupsRef, {
         WHReached: false,
         KmDriven: 0,
+        internalTracking,
         // Consignor Data
         consignorname: data.Consignorname,
         consignorphonenumber: data.Consignornumber,
@@ -387,7 +411,7 @@ function PickupBooking() {
         ),
         franchise: frachise,
         awbNumber: newAwbNumber, // Add the new awbNumber here
-        vendorName: data.vendor,
+        vendorName: null,
         service: service,
         imageUrLs: null,
         pickupCompletedDatatime: null,
@@ -493,6 +517,7 @@ function PickupBooking() {
       setIsSourceFixed(false);
       setsource("");
       reset();
+      setUploadProgress({});
       setIsOnboarded(false);
       setShowModal(true);
       setcompanyName("");
@@ -500,10 +525,22 @@ function PickupBooking() {
       setTimeout(() => {
         setShowModal(false);
       }, 1000);
-      await utility.sendNotification();
+
+      utility.sendNotification().catch(console.warn);
+
       utility.SuccessNotify("Pickup request submitted successfully.");
     } catch (error) {
-      console.log("error", error);
+      console.error("Submission failed:", error);
+      // Network / timeout / Firebase errors
+      if (
+        error.code === "unavailable" ||
+        error.message?.includes("Network") ||
+        !navigator.onLine
+      ) {
+        setNetworkError(true);
+      } else {
+        utility.ErrorNotify("Something went wrong. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -667,17 +704,30 @@ function PickupBooking() {
                 </div>
               )}
 
-              <div className="mb-4">
+              <div className="mb-4 relative">
                 <label className="block text-gray-700 font-semibold mb-2">
                   AWB Number
                 </label>
+
                 <input
                   type="text"
-                  value={newAwbNumber}
-                  placeholder="AWB Number"
+                  value={awbLoading ? "" : newAwbNumber}
+                  placeholder={awbLoading ? "Generating AWB..." : "AWB Number"}
                   readOnly
-                  className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#8847D9]`}
+                  disabled={awbLoading}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none
+      ${
+        awbLoading
+          ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+          : "border-gray-300 focus:border-[#8847D9]"
+      }`}
                 />
+
+                {awbLoading && (
+                  <div className="absolute right-3 top-10">
+                    <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
               </div>
 
               {/* Company Name */}
@@ -1041,7 +1091,7 @@ function PickupBooking() {
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="mb-4">
+              {/* <div className="mb-4">
                 <label className="block text-gray-700 font-semibold mb-2">
                   Vendor
                 </label>
@@ -1067,7 +1117,7 @@ function PickupBooking() {
                     {errors.vendor.message}
                   </p>
                 )}
-              </div>
+              </div> */}
               <div className="mb-6">
                 <label className="block text-gray-700 font-semibold mb-2">
                   Content (Products)
@@ -1280,6 +1330,27 @@ function PickupBooking() {
           </div>
         </div>
       )}
+      {networkError && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded-md shadow-lg w-80">
+            <h2 className="text-lg font-bold text-center text-red-600 mb-2">
+              Network Error
+            </h2>
+            <p className="text-center text-gray-700">
+              Internet connection lost. Please check your network and try again.
+            </p>
+            <div className="mt-4 flex justify-center">
+              <button
+                onClick={() => setNetworkError(false)}
+                className="bg-[#8847D9] text-white px-4 py-2 rounded-md"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <canvas ref={barcodeRef} style={{ display: "none" }}></canvas>
     </div>
   );

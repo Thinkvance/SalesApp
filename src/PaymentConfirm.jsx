@@ -22,7 +22,7 @@ function PaymentConfirm() {
 
   useEffect(() => {
     const loginCredentials = JSON.parse(
-      localStorage.getItem("LoginCredentials")
+      localStorage.getItem("LoginCredentials"),
     );
     if (!loginCredentials) return;
 
@@ -30,7 +30,7 @@ function PaymentConfirm() {
 
     const collectionRef = collection(
       db,
-      collectionName_BaseAwb.getCollection(Location)
+      collectionName_BaseAwb.getCollection(Location),
     );
 
     const baseQuery =
@@ -40,7 +40,7 @@ function PaymentConfirm() {
             collectionRef,
             where("pickupBookedBy", "==", name),
             where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo)),
-            orderBy("pickupDatetime", "desc")
+            orderBy("pickupDatetime", "desc"),
           );
 
     const unsubscribe = onSnapshot(
@@ -55,11 +55,12 @@ function PaymentConfirm() {
         setLoading(false);
       },
       (error) => {
-        utilityFunctions.ErrorNotify(
-          "Data retrieval failed. Please try again."
-        );
+        console.log(error);
+        // utilityFunctions.ErrorNotify(
+        //   "Data retrieval failed. Please try again.",
+        // );
         setLoading(false);
-      }
+      },
     );
 
     return () => unsubscribe();
@@ -81,7 +82,7 @@ function PaymentConfirm() {
       (activeTab === "PAYMENT PENDING"
         ? allowedStatusesPending.includes(item.status)
         : allowedStatusesDone.includes(item.status)) &&
-      String(item.awbNumber).includes(searchTerm)
+      String(item.awbNumber).includes(searchTerm),
   );
 
   return (

@@ -637,11 +637,11 @@ async function fetchNotificationToken(userEmail) {
       const tokenData = tokenSnapshot.data();
       return tokenData.token; // Return the token
     } else {
-      ErrorNotify(`No token found for userEmail: ${userEmail}`);
+      // ErrorNotify(`No token found for userEmail: ${userEmail}`);
       return; // Return null if no token exists
     }
   } catch (error) {
-    ErrorNotify("Error fetching notification token:", error);
+    // ErrorNotify("Error fetching notification token:", error);
     return; // Return null in case of an error
   }
 }
@@ -714,19 +714,14 @@ const sendNotification = async () => {
   };
 
   try {
-    // Send both notifications concurrently using Promise.all
     await Promise.all([
-      // axios.post(
-      //   "https://shiphit-backend.onrender.com/sendNotification",
-      //   notificationPayload1
-      // ),
       axios.post(
         "https://shiphit-backend.onrender.com/sendNotification",
         notificationPayload2,
       ),
     ]);
   } catch (error) {
-    ErrorNotify("Error sending notification");
+    // ErrorNotify("Error sending notification");
   }
 };
 function addWeekdays(dateString, daysToAdd) {
