@@ -26,7 +26,9 @@ function Nav() {
   function roleFormate(role) {
     return role
       ?.split(" ")
-      ?.map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      ?.map(
+        (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+      )
       ?.join(" ");
   }
 
@@ -38,28 +40,32 @@ function Nav() {
 
   // normalize role checks
   const roleLower = (user?.role || "").toLowerCase();
-  const shouldShowEscalationsNav = roleLower === "manager" || roleLower === "sales admin";
+  console.log("roleLower", roleLower);
+  const shouldShowEscalationsNav =
+    roleLower === "manager" || roleLower === "sales admin";
 
   // 🔹 Subscribe to pending escalations (Manager OR Sales Admin)
   useEffect(() => {
     if (!shouldShowEscalationsNav) return;
     const qRef = query(
       collection(db, "ecalatoins"),
-      where("escalationStatus", "==", "pending")
+      where("escalationStatus", "==", "pending"),
     );
     const unsub = onSnapshot(
       qRef,
       (snap) => setPendingCount(snap.size || 0),
-      () => setPendingCount(0)
+      () => setPendingCount(0),
     );
     return () => unsub();
   }, [shouldShowEscalationsNav]);
 
-  const handlePickupMenuOpen = (event) => setPickupAnchorEl(event.currentTarget);
+  const handlePickupMenuOpen = (event) =>
+    setPickupAnchorEl(event.currentTarget);
   const handlePickupMenuClose = () => setPickupAnchorEl(null);
   const handleRateMenuOpen = (event) => setRateAnchorEl(event.currentTarget);
   const handleRateMenuClose = () => setRateAnchorEl(null);
-  const handleReportsMenuOpen = (event) => setReportsAnchorEl(event.currentTarget);
+  const handleReportsMenuOpen = (event) =>
+    setReportsAnchorEl(event.currentTarget);
   const handleReportsMenuClose = () => setReportsAnchorEl(null);
 
   const isActive = (path) =>
@@ -85,62 +91,71 @@ function Nav() {
           {/* Desktop Nav */}
           <ul className="hidden lg:flex space-x-8 items-center">
             {/* Pickup Management */}
-            <li>
-              <button
-                onClick={handlePickupMenuOpen}
-                className="text-white flex items-center gap-1 font-medium"
-              >
-                Pickup Management
-                <ArrowDropDownIcon />
-              </button>
-              <Menu
-                anchorEl={pickupAnchorEl}
-                open={Boolean(pickupAnchorEl)}
-                onClose={handlePickupMenuClose}
-              >
-                {RoleBasedScreens?.PickupManagement?.map((d) => (
-                  <MenuItem
-                    key={d}
-                    onClick={handlePickupMenuClose}
-                    component={Link}
-                    to={`/${d}`}
-                  >
-                    {utility.formatRouteName(d)}
-                  </MenuItem>
-                ))}
-              </Menu>
-            </li>
+            {RoleBasedScreens.PickupManagement && (
+              <li>
+                <button
+                  onClick={handlePickupMenuOpen}
+                  className="text-white flex items-center gap-1 font-medium"
+                >
+                  Pickup Management
+                  <ArrowDropDownIcon />
+                </button>
+                <Menu
+                  anchorEl={pickupAnchorEl}
+                  open={Boolean(pickupAnchorEl)}
+                  onClose={handlePickupMenuClose}
+                >
+                  {RoleBasedScreens?.PickupManagement?.map((d) => (
+                    <MenuItem
+                      key={d}
+                      onClick={handlePickupMenuClose}
+                      component={Link}
+                      to={`/${d}`}
+                    >
+                      {utility.formatRouteName(d)}
+                    </MenuItem>
+                  ))}
+                </Menu>
+              </li>
+            )}
 
             {/* Rate Management */}
-            <li>
-              <button
-                onClick={handleRateMenuOpen}
-                className="text-white flex items-center gap-1 font-medium"
-              >
-                Rate Management
-                <ArrowDropDownIcon />
-              </button>
-              <Menu
-                anchorEl={rateAnchorEl}
-                open={Boolean(rateAnchorEl)}
-                onClose={handleRateMenuClose}
-              >
-                {RoleBasedScreens?.RateManagement?.map((d) => (
-                  <MenuItem
-                    key={d}
-                    onClick={handleRateMenuClose}
-                    component={Link}
-                    to={`/${d}`}
-                    className={`${isActive(`/${d}`) ? "text-purple-900" : "text-gray-700"}`}
-                  >
-                    {utility.formatRouteName(d)}
-                  </MenuItem>
-                ))}
-              </Menu>
-            </li>
+            {RoleBasedScreens.RateManagement && (
+              <li>
+                <button
+                  onClick={handleRateMenuOpen}
+                  className="text-white flex items-center gap-1 font-medium"
+                >
+                  Rate Management
+                  <ArrowDropDownIcon />
+                </button>
+                <Menu
+                  anchorEl={rateAnchorEl}
+                  open={Boolean(rateAnchorEl)}
+                  onClose={handleRateMenuClose}
+                >
+                  {RoleBasedScreens?.RateManagement?.map((d) => (
+                    <MenuItem
+                      key={d}
+                      onClick={handleRateMenuClose}
+                      component={Link}
+                      to={`/${d}`}
+                      className={`${isActive(`/${d}`) ? "text-purple-900" : "text-gray-700"}`}
+                    >
+                      {utility.formatRouteName(d)}
+                    </MenuItem>
+                  ))}
+                </Menu>
+              </li>
+            )}
 
             {/* Reports Section */}
-            {["manager", "sales admin", "sales associate"].includes(roleLower) && (
+            {[
+              "manager",
+              "sales admin",
+              "sales associate",
+              "accountant",
+            ].includes(roleLower) && (
               <li>
                 <button
                   onClick={handleReportsMenuOpen}
@@ -170,16 +185,18 @@ function Nav() {
             )}
 
             {/* My Shipments */}
-            <li>
-              <Link
-                to="/My-Shipments"
-                className={`text-white font-medium hover:text-gray-200 transition-all ${
-                  isActive("/My-Shipments") ? "underline" : ""
-                }`}
-              >
-                My Shipments
-              </Link>
-            </li>
+            {user.role != "Accountant" && (
+              <li>
+                <Link
+                  to="/My-Shipments"
+                  className={`text-white font-medium hover:text-gray-200 transition-all ${
+                    isActive("/My-Shipments") ? "underline" : ""
+                  }`}
+                >
+                  My Shipments
+                </Link>
+              </li>
+            )}
 
             {/* 🔹 Escalations (Manager OR Sales Admin) */}
             {shouldShowEscalationsNav && (
@@ -230,7 +247,10 @@ function Nav() {
         >
           <div className="flex justify-between items-center p-4 bg-purple-500">
             <h2 className="text-white font-bold text-lg">Menu</h2>
-            <button onClick={() => setSidebarOpen(false)} className="text-white hover:text-gray-200">
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="text-white hover:text-gray-200"
+            >
               <CloseIcon />
             </button>
           </div>
@@ -241,7 +261,9 @@ function Nav() {
                 <Link
                   to={`/${d}`}
                   className={`py-2 px-4 text-gray-700 rounded-lg block ${
-                    isActive(`/${d}`) ? "bg-purple-100 text-purple-800" : "hover:bg-purple-200"
+                    isActive(`/${d}`)
+                      ? "bg-purple-100 text-purple-800"
+                      : "hover:bg-purple-200"
                   }`}
                   onClick={() => setSidebarOpen(false)}
                 >
@@ -255,7 +277,9 @@ function Nav() {
                 <Link
                   to={`/${d}`}
                   className={`py-2 px-4 text-gray-700 rounded-lg block ${
-                    isActive(`/${d}`) ? "bg-purple-100 text-purple-800" : "hover:bg-purple-200"
+                    isActive(`/${d}`)
+                      ? "bg-purple-100 text-purple-800"
+                      : "hover:bg-purple-200"
                   }`}
                   onClick={() => setSidebarOpen(false)}
                 >
@@ -264,13 +288,20 @@ function Nav() {
               </li>
             ))}
 
-            {["manager", "sales admin", "sales associate"].includes(roleLower) &&
+            {[
+              "manager",
+              "sales admin",
+              "sales associate",
+              "accountant",
+            ].includes(roleLower) &&
               RoleBasedScreens?.Reports?.map((d) => (
                 <li key={d}>
                   <Link
                     to={`/${d}`}
                     className={`py-2 px-4 text-gray-700 rounded-lg block ${
-                      isActive(`/${d}`) ? "bg-purple-100 text-purple-800" : "hover:bg-purple-200"
+                      isActive(`/${d}`)
+                        ? "bg-purple-100 text-purple-800"
+                        : "hover:bg-purple-200"
                     }`}
                     onClick={() => setSidebarOpen(false)}
                   >
@@ -283,7 +314,9 @@ function Nav() {
               <Link
                 to="/My-Shipments"
                 className={`py-2 px-4 text-gray-700 rounded-lg block ${
-                  isActive("/My-Shipments") ? "bg-purple-100 text-purple-800" : "hover:bg-purple-200"
+                  isActive("/My-Shipments")
+                    ? "bg-purple-100 text-purple-800"
+                    : "hover:bg-purple-200"
                 }`}
                 onClick={() => setSidebarOpen(false)}
               >
@@ -297,7 +330,9 @@ function Nav() {
                 <Link
                   to="/escalations"
                   className={`py-2 px-4 text-gray-700 rounded-lg flex items-center justify-between ${
-                    isActive("/escalations") ? "bg-purple-100 text-purple-800" : "hover:bg-purple-200"
+                    isActive("/escalations")
+                      ? "bg-purple-100 text-purple-800"
+                      : "hover:bg-purple-200"
                   }`}
                   onClick={() => setSidebarOpen(false)}
                 >
@@ -313,7 +348,12 @@ function Nav() {
           </ul>
         </div>
 
-        {sidebarOpen && <div className="fixed inset-0 bg-black opacity-50 z-10" onClick={() => setSidebarOpen(false)} />}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black opacity-50 z-10"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
       </div>
 
       <ProfileModal

@@ -90,7 +90,7 @@ const ClientOnboarding = () => {
 
       const rateCardRef = ref(
         storage,
-        `Client-Onboarding/${referenceCode}/rateCard.xlsx`,
+        `Client-Onboarding/${referenceCode}/rateCard.pdf`,
       );
 
       // 🔹 Upload files
@@ -397,19 +397,16 @@ const ClientOnboarding = () => {
 
                 <UploadCard
                   title="Upload Rate Card"
-                  description="Upload rate card (Excel only • Max 2MB)"
+                  description="Upload rate card (PDF only • Max 2MB)"
                   file={watch("rateCard")}
                   error={errors.rateCard}
-                  accept=".xls,.xlsx"
+                  accept=".pdf"
                   {...register("rateCard", {
                     required: "Rate card is required",
                     validate: {
                       fileType: (files) =>
-                        [
-                          "application/vnd.ms-excel",
-                          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        ].includes(files?.[0]?.type) ||
-                        "Only Excel files are allowed",
+                        ["application/pdf"].includes(files?.[0]?.type) ||
+                        "Only Pdf files are allowed",
                       fileSize: (files) =>
                         files?.[0]?.size <= 2 * 1024 * 1024 ||
                         "File size must be less than 2 MB",

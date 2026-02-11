@@ -505,6 +505,11 @@ function rolesPermissions() {
       RateManagement: ["Sale-rates"],
     };
   }
+  if (role == "Accountant") {
+    return {
+      Reports: ["Sales-Report", "Vendor-Report"],
+    };
+  }
 }
 
 function formatRouteName(route) {

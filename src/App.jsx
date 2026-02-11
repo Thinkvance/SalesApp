@@ -40,7 +40,11 @@ import VersionUpdateModal from "./VersionUpdateModal"; // Version modal
 import appVersion from "./functions/appVersion";
 import EscalationDashboard from "./EscalationDashboard"; // ✅ import
 import ReportForm from "./ReportForm";
-import { RequireAuth, RequireRole } from "./RouteGuards";
+import {
+  AccountantRootRedirect,
+  RequireAuth,
+  RequireRole,
+} from "./RouteGuards";
 import UserManagement from "./UserManagement";
 import ClientApprovals from "./ClientApprovals";
 import ExecutiveClientsScreen from "./ExecutiveClientsScreen";
@@ -183,7 +187,13 @@ function App() {
               path="/"
               element={
                 <RequireAuth user={user}>
-                  <PickupBooking />
+                  <AccountantRootRedirect
+                    role={
+                      JSON.parse(localStorage.getItem("LoginCredentials"))?.role
+                    }
+                  >
+                    <PickupBooking />
+                  </AccountantRootRedirect>
                 </RequireAuth>
               }
             />
@@ -260,7 +270,7 @@ function App() {
                     role={
                       JSON.parse(localStorage.getItem("LoginCredentials"))?.role
                     }
-                    allowed={["Manager"]}
+                    allowed={["Manager", "Accountant"]}
                   >
                     <Accounts />
                   </RequireRole>

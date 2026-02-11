@@ -18,3 +18,16 @@ export function RequireRole({ role, allowed, fallback = "/", children }) {
   }
   return <Navigate to={fallback} replace />;
 }
+
+// ✅ NEW GUARD
+export function AccountantRootRedirect({ role, children }) {
+  const location = useLocation();
+  if (
+    String(role).toLowerCase() === "accountant" &&
+    location.pathname === "/"
+  ) {
+    return <Navigate to="/sales-report" replace />;
+  }
+
+  return children;
+}

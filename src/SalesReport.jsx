@@ -67,7 +67,7 @@ function SalesReport() {
       },
       (error) => {
         console.error("Error fetching pickup persons: ", error);
-      }
+      },
     );
 
     return () => unsubscribe();
@@ -114,7 +114,7 @@ function SalesReport() {
           ? [DB.db_collection, "franchise_pondy", "franchise_coimbatore"]
           : [
               collectionName_BaseAwb.getCollection(
-                location === "HQ CHENNAI" ? "CHENNAI" : location
+                location === "HQ CHENNAI" ? "CHENNAI" : location,
               ),
             ];
 
@@ -127,12 +127,12 @@ function SalesReport() {
             q = query(
               collection(db, name),
               where("status", "in", ["SHIPMENT CONNECTED", "PAYMENT DONE"]),
-              where("pickupBookedBy", "==", user.name)
+              where("pickupBookedBy", "==", user.name),
             );
           } else {
             q = query(
               collection(db, name),
-              where("status", "in", ["SHIPMENT CONNECTED", "PAYMENT DONE"])
+              where("status", "in", ["SHIPMENT CONNECTED", "PAYMENT DONE"]),
             );
           }
           return new Promise((resolve) => {
@@ -145,7 +145,7 @@ function SalesReport() {
             });
             unsubscribes.push(unsubscribe);
           });
-        })
+        }),
       )
         .then((results) => {
           const combinedData = results.flat();
@@ -244,12 +244,12 @@ function SalesReport() {
 
   const totalLogisticsCost = filteredPickups.reduce(
     (sum, pickup) => sum + (pickup.logisticCost || 0),
-    0
+    0,
   );
 
   const totalDiscount = filteredPickups.reduce(
     (sum, pickup) => sum + (pickup.discountCost || 0),
-    0
+    0,
   );
 
   useEffect(() => {
@@ -295,7 +295,7 @@ function SalesReport() {
               <option value="select_range">Select Range</option>
             </select>
           </div>
-          {["Manager", "sales admin"].includes(user.role) ? (
+          {["Manager", "sales admin", "Accountant"].includes(user.role) ? (
             <div className=" w-fit col-span-1 md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Sales Representative
@@ -574,7 +574,7 @@ function SalesReport() {
                   .sort(
                     (a, b) =>
                       parseDate(b.PaymentComfirmedDate) -
-                      parseDate(a.PaymentComfirmedDate)
+                      parseDate(a.PaymentComfirmedDate),
                   )
                   .map((pickup, idx) => (
                     <tr
