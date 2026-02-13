@@ -117,10 +117,7 @@ function ShipmentDetails({ selectedPickup, closeModal }) {
                 <span className="font-semibold text-purple-700">Service:</span>{" "}
                 {selectedPickup.service || "NA"}
               </p>
-              <p>
-                <span className="font-semibold text-purple-700">Vendor:</span>{" "}
-                {selectedPickup.vendorName || "NA"}
-              </p>
+
               <p>
                 <span className="font-semibold text-purple-700">
                   Pickup Area:
@@ -150,7 +147,7 @@ function ShipmentDetails({ selectedPickup, closeModal }) {
             <div
               className={`p-4 rounded-lg shadow-inner border ${
                 ["PAYMENT DONE", "SHIPMENT CONNECTED"].includes(
-                  selectedPickup.status
+                  selectedPickup.status,
                 )
                   ? "bg-green-50 border-green-300 text-green-800"
                   : "bg-gray-50 border-gray-300 text-gray-800"

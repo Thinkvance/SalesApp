@@ -45,7 +45,7 @@ export default function Myshipments() {
 
   const handleAddReport = (item) => {
     openInNewTab(
-      `/ReportForm?mode=add&awb=${encodeURIComponent(item.awbNumber)}`
+      `/ReportForm?mode=add&awb=${encodeURIComponent(item.awbNumber)}`,
     );
   };
 
@@ -134,7 +134,7 @@ export default function Myshipments() {
         if (isNum) {
           const qNum = query(
             collection(db, "ecalatoins"),
-            where("awbNumber", "==", awbNum)
+            where("awbNumber", "==", awbNum),
           );
           const snapNum = await getDocs(qNum);
           docsNum = snapNum.docs;
@@ -147,7 +147,7 @@ export default function Myshipments() {
       try {
         const qStr = query(
           collection(db, "ecalatoins"),
-          where("awbNumber", "==", String(awb))
+          where("awbNumber", "==", String(awb)),
         );
         const snapStr = await getDocs(qStr);
         docsStr = snapStr.docs;
@@ -158,7 +158,7 @@ export default function Myshipments() {
       // Merge unique & sort by createdAt (oldest first)
       const mergedMap = new Map();
       [...docsNum, ...docsStr].forEach((d) =>
-        mergedMap.set(d.id, { id: d.id, ...d.data() })
+        mergedMap.set(d.id, { id: d.id, ...d.data() }),
       );
       const merged = Array.from(mergedMap.values()).sort((a, b) => {
         const ta = a.escalationCreatedAt?.toDate?.() || new Date(0);
@@ -311,7 +311,6 @@ export default function Myshipments() {
         consigneeName: fbPickup.consigneename,
         consigneePhone: fbPickup.consigneephonenumber,
         service: fbPickup.service,
-        vendor: fbPickup.vendorName,
 
         comments: fbForm.comments.trim(),
         starRatings: rating,
@@ -352,7 +351,7 @@ export default function Myshipments() {
 
       const estimatedDelivery = utilityFunctions.getEstimatedDate(
         packageConnectedDataTime,
-        mode
+        mode,
       );
 
       const currentStatus_temp = currentStatus ? currentStatus : "-";
@@ -394,7 +393,7 @@ export default function Myshipments() {
             Accept: "application/json",
             "Content-Type": "application/json",
           },
-        }
+        },
       );
     } catch (error) {
       console.log(error);
@@ -414,14 +413,14 @@ export default function Myshipments() {
     if (role === "Manager" || role === "sales admin") {
       qy = query(
         collection(db, DB.db_collection),
-        orderBy("pickupDatetime", "desc")
+        orderBy("pickupDatetime", "desc"),
       );
     } else {
       qy = query(
         collection(db, DB.db_collection),
         where("pickupBookedBy", "==", username),
         orderBy("pickupDatetime", "desc"),
-        where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo))
+        where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo)),
       );
     }
 
@@ -478,7 +477,6 @@ export default function Myshipments() {
           "Consignor Name",
           "Consignor No.",
           "Consignee No.",
-          "Vendor",
           "Status",
           "Send To",
           "Share",
@@ -494,7 +492,6 @@ export default function Myshipments() {
           "Consignor Name",
           "Consignor No.",
           "Consignee No.",
-          "Vendor",
           "Status",
           "Send To",
           "Share",
@@ -621,7 +618,6 @@ export default function Myshipments() {
                         <td className="px-4 border py-2">
                           {item.consigneephonenumber}
                         </td>
-                        <td className="px-4 border py-2">{item.vendorName}</td>
                         <td className="px-4 border py-2 whitespace-nowrap">
                           {item.status}
                         </td>
@@ -692,7 +688,7 @@ export default function Myshipments() {
                                 } catch (err) {
                                   console.error(
                                     "Error sharing tracking link:",
-                                    err
+                                    err,
                                   );
                                 }
                               }}
@@ -723,7 +719,7 @@ export default function Myshipments() {
                         </td>
                         <td className="text-[12px] px-4 py-2 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
                           {utilityFunctions.formateFirebaseTimestamp(
-                            item.lastStatusUpdated
+                            item.lastStatusUpdated,
                           )}
                         </td>
 
@@ -789,7 +785,7 @@ export default function Myshipments() {
                                   onClick={() => openFeedbackModal(item)}
                                   className={getFeedbackButtonClasses(
                                     hasFeedback,
-                                    ratingValue
+                                    ratingValue,
                                   )}
                                   title={
                                     hasFeedback
@@ -881,7 +877,7 @@ export default function Myshipments() {
                   const updates = Array.isArray(r.updates)
                     ? [...r.updates].sort(
                         (a, b) =>
-                          getMillis(a.createdAt) - getMillis(b.createdAt)
+                          getMillis(a.createdAt) - getMillis(b.createdAt),
                       )
                     : [];
 
@@ -902,8 +898,8 @@ export default function Myshipments() {
                               {status === "pending"
                                 ? "Pending"
                                 : status === "closed"
-                                ? "Closed"
-                                : "—"}
+                                  ? "Closed"
+                                  : "—"}
                             </span>
                           </span>
                           <span>
@@ -1139,7 +1135,6 @@ export default function Myshipments() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm">
                 <Field label="AWB" value={fbPickup.awbNumber} />
                 <Field label="Service" value={fbPickup.service} />
-                <Field label="Vendor" value={fbPickup.vendorName} />
                 <Field label="Consignor" value={fbPickup.consignorname} />
                 <Field
                   label="Consignor No."
@@ -1213,8 +1208,8 @@ export default function Myshipments() {
                     {rating
                       ? `${rating} / 5`
                       : fbMode === "add"
-                      ? "Click on a star to rate"
-                      : "No rating"}
+                        ? "Click on a star to rate"
+                        : "No rating"}
                   </div>
                 </div>
 
@@ -1388,7 +1383,7 @@ export default function Myshipments() {
               <button
                 onClick={() =>
                   setLightboxIndex((i) =>
-                    Math.min(lightboxImages.length - 1, i + 1)
+                    Math.min(lightboxImages.length - 1, i + 1),
                   )
                 }
                 disabled={lightboxIndex === lightboxImages.length - 1}

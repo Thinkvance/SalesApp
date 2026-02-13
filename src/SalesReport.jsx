@@ -67,7 +67,7 @@ function SalesReport() {
       },
       (error) => {
         console.error("Error fetching pickup persons: ", error);
-      }
+      },
     );
 
     return () => unsubscribe();
@@ -114,7 +114,7 @@ function SalesReport() {
           ? [DB.db_collection, "franchise_pondy", "franchise_coimbatore"]
           : [
               collectionName_BaseAwb.getCollection(
-                location === "HQ CHENNAI" ? "CHENNAI" : location
+                location === "HQ CHENNAI" ? "CHENNAI" : location,
               ),
             ];
 
@@ -127,12 +127,12 @@ function SalesReport() {
             q = query(
               collection(db, name),
               where("status", "in", ["SHIPMENT CONNECTED", "PAYMENT DONE"]),
-              where("pickupBookedBy", "==", user.name)
+              where("pickupBookedBy", "==", user.name),
             );
           } else {
             q = query(
               collection(db, name),
-              where("status", "in", ["SHIPMENT CONNECTED", "PAYMENT DONE"])
+              where("status", "in", ["SHIPMENT CONNECTED", "PAYMENT DONE"]),
             );
           }
           return new Promise((resolve) => {
@@ -145,7 +145,7 @@ function SalesReport() {
             });
             unsubscribes.push(unsubscribe);
           });
-        })
+        }),
       )
         .then((results) => {
           const combinedData = results.flat();
@@ -244,12 +244,12 @@ function SalesReport() {
 
   const totalLogisticsCost = filteredPickups.reduce(
     (sum, pickup) => sum + (pickup.logisticCost || 0),
-    0
+    0,
   );
 
   const totalDiscount = filteredPickups.reduce(
     (sum, pickup) => sum + (pickup.discountCost || 0),
-    0
+    0,
   );
 
   useEffect(() => {
@@ -544,7 +544,6 @@ function SalesReport() {
                   "Phone",
                   "Destination",
                   "Weight",
-                  "Vendor",
                   "Source",
                   "Pickup Area",
                   "Pickup Status",
@@ -574,7 +573,7 @@ function SalesReport() {
                   .sort(
                     (a, b) =>
                       parseDate(b.PaymentComfirmedDate) -
-                      parseDate(a.PaymentComfirmedDate)
+                      parseDate(a.PaymentComfirmedDate),
                   )
                   .map((pickup, idx) => (
                     <tr
@@ -594,7 +593,6 @@ function SalesReport() {
                       <td className="py-3 px-4 border">
                         {pickup.actualWeight}
                       </td>
-                      <td className="py-3 px-4 border">{pickup.vendorName}</td>
                       <td className="py-3 px-4 border">{pickup.Source}</td>
                       <td className="py-3 px-4 border">{pickup.pickuparea}</td>
                       <td className="py-3 px-4 border">

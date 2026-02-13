@@ -131,7 +131,7 @@ export default function EscalationDashboard() {
         console.error("Failed to fetch escalations:", err);
         setRows([]);
         setLoading(false);
-      }
+      },
     );
     return () => unsub();
   }, [role, isPrivileged]);
@@ -167,13 +167,13 @@ export default function EscalationDashboard() {
       .filter((r) =>
         String(r.awbNumber || "")
           .toLowerCase()
-          .includes(s)
+          .includes(s),
       );
 
     // safety-net sort: OLDEST FIRST
     res.sort(
       (a, b) =>
-        getMillis(a.escalationCreatedAt) - getMillis(b.escalationCreatedAt)
+        getMillis(a.escalationCreatedAt) - getMillis(b.escalationCreatedAt),
     );
     return res;
   }, [rows, statusFilter, awbSearch]);
@@ -249,7 +249,7 @@ export default function EscalationDashboard() {
       if (!f.type.startsWith("image/")) continue;
       if (f.size > MAX_BYTES) {
         setImgError(
-          `Each image must be ≤ ${MAX_MB} MB. "${f.name}" is too large.`
+          `Each image must be ≤ ${MAX_MB} MB. "${f.name}" is too large.`,
         );
         continue;
       }
@@ -712,7 +712,6 @@ export default function EscalationDashboard() {
                       label="Destination"
                       value={shipment?.destination || "-"}
                     />
-                    <Info label="Vendor" value={shipment?.vendorName || "-"} />
                     <Info label="Service" value={shipment?.service || "-"} />
                     <div className="flex items-center gap-3 bg-gray-50 border border-purple-200 rounded-xl px-4 py-2 w-fit shadow-sm">
                       <span className="font-semibold text-purple-700 text-base">
@@ -1044,7 +1043,7 @@ export default function EscalationDashboard() {
                                 const val = e.target.value;
                                 if (val.length > 200) {
                                   setChatError(
-                                    "Maximum 200 characters allowed."
+                                    "Maximum 200 characters allowed.",
                                   );
                                 } else {
                                   setChatError("");
@@ -1132,7 +1131,7 @@ export default function EscalationDashboard() {
                 <button
                   onClick={() =>
                     setLightboxIndex((i) =>
-                      Math.min(lightboxImages.length - 1, i + 1)
+                      Math.min(lightboxImages.length - 1, i + 1),
                     )
                   }
                   disabled={

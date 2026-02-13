@@ -834,15 +834,7 @@ function PaymentConfirmationForm() {
               className="p-2 border rounded bg-gray-100"
             />
           </div>
-          <div className="flex flex-col mb-4">
-            <label className="text-gray-700 font-medium mb-1">Vendor</label>
-            <input
-              type="text"
-              value={details.vendorName}
-              readOnly
-              className="p-2 border rounded bg-gray-100"
-            />
-          </div>
+
           {/* consignee data */}
           {details.consigneename == "" ? (
             <>

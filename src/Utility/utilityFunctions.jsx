@@ -324,6 +324,7 @@ const transformData = async (DateRange, startendrange) => {
 };
 
 const downloadCSV = async (person, DateRange, startendrange) => {
+  console.log("test download!");
   var dataset = await transformData(DateRange, startendrange);
   // Filter dataset for the specified person
   dataset = [dataset.find((entry) => entry.name === person)];
