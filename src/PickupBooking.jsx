@@ -382,7 +382,8 @@ function PickupBooking() {
       const pickupsRef = collection(db, DB.db_collection);
 
       // Step 2: Increment awbNumber
-      const newAwbNumber = await getNextAwbNumber();
+      // const newAwbNumber = await getNextAwbNumber();
+      const newAwbNumber = 9000;
       const uploadedImageURLs = await uploadImages(files, newAwbNumber);
       const isRepeated = await checkRepeatedCustomer(data.Consignornumber);
       const sinceDate = await sinceDatefun(data.Consignornumber); // Output: 08-Apr-2025
@@ -1091,33 +1092,6 @@ function PickupBooking() {
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* <div className="mb-4">
-                <label className="block text-gray-700 font-semibold mb-2">
-                  Vendor
-                </label>
-                <select
-                  {...register("vendor", { required: "Vendor is required" })}
-                  className={`w-fit px-3 py-2 border ${
-                    errors.vendor ? "border-red-500" : "border-gray-300"
-                  } rounded-md focus:outline-none focus:border-[#8847D9]`}
-                >
-                  <option value="">Select a vendor</option>
-                  <option value="DHL">DHL</option>
-                  <option value="Aramex">ARAMEX</option>
-                  <option value="UPS">UPS</option>
-                  <option value="ExPlus">ExPlus</option>
-                  <option value="TurboFox">TurboFox</option>
-                  <option value="DESK SELF">DESK SELF</option>
-                  <option value="ICL SELF">ICL SELF</option>
-                  <option value="ICL FedEx">ICL FedEx</option>
-                  <option value="ATLANTIC">ATLANTIC</option>
-                </select>
-                {errors.vendor && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.vendor.message}
-                  </p>
-                )}
-              </div> */}
               <div className="mb-6">
                 <label className="block text-gray-700 font-semibold mb-2">
                   Content (Products)
