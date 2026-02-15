@@ -12,6 +12,7 @@ import {
   updateDoc,
   onSnapshot,
   runTransaction,
+  Timestamp,
 } from "firebase/firestore";
 import collectionName_BaseAwb from "./functions/collectionName";
 import axios from "axios";
@@ -82,10 +83,10 @@ function PaymentConfirmationForm() {
       collection(
         db,
         collectionName_BaseAwb.getCollection(
-          JSON.parse(localStorage.getItem("LoginCredentials")).Location
-        )
+          JSON.parse(localStorage.getItem("LoginCredentials")).Location,
+        ),
       ),
-      where("awbNumber", "==", parseInt(awbnumber))
+      where("awbNumber", "==", parseInt(awbnumber)),
     );
 
     const unsubscribe = onSnapshot(
@@ -101,10 +102,10 @@ function PaymentConfirmationForm() {
       },
       (error) => {
         utilityFunctions.ErrorNotify(
-          "An error occurred while fetching data. Please try again later."
+          "An error occurred while fetching data. Please try again later.",
         );
         setLoading(false); // Stop loading on error
-      }
+      },
     );
 
     return () => unsubscribe(); // Cleanup listener on unmount
@@ -175,7 +176,7 @@ function PaymentConfirmationForm() {
     costKg,
     discountCost,
     additionalcharges,
-    invoiceNumber
+    invoiceNumber,
   ) {
     const doc = new jsPDF("p", "pt");
     const subtotal = parseInt(costKg) * details.actualWeight;
@@ -318,12 +319,12 @@ function PaymentConfirmationForm() {
     doc.text(
       "Thank you for your business!",
       40,
-      doc.internal.pageSize.height - 40
+      doc.internal.pageSize.height - 40,
     );
     doc.text(
       "Company Contact Info: info@shiphit.in | +91 - 9159 688 688",
       40,
-      doc.internal.pageSize.height - 30
+      doc.internal.pageSize.height - 30,
     );
 
     // Save the PDF as a Blob
@@ -342,7 +343,7 @@ function PaymentConfirmationForm() {
       return downloadURL;
     } catch (error) {
       utilityFunctions.ErrorNotify(
-        "An error occurred while uploading the document."
+        "An error occurred while uploading the document.",
       );
     }
   }
@@ -360,7 +361,7 @@ function PaymentConfirmationForm() {
     consignorphonenumber,
     consignorname,
     logisticCost,
-    additionalcharges
+    additionalcharges,
   ) {
     try {
       const apiUrl = "https://public.doubletick.io/whatsapp/message/template";
@@ -379,7 +380,7 @@ function PaymentConfirmationForm() {
                   placeholders: [
                     String(consignorname),
                     String(
-                      logisticCost + parseInt(additionalcharges) - discount
+                      logisticCost + parseInt(additionalcharges) - discount,
                     ),
                   ],
                 },
@@ -409,7 +410,7 @@ function PaymentConfirmationForm() {
       await updateDoc(pickupRef, { makePaymentNotified: messageStatus });
       // Success message
       utilityFunctions.SuccessNotify(
-        "Make Payment notification sent successfully."
+        "Make Payment notification sent successfully.",
       );
     } catch (error) {
       console.log("error", error);
@@ -437,16 +438,16 @@ function PaymentConfirmationForm() {
         data.costKg,
         data.discountCost,
         data.additionalcharges,
-        invoiceNumber
+        invoiceNumber,
       );
       const q = query(
         collection(
           db,
           collectionName_BaseAwb.getCollection(
-            JSON.parse(localStorage.getItem("LoginCredentials")).Location
-          )
+            JSON.parse(localStorage.getItem("LoginCredentials")).Location,
+          ),
         ),
-        where("awbNumber", "==", parseInt(awbnumber))
+        where("awbNumber", "==", parseInt(awbnumber)),
       );
       const querySnapshot = await getDocs(q);
       const logisticCost = parseInt(details?.actualWeight) * parseInt(costKg);
@@ -457,9 +458,9 @@ function PaymentConfirmationForm() {
       const docRef = doc(
         db,
         collectionName_BaseAwb.getCollection(
-          JSON.parse(localStorage.getItem("LoginCredentials")).Location
+          JSON.parse(localStorage.getItem("LoginCredentials")).Location,
         ),
-        final_result[0].id
+        final_result[0].id,
       ); // db is your Firestore instance
 
       const updatedFields = {
@@ -494,7 +495,7 @@ function PaymentConfirmationForm() {
         details.consignorphonenumber,
         details.consignorname,
         logisticCost,
-        data.additionalcharges
+        data.additionalcharges,
       );
       setShowPopup(true);
     } catch (error) {
@@ -532,10 +533,10 @@ function PaymentConfirmationForm() {
         collection(
           db,
           collectionName_BaseAwb.getCollection(
-            JSON.parse(localStorage.getItem("LoginCredentials")).Location
-          )
+            JSON.parse(localStorage.getItem("LoginCredentials")).Location,
+          ),
         ),
-        where("awbNumber", "==", parseInt(awbnumber))
+        where("awbNumber", "==", parseInt(awbnumber)),
       );
       const querySnapshot = await getDocs(q);
       let final_result = [];
@@ -545,10 +546,28 @@ function PaymentConfirmationForm() {
       const docRef = doc(
         db,
         collectionName_BaseAwb.getCollection(
-          JSON.parse(localStorage.getItem("LoginCredentials")).Location
+          JSON.parse(localStorage.getItem("LoginCredentials")).Location,
         ),
-        final_result[0].id
+        final_result[0].id,
       );
+
+      const now = Timestamp.now();
+
+      const updatedInternalTracking = details.internalTracking.map((step) => {
+        if (step.code === "PAYMENT_RECEIVED") {
+          return {
+            ...step,
+            status: "COMPLETED",
+            datetime: now,
+            updatedAt: now,
+            updatedBy: "system",
+            notes: "Payment received successfully",
+          };
+        }
+
+        return step;
+      });
+
       const updatedFields = {
         paymentMode: paymentMode,
         status: "PAYMENT DONE",
@@ -556,7 +575,12 @@ function PaymentConfirmationForm() {
         payment_Receipt_URL: Payment_URL,
         PaymentComfirmedDate: await getTodayDate(),
       };
-      updateDoc(docRef, updatedFields);
+
+      await updateDoc(docRef, {
+        ...updatedFields,
+        internalTracking: updatedInternalTracking,
+      });
+
       try {
         const options = {
           method: "POST",
@@ -614,12 +638,12 @@ function PaymentConfirmationForm() {
     if (error.response) {
       // Handle server response error
       utilityFunctions.ErrorNotify(
-        "An error occurred while processing your request."
+        "An error occurred while processing your request.",
       );
     } else if (error.request) {
       // Handle no response from the server
       utilityFunctions.ErrorNotify(
-        "Unable to connect. Please check your network."
+        "Unable to connect. Please check your network.",
       );
     } else {
       // Handle other types of errors
@@ -810,15 +834,7 @@ function PaymentConfirmationForm() {
               className="p-2 border rounded bg-gray-100"
             />
           </div>
-          <div className="flex flex-col mb-4">
-            <label className="text-gray-700 font-medium mb-1">Vendor</label>
-            <input
-              type="text"
-              value={details.vendorName}
-              readOnly
-              className="p-2 border rounded bg-gray-100"
-            />
-          </div>
+
           {/* consignee data */}
           {details.consigneename == "" ? (
             <>

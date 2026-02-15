@@ -37,10 +37,10 @@ function CancelCard({ item, index }) {
         collection(
           db,
           collectionName_BaseAwb.getCollection(
-            JSON.parse(localStorage.getItem("LoginCredentials")).Location
-          )
+            JSON.parse(localStorage.getItem("LoginCredentials")).Location,
+          ),
         ),
-        where("awbNumber", "==", awbNumber)
+        where("awbNumber", "==", awbNumber),
       );
       const querySnapshot = await getDocs(q);
       let final_result = [];
@@ -51,7 +51,7 @@ function CancelCard({ item, index }) {
 
       if (final_result.length === 0) {
         throw new Error(
-          "No matching AWB number found in the pickups collection"
+          "No matching AWB number found in the pickups collection",
         );
       }
 
@@ -68,9 +68,9 @@ function CancelCard({ item, index }) {
       const userDocRef = doc(
         db,
         collectionName_BaseAwb.getCollection(
-          JSON.parse(localStorage.getItem("LoginCredentials")).Location
+          JSON.parse(localStorage.getItem("LoginCredentials")).Location,
         ),
-        matchedData.id
+        matchedData.id,
       );
       await deleteDoc(userDocRef);
       setIsModalOpen(false); // Close the modal after cancellation
@@ -178,12 +178,6 @@ function CancelCard({ item, index }) {
           <p className="text-base font-medium text-gray-900">
             <strong className="text-gray-900">Final weight:</strong>{" "}
             {item.actualWeight}
-          </p>
-        )}
-        {item.vendorName && (
-          <p className="text-base font-medium text-gray-900">
-            <strong className="text-gray-900">Vendor (Carrier):</strong>{" "}
-            {item.vendorName}
           </p>
         )}
       </div>

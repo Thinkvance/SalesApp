@@ -544,7 +544,6 @@ function SalesReport() {
                   "Phone",
                   "Destination",
                   "Weight",
-                  "Vendor",
                   "Source",
                   "Pickup Area",
                   "Pickup Status",
@@ -594,7 +593,6 @@ function SalesReport() {
                       <td className="py-3 px-4 border">
                         {pickup.actualWeight}
                       </td>
-                      <td className="py-3 px-4 border">{pickup.vendorName}</td>
                       <td className="py-3 px-4 border">{pickup.Source}</td>
                       <td className="py-3 px-4 border">{pickup.pickuparea}</td>
                       <td className="py-3 px-4 border">

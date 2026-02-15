@@ -44,10 +44,10 @@ function CancelCard({ item, index }) {
       collection(
         db,
         collectionName_BaseAwb.getCollection(
-          JSON.parse(localStorage.getItem("LoginCredentials")).Location
-        )
+          JSON.parse(localStorage.getItem("LoginCredentials")).Location,
+        ),
       ),
-      where("awbNumber", "==", awbNumber)
+      where("awbNumber", "==", awbNumber),
     );
 
     const querySnapshot = await getDocs(q);
@@ -60,19 +60,19 @@ function CancelCard({ item, index }) {
     const docRef = doc(
       db,
       collectionName_BaseAwb.getCollection(
-        JSON.parse(localStorage.getItem("LoginCredentials")).Location
+        JSON.parse(localStorage.getItem("LoginCredentials")).Location,
       ),
-      final_result[0].id
+      final_result[0].id,
     ); // db is your Firestore instance
 
     console.log(
       convertToFirebaseTimestamp(
-        `${selectedDate + " " + Hour + " " + Timeperiod}`
-      )
+        `${selectedDate + " " + Hour + " " + Timeperiod}`,
+      ),
     );
     const updatedFields = {
       pickupDatetime: convertToFirebaseTimestamp(
-        `${selectedDate + " " + Hour + " " + Timeperiod}`
+        `${selectedDate + " " + Hour + " " + Timeperiod}`,
       ),
     };
 
@@ -163,12 +163,6 @@ function CancelCard({ item, index }) {
           <p className="text-base font-medium text-gray-900">
             <strong className="text-gray-900">Final weight:</strong>{" "}
             {item.actualWeight}
-          </p>
-        )}
-        {item.vendorName && (
-          <p className="text-base font-medium text-gray-900">
-            <strong className="text-gray-900">Vendor (Carrier):</strong>{" "}
-            {item.vendorName}
           </p>
         )}
       </div>

@@ -75,7 +75,7 @@ function Accounts() {
       },
       (error) => {
         console.error("Error fetching pickup persons: ", error);
-      }
+      },
     );
 
     return () => unsubscribe();
@@ -102,7 +102,7 @@ function Accounts() {
       try {
         const q = query(
           collection(db, DB.db_collection),
-          where("awbNumber", "==", awbNumber)
+          where("awbNumber", "==", awbNumber),
         );
         const querySnapshot = await getDocs(q);
         const updates = [];
@@ -119,7 +119,7 @@ function Accounts() {
               updateDoc(docRef, {
                 vendorpayment: newVendorPayment,
                 margin: margin,
-              })
+              }),
             );
 
             setPickups((prevPickups) =>
@@ -130,8 +130,8 @@ function Accounts() {
                       vendorpayment: newVendorPayment,
                       margin: margin,
                     }
-                  : pickup
-              )
+                  : pickup,
+              ),
             );
           }
         });
@@ -169,7 +169,7 @@ function Accounts() {
           ? [DB.db_collection, "franchise_pondy", "franchise_coimbatore"]
           : [
               collectionName_BaseAwb.getCollection(
-                location === "HQ CHENNAI" ? "CHENNAI" : location
+                location === "HQ CHENNAI" ? "CHENNAI" : location,
               ),
             ];
 
@@ -180,7 +180,7 @@ function Accounts() {
         collectionNames.map((name) => {
           const q = query(
             collection(db, name),
-            where("status", "in", ["SHIPMENT CONNECTED", "PAYMENT DONE"])
+            where("status", "in", ["SHIPMENT CONNECTED", "PAYMENT DONE"]),
           );
           return new Promise((resolve) => {
             const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -192,7 +192,7 @@ function Accounts() {
             });
             unsubscribes.push(unsubscribe);
           });
-        })
+        }),
       )
         .then((results) => {
           const combinedData = results.flat();
@@ -282,7 +282,7 @@ function Accounts() {
     console.log(
       "pickup?.vendorAwbnumber",
       pickup?.vendorAwbnumber,
-      pickup?.vendorAwbnumber == null
+      pickup?.vendorAwbnumber == null,
     );
     const matchedVendorAWBnumber =
       selectedVendorAWBnumber === ""
@@ -310,12 +310,12 @@ function Accounts() {
 
   const totalLogisticsCost = filteredPickups.reduce(
     (sum, pickup) => sum + (pickup.logisticCost || 0),
-    0
+    0,
   );
 
   const totalMargin = filteredPickups.reduce(
     (sum, pickup) => sum + (pickup.margin || 0),
-    0
+    0,
   );
 
   const salesData = Object.values(
@@ -329,7 +329,7 @@ function Accounts() {
       }
       acc[name].totalMargin += safeMargin;
       return acc;
-    }, {})
+    }, {}),
   );
 
   const exportOctoberData = async () => {
@@ -340,7 +340,7 @@ function Accounts() {
         .sort(
           (a, b) =>
             parseDate(b.PaymentComfirmedDate) -
-            parseDate(a.PaymentComfirmedDate)
+            parseDate(a.PaymentComfirmedDate),
         )
         .map((item) => {
           const rawDate = item.PaymentComfirmedDate;
@@ -429,7 +429,7 @@ function Accounts() {
     try {
       const q = query(
         collection(db, DB.db_collection),
-        where("awbNumber", "==", value.awbNumber)
+        where("awbNumber", "==", value.awbNumber),
       );
       const querySnapshot = await getDocs(q);
       if (!querySnapshot.empty) {
@@ -701,7 +701,6 @@ function Accounts() {
                   "Consignor Name",
                   "Phone",
                   "Destination",
-                  "Vendor",
                   "Source",
                   "Pickup Area",
                   "Pickup Status",
@@ -736,7 +735,7 @@ function Accounts() {
                   .sort(
                     (a, b) =>
                       parseDate(b.PaymentComfirmedDate) -
-                      parseDate(a.PaymentComfirmedDate)
+                      parseDate(a.PaymentComfirmedDate),
                   )
                   .map((pickup, idx) => (
                     <tr
@@ -754,7 +753,6 @@ function Accounts() {
                       </td>
                       <td className="py-3 px-4 border">{pickup.destination}</td>
 
-                      <td className="py-3 px-4 border">{pickup.vendorName}</td>
                       <td className="py-3 px-4 border">{pickup.Source}</td>
                       <td className="py-3 px-4 border">{pickup.pickuparea}</td>
                       <td className="py-3 px-4 border">
@@ -791,8 +789,8 @@ function Accounts() {
                                 prev.map((p) =>
                                   p.id === pickup.id
                                     ? { ...p, vendorpayment: value }
-                                    : p
-                                )
+                                    : p,
+                                ),
                               );
                             }
                           }}
@@ -800,7 +798,7 @@ function Accounts() {
                             handleBlur(
                               pickup.id,
                               pickup.awbNumber,
-                              parseInt(pickup.vendorpayment || "0")
+                              parseInt(pickup.vendorpayment || "0"),
                             )
                           }
                           className="w-full h-full text-center resize-none bg-transparent p-2 focus:ring-1 focus:ring-purple-500 rounded-md"

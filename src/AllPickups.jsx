@@ -49,7 +49,7 @@ function Pickups() {
       },
       (error) => {
         console.error("Error fetching pickup persons: ", error);
-      }
+      },
     );
 
     return () => unsubscribe();
@@ -91,7 +91,7 @@ function Pickups() {
     try {
       const q = query(
         collection(db, DB.db_collection),
-        where("awbNumber", "==", value.awbNumber)
+        where("awbNumber", "==", value.awbNumber),
       );
       const querySnapshot = await getDocs(q);
       if (!querySnapshot.empty) {
@@ -162,7 +162,7 @@ function Pickups() {
               baseCollection,
               where("pickupDatetime", ">=", startTimestamp),
               where("pickupDatetime", "<=", endTimestamp),
-              orderBy("pickupDatetime", "desc")
+              orderBy("pickupDatetime", "desc"),
             );
           } else {
             q = query(baseCollection, orderBy("pickupDatetime", "desc"));
@@ -191,8 +191,8 @@ function Pickups() {
                 });
 
                 unsubscribes.push(unsubscribe);
-              })
-          )
+              }),
+          ),
         );
 
         const combinedData = results
@@ -215,7 +215,7 @@ function Pickups() {
       } catch (error) {
         console.error("Error in fetchDataForAll:", error);
         utilityFunctions.ErrorNotify(
-          "Unable to retrieve data. Please try again later."
+          "Unable to retrieve data. Please try again later.",
         );
         setLoading(false);
       }
@@ -226,7 +226,7 @@ function Pickups() {
         const locationKey = Location === "HQ CHENNAI" ? "CHENNAI" : Location;
         const baseCollection = collection(
           db,
-          collectionName_BaseAwb.getCollection(locationKey)
+          collectionName_BaseAwb.getCollection(locationKey),
         );
 
         let q;
@@ -252,7 +252,7 @@ function Pickups() {
             baseCollection,
             where("pickupDatetime", ">=", startTimestamp),
             where("pickupDatetime", "<=", endTimestamp),
-            orderBy("pickupDatetime", "desc")
+            orderBy("pickupDatetime", "desc"),
           );
         } else {
           q = query(baseCollection, orderBy("pickupDatetime", "desc"));
@@ -287,7 +287,7 @@ function Pickups() {
       } catch (error) {
         console.error("Error in fetchDataForSingleLocation:", error);
         utilityFunctions.ErrorNotify(
-          "Unable to retrieve data. Please try again later."
+          "Unable to retrieve data. Please try again later.",
         );
         setLoading(false);
       }
@@ -362,7 +362,7 @@ function Pickups() {
               const dateValue = e.target.value; // e.g., "2024-10-07"
               const [year, month, day] = dateValue.split("-");
               const result = `${parseInt(day)}-${parseInt(month)}-${parseInt(
-                year
+                year,
               )}`;
               setDateSearchTerm(result);
             }}
@@ -395,7 +395,6 @@ function Pickups() {
                 <th className="py-3 px-4 border">Consignor Phone</th>
                 <th className="py-3 px-4 border">Destination</th>
                 <th className="py-3 px-4 border">Weight (Apx)</th>
-                <th className="py-3 px-4 border">Vendor</th>
                 <th className="py-3 px-4 border">Pickup Area</th>
                 <th className="py-3 px-4 border">Status</th>
                 <th className="py-3 px-4 border">PickUp Status</th>
@@ -418,7 +417,6 @@ function Pickups() {
                     </td>
                     <td className="py-10 px-4 border">{pickup.destination}</td>
                     <td className="py-10 px-4 border">{pickup.weightapx}</td>
-                    <td className="py-10 px-4 border">{pickup.vendorName}</td>
                     <td className="py-10 px-4 border">{pickup.pickuparea}</td>
                     <td className="py-10 px-4 border text-nowrap">
                       {pickup.status}

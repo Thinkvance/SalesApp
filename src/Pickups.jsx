@@ -54,11 +54,11 @@ function Pickups() {
       const fetchData = () => {
         try {
           const location = JSON.parse(
-            localStorage.getItem("LoginCredentials")
+            localStorage.getItem("LoginCredentials"),
           ).Location;
           const baseCollection = collection(
             db,
-            collectionName_BaseAwb.getCollection(location)
+            collectionName_BaseAwb.getCollection(location),
           );
 
           let q;
@@ -77,14 +77,14 @@ function Pickups() {
                 where("pickupDatetime", ">=", startTimestamp),
                 where("pickupDatetime", "<=", endTimestamp),
                 // where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo)),
-                orderBy("pickupDatetime", "desc")
+                orderBy("pickupDatetime", "desc"),
               );
             } else if (role === "sales admin") {
               q = query(
                 baseCollection,
                 where("pickupDatetime", ">=", startTimestamp),
                 where("pickupDatetime", "<=", endTimestamp),
-                orderBy("pickupDatetime", "desc")
+                orderBy("pickupDatetime", "desc"),
               );
             } else {
               q = query(
@@ -93,7 +93,7 @@ function Pickups() {
                 where("pickupDatetime", ">=", startTimestamp),
                 where("pickupDatetime", "<=", endTimestamp),
                 where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo)),
-                orderBy("pickupDatetime", "desc")
+                orderBy("pickupDatetime", "desc"),
               );
             }
           } else {
@@ -106,20 +106,20 @@ function Pickups() {
                     //   ">=",
                     //   Timestamp.fromDate(oneMonthAgo)
                     // ),
-                    orderBy("pickupDatetime", "desc")
+                    orderBy("pickupDatetime", "desc"),
                   )
                 : role === "sales admin"
-                ? query(baseCollection, orderBy("pickupDatetime", "desc"))
-                : query(
-                    baseCollection,
-                    where("pickupBookedBy", "==", username),
-                    where(
-                      "pickupDatetime",
-                      ">=",
-                      Timestamp.fromDate(oneMonthAgo)
-                    ),
-                    orderBy("pickupDatetime", "desc")
-                  );
+                  ? query(baseCollection, orderBy("pickupDatetime", "desc"))
+                  : query(
+                      baseCollection,
+                      where("pickupBookedBy", "==", username),
+                      where(
+                        "pickupDatetime",
+                        ">=",
+                        Timestamp.fromDate(oneMonthAgo),
+                      ),
+                      orderBy("pickupDatetime", "desc"),
+                    );
           }
 
           const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -182,7 +182,7 @@ function Pickups() {
     try {
       const q = query(
         collection(db, DB.db_collection),
-        where("awbNumber", "==", value.awbNumber)
+        where("awbNumber", "==", value.awbNumber),
       );
       const querySnapshot = await getDocs(q);
       if (!querySnapshot.empty) {
@@ -274,7 +274,6 @@ function Pickups() {
                 <th className="py-3 px-4 border">Consignor Phone</th>
                 <th className="py-3 px-4 border">Destination</th>
                 <th className="py-3 px-4 border">Weight (Apx)</th>
-                <th className="py-3 px-4 border">Vendor</th>
                 <th className="py-3 px-4 border">Pickup Area</th>
                 <th className="py-3 px-4 border">Pickup Date & Time</th>
                 <th className="py-3 px-4 border">Pickup Booked by</th>
@@ -296,7 +295,6 @@ function Pickups() {
                     </td>
                     <td className="py-10 px-4 border">{pickup.destination}</td>
                     <td className="py-10 px-4 border">{pickup.weightapx}</td>
-                    <td className="py-10 px-4 border">{pickup.vendorName}</td>
                     <td className="py-10 px-4 border">{pickup.pickuparea}</td>
                     <td className="py-10 px-4 border">
                       {formatFirestoreTimestamp(pickup.pickupDatetime)}

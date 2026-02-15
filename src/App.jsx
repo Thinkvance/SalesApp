@@ -175,9 +175,9 @@ function App() {
 
   return (
     <>
-      {showUpdateModal && (
+      {/* {showUpdateModal && (
         <VersionUpdateModal message={updateMessage} onRefresh={handleRefresh} />
-      )}
+      )} */}
 
       <Router>
         <div>

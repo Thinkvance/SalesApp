@@ -100,24 +100,7 @@ const EditShipmentModal = ({
               options={["Express", "Economy", "Duty Free"]}
               error={errors.service}
             />
-            <SelectField
-              label="Vendor Name"
-              name="vendorName"
-              register={register}
-              rules={{ required: "Please select a vendor." }}
-              options={[
-                "DHL",
-                "Aramex",
-                "UPS",
-                "ExPlus",
-                "DESK SELF",
-                "TurboFox",
-                "ICL SELF",
-                "ICL FedEx",
-                "ATLANTIC",
-              ]}
-              error={errors.vendorName}
-            />
+
             {pickup.actualWeight &&
             ["sales admin", "Manager"].includes(user?.role) ? (
               <InputField
