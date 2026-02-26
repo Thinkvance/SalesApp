@@ -1,14 +1,14 @@
 import { Timestamp } from "firebase/firestore";
 
 const datetime = Timestamp.now();
-const createDefaultInternalTracking = () => {
+const createDefaultInternalTracking = (pickupDateTime_firebase_timestamp) => {
   return [
     {
       code: "PICKUP_SCHEDULED",
       label: "Pickup Scheduled",
       status: "COMPLETED",
       location: "Chennai",
-      datetime: datetime,
+      datetime: pickupDateTime_firebase_timestamp,
       updatedBy: "system",
       updatedAt: datetime,
       notes: "",

@@ -403,6 +403,7 @@ function PaymentConfirmationForm() {
       };
       // Sending WhatsApp message
       const response = await axios.post(apiUrl, messageData, { headers });
+      console.log("response pay request", response);
       // Extract message status
       const messageStatus = response?.status === 200;
       // Update Firestore document
@@ -594,7 +595,7 @@ function PaymentConfirmationForm() {
             messages: [
               {
                 content: {
-                  language: "en_US",
+                  language: "en",
                   templateData: {
                     body: {
                       placeholders: [
@@ -608,10 +609,13 @@ function PaymentConfirmationForm() {
                         type: "URL",
                         parameter: getTruncatedURL(Payment_URL),
                       },
-                      { type: "URL", parameter: String(details.awbNumber) },
+                      {
+                        type: "URL",
+                        parameter: String(details.awbHashedValue),
+                      },
                     ],
                   },
-                  templateName: "payment_completed_final1",
+                  templateName: "payment_completed_tem_final",
                 },
                 from: "+919600690881",
                 to: `+91${details.consignorphonenumber}`,
@@ -622,11 +626,13 @@ function PaymentConfirmationForm() {
         const response = await axios.post(options.url, options.data, {
           headers: options.headers,
         });
+        console.log("response", response);
       } catch (error) {
         console.log("error", error.message);
       }
       setshowPopupForPayConfirm(true);
     } catch (error) {
+      console.log("error", error);
       handleError(error);
     } finally {
       setSubmitLoading(false);

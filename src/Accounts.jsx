@@ -23,6 +23,7 @@ import { saveAs } from "file-saver";
 import SalesReportBarChartSVendor from "./Charts/SalesReportBarChartSVendor";
 import EditShipmentModal from "./EditShipmentModal";
 import { FiCheck, FiClipboard } from "react-icons/fi";
+import formatFirestoreTimestamp from "./Utility/formatFirestoreTimestamp";
 
 dayjs.extend(customParseFormat);
 dayjs.extend(isBetween);
@@ -367,6 +368,7 @@ function Accounts() {
 
           octoberData.push({
             PaymentComfirmedDate: rawDate,
+            status: item.status,
             consignorname: item.consignorname || "",
             awbNumber: item.awbNumber || "",
             vendorName: item.vendorName || "",
@@ -375,6 +377,7 @@ function Accounts() {
             destination: item.destination || "",
             logisticCost: item.logisticCost || "",
             paymentMode: item.paymentMode || "",
+            payment_Receipt_URL: item.payment_Receipt_URL || "",
           });
         });
 
@@ -392,6 +395,7 @@ function Accounts() {
           key: "PaymentComfirmedDate",
           width: 30,
         },
+        { header: "status", key: "status", width: 25 },
         { header: "Customer", key: "consignorname", width: 25 },
         { header: "Receipt No", key: "awbNumber", width: 20 },
         { header: "Vendor", key: "vendorName", width: 20 },
@@ -400,6 +404,7 @@ function Accounts() {
         { header: "Country", key: "destination", width: 20 },
         { header: "Sale price", key: "logisticCost", width: 15 },
         { header: "Payment Mode", key: "paymentMode", width: 15 },
+        { header: "Invoice", key: "payment_Receipt_URL", width: 15 },
       ];
 
       octoberData.forEach((row) => ws.addRow(row));
@@ -704,7 +709,8 @@ function Accounts() {
                   "Source",
                   "Pickup Area",
                   "Pickup Status",
-                  "Payment Confirmed At",
+                  "Invoice Date",
+                  "Pickup Booked Date",
                   "Booked By",
                   "Pickup Person",
                   "Status",
@@ -760,6 +766,9 @@ function Accounts() {
                       </td>
                       <td className="py-3 px-4 border text-nowrap">
                         {pickup.PaymentComfirmedDate}
+                      </td>
+                      <td className="py-3 px-4 border text-nowrap">
+                        {formatFirestoreTimestamp(pickup.pickupDatetime)}
                       </td>
                       <td className="py-3 px-4 border">
                         {pickup.pickupBookedBy}

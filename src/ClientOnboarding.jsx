@@ -19,6 +19,7 @@ import {
 import { db, storage } from "./firebase";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import Lottie from "lottie-react";
+import { runTransaction } from "firebase/firestore";
 
 const ClientOnboarding = () => {
   const [countries, setCountries] = useState([]);
@@ -67,60 +68,83 @@ const ClientOnboarding = () => {
     }
   }, [needGST]);
 
+  const generateReferenceNumber = async () => {
+    const counterRef = doc(db, "ClientOnboarding_Counters", "Reference");
+
+    return await runTransaction(db, async (transaction) => {
+      const counterDoc = await transaction.get(counterRef);
+
+      if (!counterDoc.exists()) {
+        throw new Error("ClientOnboarding_Counters/Reference does not exist!");
+      }
+
+      const newRef = counterDoc.data().lastReference + 1;
+
+      transaction.update(counterRef, {
+        lastReference: newRef,
+      });
+
+      return newRef;
+    });
+  };
+
   const onSubmit = async (data) => {
     try {
-      setLoading(true); // 🔥 start loading
-      // 🔹 Create Firestore doc first (guaranteed unique)
+      setLoading(true);
 
       const user = JSON.parse(localStorage.getItem("LoginCredentials"));
+
+      // ✅ Sequential number
+      const refNumber = await generateReferenceNumber();
+
+      // ✅ Reference as string (UI friendly)
+      const referenceCode = refNumber.toString();
+
       const docRef = doc(collection(db, "ClientOnboarding"));
 
-      // 🔹 Generate 8-digit reference from doc ID
-      const referenceCode = docRef.id
-        .replace(/\D/g, "")
-        .slice(0, 8)
-        .padEnd(8, "0");
-
-      // 🔹 Extract files
       const kycFile = data.kyc[0];
       const rateCardFile = data.rateCard[0];
 
-      // 🔹 Storage paths (using guaranteed unique reference)
+      // ✅ Storage paths using ONLY number
       const kycRef = ref(storage, `Client-Onboarding/${referenceCode}/kyc.pdf`);
-
       const rateCardRef = ref(
         storage,
         `Client-Onboarding/${referenceCode}/rateCard.pdf`,
       );
 
-      // 🔹 Upload files
       await uploadBytes(kycRef, kycFile);
       await uploadBytes(rateCardRef, rateCardFile);
 
-      // 🔹 Get URLs
       const kycURL = await getDownloadURL(kycRef);
       const rateCardURL = await getDownloadURL(rateCardRef);
 
-      // 🔹 Payload
       const payload = {
         status: "PENDING",
+
         approvedAt: null,
         approvedBy: null,
         rejectedAt: null,
         rejectedBy: null,
+        rejectionReason: null,
+
         docId: docRef.id,
+
+        referenceCode, // ✅ "100"
+        referenceNumber: refNumber, // ⭐ 100
+
         lastUpdatedAt: serverTimestamp(),
         lastUpdatedBy: user.email,
-        rejectionReason: null,
+
         CreatedBy: user.name,
         CreatedByLocation: user.Location,
         CreatedByRole: user.role,
         CreatedByEmail: user.email,
-        referenceCode, // 🔒 guaranteed unique
+
         companyName: data.companyName,
         consignorName: data.consignorName,
         consignorAddress: data.consignorAddress,
         consignorPhone: data.phone,
+
         pincode: data.pincode,
         city: data.city,
         coordinates: data.coordinates,
@@ -139,15 +163,17 @@ const ClientOnboarding = () => {
 
         kycFileUrl: kycURL,
         rateCardFileUrl: rateCardURL,
+
         isApproved: false,
         schemaVersion: 1,
         isActive: true,
+
         createdAt: serverTimestamp(),
         internalNotes: "",
       };
 
-      // 🔹 Save using SAME doc reference
       await setDoc(docRef, payload);
+
       setCreatedRef(referenceCode);
       setShowSuccess(true);
       reset();
@@ -159,7 +185,7 @@ const ClientOnboarding = () => {
     } catch (error) {
       console.error("❌ Error submitting form:", error);
     } finally {
-      setLoading(false); // 🔥 stop loading (always)
+      setLoading(false);
     }
   };
 

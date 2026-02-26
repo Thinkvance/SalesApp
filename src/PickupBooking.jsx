@@ -374,7 +374,12 @@ function PickupBooking() {
       }
       setLoading(true);
       seterror("");
-      const internalTracking = createDefaultInternalTracking();
+      const pickupDateTime_firebase_timestamp = convertToFirebaseTimestamp(
+        `${data.pickupDate + " " + data.pickupHour + " " + data.pickupPeriod}`,
+      );
+      const internalTracking = createDefaultInternalTracking(
+        pickupDateTime_firebase_timestamp,
+      );
       const result = splitLati_Logi(latitudelongitude);
       const destinationCountryName =
         countryCodeToName[data.country] || data.country;
@@ -407,9 +412,7 @@ function PickupBooking() {
         destination: destinationCountryName, // Use full country name here
         pickupInstructions: data.instructions,
         weightapx: data.weight + " KG",
-        pickupDatetime: convertToFirebaseTimestamp(
-          `${data.pickupDate + " " + data.pickupHour + " " + data.pickupPeriod}`,
-        ),
+        pickupDatetime: pickupDateTime_firebase_timestamp,
         franchise: frachise,
         awbNumber: newAwbNumber, // Add the new awbNumber here
         vendorName: null,

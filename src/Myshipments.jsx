@@ -725,7 +725,7 @@ export default function Myshipments() {
 
                         <td className="px-4 py-2  border text-center">
                           <a
-                            href={`https://shiphit.in/track-your-courier/${item.awbHashedValue}`}
+                            href={`https://shiphit.com/track-your-courier/${item.awbHashedValue}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-md text-xs font-semibold"
