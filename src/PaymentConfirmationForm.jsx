@@ -37,7 +37,6 @@ function PaymentConfirmationForm() {
   const [showPopupForPayConfirm, setshowPopupForPayConfirm] = useState(false);
   const barcodeRef = useRef(null); // Ref for barcode generation
   const [paymentMode, setPaymentMode] = useState("");
-
   const {
     register,
     handleSubmit,
@@ -362,6 +361,7 @@ function PaymentConfirmationForm() {
     consignorname,
     logisticCost,
     additionalcharges,
+    awbNumber,
   ) {
     try {
       const apiUrl = "https://public.doubletick.io/whatsapp/message/template";
@@ -374,11 +374,12 @@ function PaymentConfirmationForm() {
             to: `+91${consignorphonenumber}`,
             content: {
               language: "en",
-              templateName: "paymentrequest",
+              templateName: "paymentrequestedtest2",
               templateData: {
                 body: {
                   placeholders: [
                     String(consignorname),
+                    String(awbNumber),
                     String(
                       logisticCost + parseInt(additionalcharges) - discount,
                     ),
@@ -497,6 +498,7 @@ function PaymentConfirmationForm() {
         details.consignorname,
         logisticCost,
         data.additionalcharges,
+        details.awbNumber,
       );
       setShowPopup(true);
     } catch (error) {
@@ -615,7 +617,7 @@ function PaymentConfirmationForm() {
                       },
                     ],
                   },
-                  templateName: "payment_completed_tem_final",
+                  templateName: "payment_completed_final",
                 },
                 from: "+919600690881",
                 to: `+91${details.consignorphonenumber}`,

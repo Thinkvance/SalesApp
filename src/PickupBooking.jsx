@@ -73,6 +73,28 @@ function PickupBooking() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [networkError, setNetworkError] = useState(false);
 
+  function deliveryTime(service, destination) {
+    if (service === "Economy") {
+      return "5 - 7 Working Days";
+    }
+
+    if (service === "Express") {
+      return "3 - 4 Working Days";
+    }
+
+    if (service === "Duty Free") {
+      if (destination === "United Kingdom") {
+        return "5 - 7 Working Days";
+      }
+      if (destination === "New Zealand" || destination === "Australia") {
+        return "8 - 15 Working Days";
+      }
+      return "8 - 12 Working Days";
+    }
+
+    return "-";
+  }
+
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => {
@@ -387,8 +409,7 @@ function PickupBooking() {
       const pickupsRef = collection(db, DB.db_collection);
 
       // Step 2: Increment awbNumber
-      // const newAwbNumber = await getNextAwbNumber();
-      const newAwbNumber = 9000;
+      const newAwbNumber = await getNextAwbNumber();
       const uploadedImageURLs = await uploadImages(files, newAwbNumber);
       const isRepeated = await checkRepeatedCustomer(data.Consignornumber);
       const sinceDate = await sinceDatefun(data.Consignornumber); // Output: 08-Apr-2025
@@ -457,12 +478,14 @@ function PickupBooking() {
                 to: `+91${data.Consignornumber}`,
                 content: {
                   language: "en",
-                  templateName: "shipmentbookedffinal",
+                  templateName: "shipmentbookedfinaltest4",
                   templateData: {
                     body: {
                       placeholders: [
                         data.Consignorname,
                         destinationCountryName,
+                        data.service,
+                        deliveryTime(data.service, destinationCountryName),
                       ],
                     },
                   },
