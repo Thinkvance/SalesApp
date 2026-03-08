@@ -23,6 +23,7 @@ import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import DB from "./DB/DB";
 import countryList from "./CountryDialCode.json";
+import formatFirestoreTimestamp from "./Utility/formatFirestoreTimestamp";
 
 function PaymentConfirmationForm() {
   const [costKg, setcostKg] = useState(0);
@@ -166,7 +167,6 @@ function PaymentConfirmationForm() {
 
       transaction.update(counterRef, { current: newInvoice });
 
-      console.log("newInvoice", newInvoice);
       return newInvoice;
     });
   }
@@ -182,64 +182,74 @@ function PaymentConfirmationForm() {
     const nettotal = subtotal - parseInt(discountCost) + additionalcharges;
     const year = new Date().getFullYear();
     // Add business name and logo
+
+    // -------------------------
+    // Header
+    // -------------------------
     doc.setFontSize(20);
     doc.addImage("/shiphtlogo.png", "PNG", 40, 30, 180, 60); // Replace with your logo
 
-    const maxWidth = 210; // Set the maximum width (in points) for the text
-
-    // Bill from and bill to section
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("Receipt from:", 40, 140);
+    // Receipt From
     doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
-    doc.text("Shiphit", 40, 160);
-
-    const address = `2C, Rajarajan Street, Main Rd, Navarathna Garden, Ekkatuthangal, Chennai, Tamil Nadu 600032`;
-    const phoneNumber = `\n9159 688 688`; // Add a newline before the phone number
-
-    const fullText = address + phoneNumber; // Combine address and phone number
-    const splitText1 = doc.splitTextToSize(fullText, maxWidth);
-    doc.text(splitText1, 40, 180);
-
-    // Bill To
     doc.setFont("helvetica", "bold");
-    doc.text("Receipt to:", 350, 140);
-    doc.setFontSize(12);
+    doc.text("Receipt from:", 40, 120);
 
     doc.setFont("helvetica", "normal");
-    doc.text(details.consignorname, 350, 160);
+    doc.text("ShipHit", 40, 140);
 
-    const consignorLocation = details.consignorlocation.toLowerCase();
-    const fullText1 = consignorLocation + "\n" + details.consignorphonenumber;
-    const splitText = doc.splitTextToSize(fullText1, maxWidth);
-    doc.text(splitText, 350, 180);
+    const address =
+      "2C, Rajarajan Street, Main Rd, Navarathna Garden, Ekkatuthangal, Chennai, Tamil Nadu 600032\n9159 688 688";
+    const splitAddress = doc.splitTextToSize(address, 250);
+    doc.text(splitAddress, 40, 160);
 
-    // Align invoice details at the top-right corner
+    // Receipt To
+    doc.setFont("helvetica", "bold");
+    doc.text("Receipt to:", 350, 120);
+
+    doc.setFont("helvetica", "normal");
+    doc.text(details.consignorname, 350, 140);
+
+    const splitConsignor = doc.splitTextToSize(
+      details.consignorlocation + "\n" + details.consignorphonenumber,
+      200,
+    );
+    doc.text(splitConsignor, 350, 160);
+
+    // Top Right Info
     const pageWidth = doc.internal.pageSize.getWidth();
-    const rightMargin = pageWidth - 40; // Right margin of 40 units
+    const rightMargin = pageWidth - 40;
 
-    doc.setFont("helvetica", "normal");
-    doc.text(`Receipt Number: SHRT-${year}${invoiceNumber}`, rightMargin, 40, {
+    doc.text(`Invoice Number: SHRT-${year}${invoiceNumber}`, rightMargin, 40, {
       align: "right",
     });
-    doc.text(`Date: ${await getTodayDate()}`, rightMargin, 61, {
-      align: "right",
-    });
+
+    doc.text(
+      `Booking Date: ${formatFirestoreTimestamp(details.pickupDatetime)}`,
+      rightMargin,
+      60,
+      {
+        align: "right",
+      },
+    );
+
     doc.setFont("helvetica", "bold");
-    doc.text(`Total: ${nettotal}.00 Rs`, rightMargin, 80, { align: "right" });
+    doc.text(`Total: ${nettotal}.00 Rs`, rightMargin, 80, {
+      align: "right",
+    });
 
-    // Draw a line for separation
-    doc.line(40, 250, 570, 250);
+    // Line
+    doc.line(40, 230, 570, 230);
 
-    // Invoice Table
+    // -------------------------
+    // Table
+    // -------------------------
     doc.autoTable({
-      startY: 270,
-      head: [["Country Name", "Mode", "Weight (KG):", "Cost/KG", "Total"]],
+      startY: 250,
+      head: [["Country Name", "Mode", "Weight (KG)", "Cost/KG", "Total"]],
       body: [
         [
           details.destination,
-          details.service + " " + "Service",
+          details.service + " Service",
           details.actualWeight + " KG",
           `${costKg} Rs`,
           `${subtotal}.00 Rs`,
@@ -247,73 +257,136 @@ function PaymentConfirmationForm() {
       ],
       theme: "grid",
       headStyles: {
-        fillColor: [147, 51, 234], // Purple background color (RGB)
-        textColor: [255, 255, 255], // White text
+        fillColor: [147, 51, 234],
+        textColor: [255, 255, 255],
         fontSize: 12,
       },
       bodyStyles: {
         fontSize: 12,
       },
-      margin: { top: 20 },
     });
 
-    // Terms and Conditions
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("Terms & Conditions:", 40, doc.lastAutoTable.finalY + 30);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(12);
-    const terms = `* This invoice is only valid for ${details.actualWeight} Kg.
-* Shipments exceeding ${details.actualWeight} KG will attract additional costs.
-* All shipments sent are subject to customs clearance only.
-* Customs duty applicable (if any).`;
-    const splitTerms = doc.splitTextToSize(terms, maxWidth + 300);
-    doc.text(splitTerms, 40, doc.lastAutoTable.finalY + 48);
+    // -------------------------
+    // Totals Block (Right Side Styled)
+    // -------------------------
     const labelX = 330;
     const valueX = 460;
-    let currentY = doc.lastAutoTable.finalY + 120;
+    let currentY = doc.lastAutoTable.finalY + 40;
 
     // Subtotal
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
     doc.text("Subtotal:", labelX, currentY);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(0, 128, 0); // green
-    doc.text(`${subtotal}.00 Rs`, valueX, currentY);
-    currentY += 19;
 
-    // Additional Charges (conditional rendering)
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 128, 0);
+    doc.text(`${subtotal}.00 Rs`, valueX, currentY);
+    currentY += 20;
+
+    // Additional Charges
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
     doc.text("Additional Charges:", labelX, currentY);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(0, 128, 0); // green
-    doc.text(`+ ${additionalcharges}.00 Rs`, valueX, currentY);
-    currentY += 19;
 
-    // Discount (conditional rendering)
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 128, 0);
+    doc.text(`+ ${additionalcharges}.00 Rs`, valueX, currentY);
+    currentY += 20;
+
+    // Discount
     if (discountCost > 0) {
       doc.setFont("helvetica", "bold");
       doc.setTextColor(0, 0, 0);
       doc.text("Discount:", labelX, currentY);
+
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(220, 20, 60); // red
+      doc.setTextColor(220, 20, 60);
       doc.text(`- ${discountCost}.00 Rs`, valueX, currentY);
-      currentY += 19;
+      currentY += 20;
     }
 
     // Total
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
     doc.text("Total:", labelX, currentY);
+
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(0, 100, 0); // dark green
+    doc.setTextColor(0, 100, 0);
     doc.text(`${nettotal}.00 Rs`, valueX, currentY);
 
-    // Reset text color
     doc.setTextColor(0, 0, 0);
 
+    // -------------------------
+    // Terms & Conditions
+    // -------------------------
+    let sectionStartY = currentY + 40;
+
+    if (sectionStartY > doc.internal.pageSize.height - 120) {
+      doc.addPage();
+      sectionStartY = 40;
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("Terms & Conditions", 40, sectionStartY);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+
+    const termsText = `
+• This invoice is only valid for ${details.actualWeight} Kg.
+• Shipments exceeding ${details.actualWeight} KG will attract additional costs.
+• All shipments sent are subject to customs clearance only.
+• Customs duty applicable (if any).
+`;
+
+    const splitTerms = doc.splitTextToSize(termsText, 520);
+    doc.text(splitTerms, 40, sectionStartY + 10);
+
+    // -------------------------
+    // Cancellation & Refund Policy
+    // -------------------------
+    // ✅ Capture actual ending Y
+    let afterTermsY = sectionStartY + 20 + splitTerms.length * 13;
+    let policyStartY = afterTermsY + -10; // 👈 Reduced spacing here
+
+    if (policyStartY > doc.internal.pageSize.height - 120) {
+      doc.addPage();
+      policyStartY = 40;
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("Cancellation & Refund Policy", 40, policyStartY);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+
+    const policyText = `
+We strive to meet our commitments in terms of service and in case of failure to do so, we will work with customers on a case-to-case basis to sort the issue.
+
+Our Cancellation Policy:
+• Customers can cancel the order before shipment is handed over (typically before 8 PM same day after confirmation/payment).
+• Once handed over by end of day, cancellations cannot be entertained.
+
+Our Refund Policy:
+• Refunds are entertained only for damage or delays within our control.
+• Refunds apply only if packing was done by ShipHit without customer weight reduction request.
+• No refunds for fragile/delicate shipments sent via duty free/Self mode.
+• Damage must be reported within 48 hours of delivery.
+• No refunds for delay/abandonment due to customs clearance.
+• In case of loss, refund includes logistics cost and max product value $100 or declared invoice value (whichever higher).
+• For refund assessment within 3 business days submit damage pictures and packaging proof.
+• Maximum refund limited to declared damaged item value.
+• Refund processed via wallet credit note or bank transfer within 7 working days.
+`;
+
+    const splitPolicy = doc.splitTextToSize(policyText, 520);
+    doc.text(splitPolicy, 40, policyStartY + 10);
+
+    // -------------------------
     // Footer
+    // -------------------------
     doc.setFontSize(10);
     doc.text(
       "Thank you for your business!",
@@ -321,9 +394,9 @@ function PaymentConfirmationForm() {
       doc.internal.pageSize.height - 40,
     );
     doc.text(
-      "Company Contact Info: info@shiphit.in | +91 - 9159 688 688",
+      "Company Contact Info: info@shiphit.com | +91 - 9159 688 688",
       40,
-      doc.internal.pageSize.height - 30,
+      doc.internal.pageSize.height - 25,
     );
 
     // Save the PDF as a Blob
@@ -488,6 +561,7 @@ function PaymentConfirmationForm() {
         costKg: costKg,
         payment_Receipt_URL: Payment_URL,
         additionalcharges: data.additionalcharges,
+        invoiceNumber: invoiceNumber,
       };
       updateDoc(docRef, updatedFields);
       await makePaymentNotify(

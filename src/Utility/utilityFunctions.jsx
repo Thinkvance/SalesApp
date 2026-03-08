@@ -758,7 +758,7 @@ function formatReadableDate(date) {
   return date.toLocaleDateString("en-US", options);
 }
 
-function getEstimatedDate(packageConnectedDataTime, service) {
+function getEstimatedDate(packageConnectedDataTime, service, destination) {
   if (!packageConnectedDataTime) return "-";
 
   const estimatedDays =
@@ -766,9 +766,13 @@ function getEstimatedDate(packageConnectedDataTime, service) {
       ? { start: 3, end: 4 }
       : service === "Economy"
         ? { start: 5, end: 7 }
-        : service === "Duty Free"
-          ? { start: 10, end: 14 }
-          : null;
+        : service === "Duty Free" && destination === "United Kingdom"
+          ? { start: 5, end: 7 }
+          : service === "Duty Free" && destination === "New Zealand"
+            ? { start: 8, end: 15 }
+            : service === "Duty Free" && destination === "Australia"
+              ? { start: 8, end: 15 }
+              : { start: 8, end: 12 };
 
   if (!estimatedDays) return "-";
 

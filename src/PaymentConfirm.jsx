@@ -336,7 +336,6 @@ Our Refund Policy:
       <Nav />
       <div className="max-w-screen-xl mx-auto p-5">
         <div className="flex justify-center space-x-4 mt-5">
-          <button onClick={() => generate_Invoice_PDF_Test()}>Test</button>
           <button
             className={`py-2 px-4 rounded-lg font-semibold ${
               activeTab === "PAYMENT PENDING"

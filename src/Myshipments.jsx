@@ -352,6 +352,7 @@ export default function Myshipments() {
       const estimatedDelivery = utilityFunctions.getEstimatedDate(
         packageConnectedDataTime,
         mode,
+        destination,
       );
 
       const currentStatus_temp = currentStatus ? currentStatus : "-";
@@ -372,11 +373,11 @@ export default function Myshipments() {
                 buttons: [
                   {
                     type: "URL",
-                    parameter: String(awb),
+                    parameter: String(awbHashedValue),
                   },
                 ],
               },
-              templateName: "shareshipmentstatus_test_3",
+              templateName: "shareshipmentstatus_test_4",
             },
             from: "+919600690881",
             to: `+91${phone}`,

@@ -36,7 +36,11 @@ function CancelCard({ item, index }) {
   }
 
   // Handle reschedule click
-  const handleAcceptClick = async (awbNumber) => {
+  const handleAcceptClick = async (
+    awbNumber,
+    consignorname,
+    consignorphonenumber,
+  ) => {
     setloading(true);
     // pickupDatetime
 
@@ -65,19 +69,48 @@ function CancelCard({ item, index }) {
       final_result[0].id,
     ); // db is your Firestore instance
 
-    console.log(
-      convertToFirebaseTimestamp(
-        `${selectedDate + " " + Hour + " " + Timeperiod}`,
-      ),
-    );
     const updatedFields = {
       pickupDatetime: convertToFirebaseTimestamp(
         `${selectedDate + " " + Hour + " " + Timeperiod}`,
       ),
     };
-
+    console.log(
+      "test field",
+      selectedDate + " " + "at" + " " + Hour + " " + Timeperiod,
+    );
     updateDoc(docRef, updatedFields);
+    const payload = {
+      messages: [
+        {
+          content: {
+            language: "en",
+            templateData: {
+              body: {
+                placeholders: [
+                  consignorname,
+                  `${selectedDate + " " + "at" + " " + Hour + " " + Timeperiod}`,
+                ],
+              },
+            },
+            templateName: "rescheduled_shipment",
+          },
+          from: "+919600690881",
+          to: `+91${consignorphonenumber}`,
+        },
+      ],
+    };
 
+    await axios.post(
+      "https://public.doubletick.io/whatsapp/message/template",
+      payload,
+      {
+        headers: {
+          Authorization: "key_z6hIuLo8GC",
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+      },
+    );
     setloading(false);
     setIsModalOpen(false); // Close the modal after submission
   };
@@ -286,7 +319,13 @@ function CancelCard({ item, index }) {
                 Cancel
               </button>
               <button
-                onClick={() => handleAcceptClick(item.awbNumber)}
+                onClick={() =>
+                  handleAcceptClick(
+                    item.awbNumber,
+                    item.consignorname,
+                    item.consignorphonenumber,
+                  )
+                }
                 className={`py-2 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-opacity-50 ${
                   loading
                     ? "bg-gray-400 text-gray-200 cursor-not-allowed"

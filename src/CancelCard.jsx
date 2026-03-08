@@ -13,6 +13,7 @@ import { db } from "./firebase";
 import collectionName_BaseAwb from "./functions/collectionName";
 import utilityFunctions from "./Utility/utilityFunctions";
 import formatFirestoreTimestamp from "./Utility/formatFirestoreTimestamp";
+import axios from "axios";
 
 function CancelCard({ item, index }) {
   // const [details, setDetails] = useState(null);
@@ -25,7 +26,11 @@ function CancelCard({ item, index }) {
     setUser(JSON.parse(localStorage.getItem("LoginCredentials")));
   }, []);
 
-  const handleAcceptClick = async (awbNumber) => {
+  const handleAcceptClick = async (
+    awbNumber,
+    consignorname,
+    consignorphonenumber,
+  ) => {
     if (cancelReason.length < 10 || cancelReason.length > 100) {
       seterror("Reason must be between 10 to 100 characters long.");
       return;
@@ -73,6 +78,37 @@ function CancelCard({ item, index }) {
         matchedData.id,
       );
       await deleteDoc(userDocRef);
+
+      const payload = {
+        messages: [
+          {
+            content: {
+              language: "en",
+              templateData: {
+                body: {
+                  placeholders: [consignorname] ,
+                },
+              },
+              templateName: "cancellation_shipment",
+            },
+            from: "+919600690881",
+            to: `+91${consignorphonenumber}`,
+          },
+        ],
+      };
+
+      await axios.post(
+        "https://public.doubletick.io/whatsapp/message/template",
+        payload,
+        {
+          headers: {
+            Authorization: "key_z6hIuLo8GC",
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
       setIsModalOpen(false); // Close the modal after cancellation
     } catch (error) {
       utilityFunctions.ErrorNotify("Error in handling booking cancellation.");
@@ -241,7 +277,13 @@ function CancelCard({ item, index }) {
             {error && <p className="text-red-600">{error}</p>}
             <div className="flex justify-end">
               <button
-                onClick={() => handleAcceptClick(item.awbNumber)}
+                onClick={() =>
+                  handleAcceptClick(
+                    item.awbNumber,
+                    item.consignorname,
+                    item.consignorphonenumber,
+                  )
+                }
                 disabled={isSubmitting} // Disable button while loading
                 className={`${
                   isSubmitting ? "bg-purple-300" : "bg-purple-600"
