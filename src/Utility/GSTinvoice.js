@@ -7,7 +7,9 @@ async function generate_GST_Invoice_PDF(
   costKg,
   discountCost,
   additionalcharges,
-  gst
+  gst,
+  pickupDatetime,
+  setGst,
 ) {
   try {
     const actualWeight = item.actualWeight;
@@ -15,76 +17,116 @@ async function generate_GST_Invoice_PDF(
     const consignorlocation = item.consignorlocation;
     const consignorphonenumber = item.consignorphonenumber;
 
-    const subtotal = parseInt(costKg) * actualWeight;
-    const nettotal = subtotal - parseInt(discountCost) + additionalcharges;
-    const GST_COST = costKg * 0.18;
+    const GST_COST = (costKg * 0.18).toFixed(2);
+    const GST_COST_value = GST_COST * actualWeight;
+
+    const subtotal =
+      Number(costKg) * Number(actualWeight) -
+      Number(GST_COST) * Number(actualWeight);
+
+    const nettotal =
+      subtotal + GST_COST_value + additionalcharges - discountCost;
+
     const doc = new jsPDF("p", "pt");
 
-    // Logo
-    doc.setFontSize(20);
-    doc.addImage("/shiphtlogo.png", "PNG", 40, 30, 180, 60);
+    function formatFirebaseTimestamp(timestamp) {
+      if (!timestamp) return "";
 
+      const date = timestamp.toDate();
+
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = date.getFullYear();
+
+      return `${day}/${month}/${year}`;
+    }
+
+    const pageWidth = doc.internal.pageSize.getWidth();
     const maxWidth = 210;
 
-    // Bill From
+    /* ---------------- Logo ---------------- */
+
+    doc.addImage("/shiphtlogo.png", "PNG", 40, 30, 180, 60);
+
+    /* ---------------- Bill From ---------------- */
+
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
-    // doc.text("Receipt from:", 40, 140);
-    doc.setFontSize(12);
+    doc.text("PETTI ECOM INDIA PRIVATE LIMITED", 40, 140);
+
     doc.setFont("helvetica", "bold");
-    doc.text("Shiphit", 40, 140);
+    doc.text(`GSTIN: 33AANCP4213G1ZM`, 40, 160);
 
     doc.setFont("helvetica", "normal");
+    doc.setFontSize(12);
 
-    const address = `2C, Rajarajan Street, Main Rd, Navarathna Garden, 
-Ekkatuthangal, Chennai, Tamil Nadu 600032`;
-    const phoneNumber = `\n9159 688 688`;
-    const splitTextFrom = doc.splitTextToSize(address + phoneNumber, maxWidth);
-    doc.text(splitTextFrom, 40, 160);
+    const address = `2C, Rajarajan Street, Main Rd, Navarathna Garden,
+Ekkatuthangal, Chennai, Tamil Nadu 600032
+Phone: 9159 688 688`;
 
-    // Bill To
+    const splitTextFrom = doc.splitTextToSize(address, maxWidth);
+
+    doc.text(splitTextFrom, 40, 178);
+
+    /* ---------------- Bill To ---------------- */
+
     doc.setFont("helvetica", "bold");
     doc.text("Bill To:", 350, 140);
-    doc.setFont("helvetica", "normal");
+
     doc.text(consignorname, 350, 160);
 
-    const toText = consignorlocation + "\n" + consignorphonenumber;
-    const splitTextTo = doc.splitTextToSize(toText, maxWidth);
-    doc.text(splitTextTo, 350, 180);
+    doc.text(`GSTIN: ${gst || "N/A"}`, 350, 178);
 
-    // Invoice Right Side Meta
-    const pageWidth = doc.internal.pageSize.getWidth();
+    const toText =
+      consignorlocation.toLowerCase() + "\n" + `Phone: ${consignorphonenumber}`;
+
+    const splitTextTo = doc.splitTextToSize(toText, maxWidth);
+
+    doc.setFont("helvetica", "normal");
+    doc.text(splitTextTo, 350, 195);
+
+    /* ---------------- Invoice Info ---------------- */
+
     const rightX = pageWidth - 40;
 
-    doc.text(`Receipt Number: RCPT-${awbNumber}`, rightX, 40, {
+    doc.text(`Invoice Number: RCPT-${awbNumber}`, rightX, 40, {
       align: "right",
     });
-    doc.text(`GST Number: ${gst}`, rightX, 61, {
-      align: "right",
-    });
-    doc.text(`Date: ${new Date().toLocaleDateString()}`, rightX, 81, {
-      align: "right",
-    });
+
+    doc.text(
+      `Pickup Booking Date: ${formatFirebaseTimestamp(pickupDatetime)}`,
+      rightX,
+      60,
+      { align: "right" },
+    );
+
     doc.setFont("helvetica", "bold");
-    doc.text(`Total: ${nettotal}.00 Rs`, rightX, 100, { align: "right" });
+    doc.text(`Total: ${nettotal.toFixed(2)} Rs`, rightX, 80, {
+      align: "right",
+    });
 
-    // Separator Line
-    doc.line(40, 250, 570, 250);
+    /* ---------------- Table ---------------- */
 
-    // Table
     doc.autoTable({
       startY: 270,
       head: [
-        ["Country Name", "Mode", "Weight (KG)", "Cost/KG", "GST(18%)", "Total"],
+        [
+          "Country Name",
+          "Mode",
+          "Weight (KG)",
+          "Cost/KG",
+          "GST (18%)",
+          "Amount",
+        ],
       ],
       body: [
         [
           item.destination,
           item.service + " Service",
           actualWeight + " KG",
-          `${parseInt(costKg - GST_COST)} Rs`,
-          `${GST_COST}`,
-          `${subtotal}.00 Rs`,
+          `${parseInt(costKg - costKg * 0.18)} Rs`,
+          `${GST_COST_value.toFixed(2)} Rs`,
+          `${subtotal.toFixed(2)} Rs`,
         ],
       ],
       theme: "grid",
@@ -95,70 +137,118 @@ Ekkatuthangal, Chennai, Tamil Nadu 600032`;
       bodyStyles: { fontSize: 12 },
     });
 
-    // Terms
-    const tcStart = doc.lastAutoTable.finalY + 30;
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("Terms & Conditions:", 40, tcStart);
+    /* ---------------- Summary (Below Table) ---------------- */
 
-    // ↓ Reduce font size here
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-
-    const terms = `
-* This invoice is only valid for ${actualWeight} KG.
-* Shipments exceeding ${actualWeight} KG will attract additional costs.
-* All shipments are subject to customs clearance only.
-* Customs duty applicable (if any).`;
-
-    const splitTC = doc.splitTextToSize(terms, 500);
-    doc.text(splitTC, 40, tcStart + 20);
-
-    // Summary
     const labelX = 330;
     const valueX = 460;
-    let y = doc.lastAutoTable.finalY + 120;
+
+    let y = doc.lastAutoTable.finalY + 30;
 
     doc.setFont("helvetica", "bold");
     doc.text("Subtotal:", labelX, y);
     doc.setFont("helvetica", "normal");
-    doc.text(`${subtotal}.00 Rs`, valueX, y);
+    doc.text(`${subtotal.toFixed(2)} Rs`, valueX, y);
+
+    y += 20;
+
+    doc.setFont("helvetica", "bold");
+    doc.text("SGST (9%):", labelX, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${(GST_COST * actualWeight).toFixed(2) / 2} Rs`, valueX, y);
+
+    y += 20;
+
+    doc.setFont("helvetica", "bold");
+    doc.text("CGST (9%):", labelX, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${(GST_COST * actualWeight).toFixed(2) / 2} Rs`, valueX, y);
+
     y += 20;
 
     doc.setFont("helvetica", "bold");
     doc.text("Additional Charges:", labelX, y);
     doc.setFont("helvetica", "normal");
-    doc.text(`+ ${additionalcharges}.00 Rs`, valueX, y);
+    doc.text(`+ ${Number(additionalcharges).toFixed(2)} Rs`, valueX, y);
+
     y += 20;
 
     if (discountCost > 0) {
       doc.setFont("helvetica", "bold");
       doc.text("Discount:", labelX, y);
       doc.setFont("helvetica", "normal");
-      doc.text(`- ${discountCost}.00 Rs`, valueX, y);
+      doc.text(`- ${Number(discountCost).toFixed(2)} Rs`, valueX, y);
       y += 20;
     }
+
+    doc.line(labelX, y - 14, valueX + 60, y - 14);
 
     doc.setFont("helvetica", "bold");
     doc.text("Total:", labelX, y);
     doc.setFont("helvetica", "normal");
-    doc.text(`${nettotal}.00 Rs`, valueX, y);
+    doc.text(`${nettotal.toFixed(2)} Rs`, valueX, y);
 
-    // Footer
+    /* ---------------- Terms ---------------- */
+
+    const tcStart = y + 10;
+
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("Terms & Conditions:", 40, tcStart);
+
+    doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
+
+    const terms = `
+* This invoice is only valid for ${actualWeight} KG.
+* All shipments are subject to customs clearance only.
+`;
+
+    const policyText = `
+We strive to meet our commitments in terms of service and in case of failure to do so, we will work with customers on a case-to-case basis to sort the issue.
+
+Our Cancellation Policy:
+• Customers can cancel the order before shipment is handed over (typically before 8 PM same day after confirmation/payment).
+• Once handed over by end of day, cancellations cannot be entertained.
+
+Our Refund Policy:
+• Refunds are entertained only for damage or delays within our control.
+• Refunds apply only if packing was done by ShipHit without customer weight reduction request.
+• No refunds for fragile/delicate shipments sent via duty free/Self mode.
+• Damage must be reported within 48 hours of delivery.
+• No refunds for delay/abandonment due to customs clearance.
+• In case of loss, refund includes logistics cost and max product value $100 or declared invoice value (whichever higher).
+• For important products, opt for insurance by declaring just 5% of the invoice value (available for Economy and Express services only) to receive full reimbursement.
+• For refund assessment within 3 business days submit damage pictures and packaging proof.
+• Maximum refund limited to declared damaged item value.
+• Refund processed via wallet credit note or bank transfer within 7 working days.
+`;
+
+    const combinedText = terms + "\n" + policyText;
+
+    const splitTC = doc.splitTextToSize(combinedText, 500);
+
+    doc.text(splitTC, 40, tcStart + 5);
+
+    /* ---------------- Footer ---------------- */
+
+    doc.setFontSize(10);
+
     doc.text(
       "Thank you for your business!",
       40,
-      doc.internal.pageSize.height - 40
-    );
-    doc.text(
-      "Contact: info@shiphit.in | +91 - 9159 688 688",
-      40,
-      doc.internal.pageSize.height - 28
+      doc.internal.pageSize.height - 40,
     );
 
-    // Save
+    doc.text(
+      "Contact: info@shiphit.com | +91 - 9159 688 688",
+      40,
+      doc.internal.pageSize.height - 28,
+    );
+
+    /* ---------------- Save ---------------- */
+
     doc.save(`Receipt_${consignorname}.pdf`);
+    setGst("");
   } catch (error) {
     console.log(error);
     alert("Failed to generate Invoice PDF");

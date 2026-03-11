@@ -18,8 +18,22 @@ function PaymentConfirmCard({ item, index }) {
   const [animationData, setAnimationData] = useState(null);
   const [isOpen, setisOpen] = useState(false);
   const [gst, setGst] = useState("");
-
+  const [gstError, setGstError] = useState("");
   const [User, setUser] = useState({});
+  const validateGST = (value) => {
+    const gstRegex =
+      /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+
+    if (value.length === 0) {
+      setGstError("GST number is required");
+    } else if (value.length !== 15) {
+      setGstError("GST must be 15 characters");
+    } else if (!gstRegex.test(value)) {
+      setGstError("Invalid GST format");
+    } else {
+      setGstError("");
+    }
+  };
   useEffect(() => {
     setUser(JSON.parse(localStorage.getItem("LoginCredentials")));
   }, []);
@@ -157,15 +171,25 @@ function PaymentConfirmCard({ item, index }) {
             <h2 className="text-xl font-bold text-gray-800 mb-4">
               Enter GST Number
             </h2>
-
             <input
               type="text"
               value={gst}
-              onChange={(e) => setGst(e.target.value)}
+              maxLength={15}
+              onChange={(e) => {
+                const value = e.target.value.toUpperCase();
+                setGst(value);
+                validateGST(value);
+              }}
               placeholder="Enter GST Number"
-              className="w-full border rounded-lg p-3 text-gray-700 outline-none focus:ring-2 focus:ring-purple-500"
+              className={`w-full border rounded-lg p-3 outline-none focus:ring-2 ${
+                gstError
+                  ? "border-red-500 focus:ring-red-400"
+                  : "border-gray-300 focus:ring-purple-500"
+              }`}
             />
-
+            {gstError && (
+              <p className="text-red-500 text-sm mt-1">{gstError}</p>
+            )}
             <div className="flex justify-end gap-3 mt-5">
               <button
                 onClick={() => {
@@ -178,7 +202,9 @@ function PaymentConfirmCard({ item, index }) {
               </button>
 
               <button
-                onClick={() =>
+                onClick={() => {
+                  if (gstError || gst.length !== 15) return;
+
                   generate_GST_Invoice_PDF(
                     item,
                     item.awbNumber,
@@ -186,8 +212,12 @@ function PaymentConfirmCard({ item, index }) {
                     item.discountCost,
                     item.additionalcharges,
                     gst,
-                  )
-                }
+                    item.pickupDatetime,
+                    setGst,
+                  );
+
+                  setisOpen(false);
+                }}
                 className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
               >
                 Submit

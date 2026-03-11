@@ -44,7 +44,6 @@ function PickupBooking() {
   const baseSourceOptions = useMemo(
     () => [
       "B To C",
-      "B To B",
       "FB Ad",
       "Google Ad",
       "Website Ad",
@@ -110,6 +109,8 @@ function PickupBooking() {
       window.removeEventListener("offline", handleOffline);
     };
   }, []);
+
+  console.log("isSourceFixed", isSourceFixed);
 
   function splitLati_Logi(value) {
     const [lat, long] = value.split(",").map(Number);
@@ -647,6 +648,7 @@ function PickupBooking() {
       setValue("instructions", client.specialInstructions);
       setlatitudelongitude(client.coordinates);
       setClientKYC(client.kycFileUrl);
+      setIsSourceFixed(true);
     } else {
       setValue("Consignorname", "");
       setValue("Consignornumber", "");
@@ -656,6 +658,7 @@ function PickupBooking() {
       setValue("pickuparea", "");
       setsource("");
       setValue("instructions", "");
+      setIsSourceFixed(false);
     }
   }
 

@@ -245,7 +245,7 @@ function PaymentConfirmationForm() {
     // -------------------------
     doc.autoTable({
       startY: 250,
-      head: [["Country Name", "Mode", "Weight (KG)", "Cost/KG", "Total"]],
+      head: [["Country Name", "Mode", "Weight (KG)", "Cost/KG", "Amount"]],
       body: [
         [
           details.destination,
@@ -335,9 +335,7 @@ function PaymentConfirmationForm() {
 
     const termsText = `
 • This invoice is only valid for ${details.actualWeight} Kg.
-• Shipments exceeding ${details.actualWeight} KG will attract additional costs.
-• All shipments sent are subject to customs clearance only.
-• Customs duty applicable (if any).
+• The estimated delivery date is subject to customs clearance at the destination.
 `;
 
     const splitTerms = doc.splitTextToSize(termsText, 520);
@@ -376,6 +374,7 @@ Our Refund Policy:
 • Damage must be reported within 48 hours of delivery.
 • No refunds for delay/abandonment due to customs clearance.
 • In case of loss, refund includes logistics cost and max product value $100 or declared invoice value (whichever higher).
+• For important products, opt for insurance by declaring just 5% of the invoice value (available for Economy and Express services only) to receive full reimbursement.
 • For refund assessment within 3 business days submit damage pictures and packaging proof.
 • Maximum refund limited to declared damaged item value.
 • Refund processed via wallet credit note or bank transfer within 7 working days.

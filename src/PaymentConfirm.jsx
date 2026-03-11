@@ -263,9 +263,7 @@ function PaymentConfirm() {
 
     const termsText = `
 • This invoice is only valid for ${details.actualWeight} Kg.
-• Shipments exceeding ${details.actualWeight} KG will attract additional costs.
 • All shipments sent are subject to customs clearance only.
-• Customs duty applicable (if any).
 `;
 
     const splitTerms = doc.splitTextToSize(termsText, 520);
@@ -294,7 +292,7 @@ function PaymentConfirm() {
 We strive to meet our commitments in terms of service and in case of failure to do so, we will work with customers on a case-to-case basis to sort the issue.
 
 Our Cancellation Policy:
-• Customers can cancel the order before shipment is handed over (typically before 8 PM same day after confirmation/payment).
+• Customers can cancel the order before shipment is handed over (typically before 8 PM same day after confirmation/payment). Packing and pickup charges are applicable.
 • Once handed over by end of day, cancellations cannot be entertained.
 
 Our Refund Policy:
@@ -304,13 +302,14 @@ Our Refund Policy:
 • Damage must be reported within 48 hours of delivery.
 • No refunds for delay/abandonment due to customs clearance.
 • In case of loss, refund includes logistics cost and max product value $100 or declared invoice value (whichever higher).
+• For important products, opt for insurance by declaring just 5% of the invoice value (available for Economy and Express services only) to receive full reimbursement.
 • For refund assessment within 3 business days submit damage pictures and packaging proof.
 • Maximum refund limited to declared damaged item value.
 • Refund processed via wallet credit note or bank transfer within 7 working days.
 `;
 
-    const splitPolicy = doc.splitTextToSize(policyText, 520);
-    doc.text(splitPolicy, 40, policyStartY + 10);
+    const splitPolicy = doc.splitTextToSize(policyText, 530);
+    doc.text(splitPolicy, 40, policyStartY + 12);
 
     // -------------------------
     // Footer

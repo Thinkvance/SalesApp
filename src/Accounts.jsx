@@ -529,6 +529,7 @@ function Accounts() {
             >
               <option value="All">All</option>
               <option value="FB Ad">FB Ad</option>
+              <option value="B To C">B To C</option>
               <option value="Google Ad">Google Ad</option>
               <option value="Website Ad">Website Ad</option>
               <option value="Direct Ad">Direct Ad</option>
@@ -552,12 +553,17 @@ function Accounts() {
             >
               <option value="All">All</option>
               <option value="DHL">DHL</option>
-              <option value="Aramex">ARAMEX</option>
+              <option value="Aramex">Aramex</option>
               <option value="UPS">UPS</option>
-              <option value="FedEx">FedEx</option>
-              <option value="TurboFox">TurboFox</option>
-              <option value="ATLANTIC">ATLANTIC</option>
               <option value="ExPlus">ExPlus</option>
+              <option value="TurboFox">TurboFox</option>
+              <option value="ICL SELF">ICL SELF</option>
+              <option value="ICL FedEx">ICL FedEx</option>
+              <option value="ATLANTIC">ATLANTIC</option>
+              <option value="IMD Courier">IMD Courier</option>
+              <option value="Sky Express">Sky Express</option>
+              <option value="World First">World First</option>
+              <option value="Legend Xpress">Legend Xpress</option>
             </select>
           </div>
 
@@ -719,6 +725,7 @@ function Accounts() {
                   "Vendor Payment",
                   "Margin",
                   "Vendor AWB Number",
+                  "Vendor",
                   "Payment Proof",
                   "Edit Details",
                   "Details",
@@ -839,6 +846,9 @@ function Accounts() {
                             </button>
                           )}
                         </div>
+                      </td>
+                      <td className="py-3 px-4 border">
+                        {pickup.vendorName ? pickup.vendorName : "--"}
                       </td>
                       <td className="py-3 px-4 border">
                         {pickup.paymentProof ? (
