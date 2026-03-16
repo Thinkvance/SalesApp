@@ -561,9 +561,7 @@ export default function Myshipments() {
     <>
       <Nav />
       <div className="container mx-auto p-6">
-        <h2 className="text-3xl font-bold text-purple-700 mb-6">
-          My Shipments
-        </h2>
+        <h2 className="text-3xl font-bold text-[#7447D4] mb-6">My Shipments</h2>
         <div className="mb-6 flex flex-wrap gap-10">
           <input
             type="text"
@@ -580,10 +578,9 @@ export default function Myshipments() {
             className="border border-gray-300 rounded py-2 px-4 w-[230px] mb-2 focus:outline-none focus:ring-2 focus:ring-purple-600"
           />
         </div>
-
         <div className="overflow-x-auto scroll-container border rounded-lg shadow">
           <table className="min-w-full bg-white text-sm">
-            <thead className="bg-purple-700 text-white text-left">
+            <thead className="bg-[#7447D4] text-white text-left">
               <tr>
                 {tableHeader.map((header) => (
                   <th

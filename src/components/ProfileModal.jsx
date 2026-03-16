@@ -1,5 +1,6 @@
 import React from "react";
 import appVersion from "../functions/appVersion";
+import { auth } from "../firebase";
 
 /**
  * ProfileModal.jsx
@@ -123,6 +124,15 @@ export default function ProfileModal({ open, setOpen, user = {} }) {
               </button>
             </div>
           </div>
+          <button
+            onClick={() => {
+              localStorage.removeItem("LoginCredentials");
+              auth.signOut();
+            }}
+            className="bg-[#7447D4] text-white font-semibold py-2 px-6 rounded-md  transition-all ease-in-out"
+          >
+            Logout
+          </button>
         </div>
       </div>
     </div>

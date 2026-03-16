@@ -536,7 +536,7 @@ function SalesReport() {
         </div>
         <div className="overflow-x-auto overflow-y-hidden border scrollbar-hide relative">
           <table className="min-w-max table-auto bg-white border border-gray-200 rounded-lg shadow">
-            <thead className="bg-purple-600 text-white sticky top-0 z-30">
+            <thead className="bg-[#714DD9] text-white sticky top-0 z-30">
               <tr>
                 {[
                   "AWB Number",
@@ -558,7 +558,7 @@ function SalesReport() {
                   <th
                     key={i}
                     className={`py-3 px-4 border ${
-                      i === 0 ? "sticky left-0 bg-purple-600 z-20" : ""
+                      i === 0 ? "sticky left-0 bg-[#714DD9] z-20" : ""
                     }`}
                   >
                     {head}

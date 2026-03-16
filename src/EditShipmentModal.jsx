@@ -60,6 +60,7 @@ const EditShipmentModal = ({
       actualWeight: pickup?.actualWeight || "",
       logisticCost: pickup?.logisticCost || "",
       vendorAwbnumber: pickup?.vendorAwbnumber || "",
+      internalWeight: pickup?.internalWeight || "",
     },
   });
   const onSubmit = (data) => {
@@ -113,6 +114,20 @@ const EditShipmentModal = ({
             ) : (
               ""
             )}
+
+            {pickup.internalWeight &&
+            ["sales admin", "Manager"].includes(user?.role) ? (
+              <InputField
+                label="Internal Weight"
+                name="internalWeight"
+                register={register}
+                rules={{ required: "Internal Weight is required." }}
+                error={errors.internalWeight}
+              />
+            ) : (
+              ""
+            )}
+
             {pickup.vendorAwbnumber &&
             ["OPS Head", "Manager"].includes(user?.role) ? (
               <InputField

@@ -86,7 +86,7 @@ function CancelCard({ item, index }) {
               language: "en",
               templateData: {
                 body: {
-                  placeholders: [consignorname] ,
+                  placeholders: [consignorname],
                 },
               },
               templateName: "cancellation_shipment",
@@ -286,8 +286,8 @@ function CancelCard({ item, index }) {
                 }
                 disabled={isSubmitting} // Disable button while loading
                 className={`${
-                  isSubmitting ? "bg-purple-300" : "bg-purple-600"
-                } text-white py-2 px-4 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50`}
+                  isSubmitting ? "bg-purple-300" : "bg-[#714DD9]"
+                } text-white py-2 px-4 rounded-lg hover:bg-[#5a3bc8] focus:outline-none focus:ring-2 focus:ring-[#714DD9] focus:ring-opacity-50`}
               >
                 {isSubmitting ? "Submitting..." : "Submit"}
               </button>

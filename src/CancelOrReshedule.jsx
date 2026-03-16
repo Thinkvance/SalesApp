@@ -24,7 +24,7 @@ function CancelOrReschedule() {
 
   useEffect(() => {
     const loginCredentials = JSON.parse(
-      localStorage.getItem("LoginCredentials")
+      localStorage.getItem("LoginCredentials"),
     );
     if (!loginCredentials) return;
     const { role, name } = loginCredentials;
@@ -36,7 +36,7 @@ function CancelOrReschedule() {
             collectionRef,
             where("pickupBookedBy", "==", name),
             where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo)),
-            orderBy("pickupDatetime", "desc")
+            orderBy("pickupDatetime", "desc"),
           );
     const unsubscribe = onSnapshot(
       baseQuery,
@@ -49,7 +49,7 @@ function CancelOrReschedule() {
       },
       (error) => {
         console.error("Error fetching Firestore data: ", error);
-      }
+      },
     );
     return () => unsubscribe();
   }, []);
@@ -73,7 +73,7 @@ function CancelOrReschedule() {
           <button
             className={`py-2 px-4 rounded-lg font-semibold ${
               activeTab === "CANCEL"
-                ? "bg-purple-600 text-white"
+                ? "bg-[#714DD9] text-white"
                 : "bg-gray-200 text-black"
             }`}
             onClick={() => setActiveTab("CANCEL")}
@@ -83,7 +83,7 @@ function CancelOrReschedule() {
           <button
             className={`py-2 px-4 rounded-lg font-semibold ${
               activeTab === "RESCHEDULE"
-                ? "bg-purple-600 text-white"
+                ? "bg-[#714DD9] text-white"
                 : "bg-gray-200 text-black"
             }`}
             onClick={() => setActiveTab("RESCHEDULE")}

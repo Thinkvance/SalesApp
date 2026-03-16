@@ -408,7 +408,6 @@ export default function EscalationDashboard() {
     setSelectedPickup(null);
   };
   const handleMoreIconClick = async (row) => {
-    console.log("row", row);
     try {
       const shipId = row.pickupDocId || row.shipmentDocId;
       if (shipId) {
@@ -417,7 +416,6 @@ export default function EscalationDashboard() {
         if (snap.exists()) {
           setSelectedPickup(snap.data());
           setIsModalOpen(true);
-          console.log("test");
         }
       }
     } catch (e) {
@@ -446,13 +444,13 @@ export default function EscalationDashboard() {
   return (
     <div>
       <Nav />
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-purple-700 mb-4">
+      <div className="p-6 container mx-auto">
+        <h1 className="text-2xl font-bold text-[#714DD9] mb-4">
           Escalation Dashboard
         </h1>
         {/* Success flash */}
         {flash && (
-          <div className="mb-4 rounded-xl shadow bg-gradient-to-r from-purple-600 to-purple-800 text-white px-4 py-3 flex items-center justify-between">
+          <div className="mb-4 rounded-xl shadow bg-gradient-to-r from-[#714DD9] to-[#5a3cb8] text-white px-4 py-3 flex items-center justify-between">
             <span className="text-sm font-medium">{flash}</span>
             <button
               onClick={() => setFlash("")}
@@ -471,7 +469,7 @@ export default function EscalationDashboard() {
               onClick={() => setStatusFilter("pending")}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold border ${
                 statusFilter === "pending"
-                  ? "bg-purple-700 text-white border-purple-700"
+                  ? "bg-[#714DD9] text-white border-[#714DD9]"
                   : "bg-white text-gray-700"
               }`}
             >
@@ -483,7 +481,7 @@ export default function EscalationDashboard() {
                 onClick={() => setStatusFilter("closed")}
                 className={`px-3 py-1.5 rounded-md text-xs font-semibold border ${
                   statusFilter === "closed"
-                    ? "bg-purple-700 text-white border-purple-700"
+                    ? "bg-[#714DD9] text-white border-[#714DD9]"
                     : "bg-white text-gray-700"
                 }`}
                 title="Closed report information"
@@ -496,7 +494,7 @@ export default function EscalationDashboard() {
               onClick={() => setStatusFilter("all")}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold border ${
                 statusFilter === "all"
-                  ? "bg-purple-700 text-white border-purple-700"
+                  ? "bg-[#714DD9] text-white border-[#714DD9]"
                   : "bg-white text-gray-700"
               }`}
             >
@@ -515,7 +513,7 @@ export default function EscalationDashboard() {
         {/* Table (Images column removed) */}
         <div className="overflow-x-auto border rounded-lg shadow">
           <table className="min-w-full bg-white text-sm">
-            <thead className="bg-purple-700 text-white text-left">
+            <thead className="bg-[#714DD9] text-white text-left">
               <tr>
                 {[
                   "AWB",

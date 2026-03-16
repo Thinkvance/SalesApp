@@ -23,8 +23,9 @@ import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import DB from "./DB/DB";
 import countryList from "./CountryDialCode.json";
-import formatFirestoreTimestamp from "./Utility/formatFirestoreTimestamp";
-
+import generate_GST_Invoice_PDF from "./Utility/GSTinvoice";
+import shouldSendInvoice from "./Utility/shouldSendInvoice.jsx";
+import getClientGSTNumber from "./Utility/getClientGSTNumber.js";
 function PaymentConfirmationForm() {
   const [costKg, setcostKg] = useState(0);
   const { awbnumber } = useParams();
@@ -47,9 +48,7 @@ function PaymentConfirmationForm() {
     formState: { errors },
   } = useForm();
   const navigate = useNavigate();
-  const [downloadURL, setdownloadURL] = useState("");
   const [animationData, setAnimationData] = useState(null);
-  const dialCodeRef = useRef(null);
 
   useEffect(() => {
     try {
@@ -153,21 +152,85 @@ function PaymentConfirmationForm() {
     return `${day}-${month}-${year} ${hours}:${minutes}:${seconds} ${period}`;
   };
 
-  async function getNextInvoiceNumber(franchise = "CHENNAI") {
-    const counterRef = doc(db, "invoiceCounter", franchise);
+  async function getNextReceiptNumber(franchise = "CHENNAI") {
+    // Detect financial year
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth() + 1;
+
+    const startYear = month >= 4 ? year : year - 1;
+    const endYear = startYear + 1;
+
+    const financialYear = `${String(startYear).slice(2)}-${String(endYear).slice(2)}`;
+
+    // Franchise code
+    const franchiseCode = franchise.slice(0, 3).toUpperCase();
+
+    // Document ID
+    const docId = `${franchise}_${financialYear.replace("-", "_")}`;
+
+    const counterRef = doc(db, "receiptCounter", docId);
 
     return await runTransaction(db, async (transaction) => {
       const counterDoc = await transaction.get(counterRef);
 
-      if (!counterDoc.exists()) {
-        throw "Counter document does not exist!";
+      let current = 99; // start from 100
+
+      if (counterDoc.exists()) {
+        current = counterDoc.data().current || 99;
       }
 
-      const newInvoice = (counterDoc.data().current || 0) + 1;
+      const newReceipt = current + 1;
 
-      transaction.update(counterRef, { current: newInvoice });
+      transaction.set(counterRef, { current: newReceipt }, { merge: true });
 
-      return newInvoice;
+      const receiptNumber = `${franchiseCode}/${financialYear}/${newReceipt}`;
+
+      return {
+        receiptCounter: newReceipt,
+        receiptNumber: receiptNumber,
+      };
+    });
+  }
+
+  async function getNextGSTInvoiceNumber(franchise = "CHENNAI") {
+    // Detect financial year
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth() + 1;
+
+    const startYear = month >= 4 ? year : year - 1;
+    const endYear = startYear + 1;
+
+    const financialYear = `${String(startYear).slice(2)}-${String(endYear).slice(2)}`;
+
+    // Franchise short code
+    const franchiseCode = franchise.slice(0, 3).toUpperCase();
+
+    // Document name
+    const docId = `${franchise}_${financialYear.replace("-", "_")}`;
+
+    const counterRef = doc(db, "GSTinvoiceCounter", docId);
+
+    return await runTransaction(db, async (transaction) => {
+      const counterDoc = await transaction.get(counterRef);
+
+      let current = 99; // start from 100 if document doesn't exist
+
+      if (counterDoc.exists()) {
+        current = counterDoc.data().current || 99;
+      }
+
+      const newInvoice = current + 1;
+
+      transaction.set(counterRef, { current: newInvoice }, { merge: true });
+
+      const invoiceNumber = `${franchiseCode}/${financialYear}/${newInvoice}`;
+
+      return {
+        invoiceCounter: newInvoice,
+        invoiceNumber: invoiceNumber,
+      };
     });
   }
 
@@ -181,7 +244,17 @@ function PaymentConfirmationForm() {
     const subtotal = parseInt(costKg) * details.actualWeight;
     const nettotal = subtotal - parseInt(discountCost) + additionalcharges;
     const year = new Date().getFullYear();
-    // Add business name and logo
+    function formatFirebaseTimestamp(timestamp) {
+      if (!timestamp) return "";
+
+      const date = timestamp.toDate();
+
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = date.getFullYear();
+
+      return `${day}/${month}/${year}`;
+    }
 
     // -------------------------
     // Header
@@ -219,12 +292,12 @@ function PaymentConfirmationForm() {
     const pageWidth = doc.internal.pageSize.getWidth();
     const rightMargin = pageWidth - 40;
 
-    doc.text(`Invoice Number: SHRT-${year}${invoiceNumber}`, rightMargin, 40, {
+    doc.text(`Receipt Number: ${invoiceNumber}`, rightMargin, 40, {
       align: "right",
     });
 
     doc.text(
-      `Booking Date: ${formatFirestoreTimestamp(details.pickupDatetime)}`,
+      `Pickup Booking Date: ${formatFirebaseTimestamp(details.pickupDatetime)}`,
       rightMargin,
       60,
       {
@@ -418,6 +491,7 @@ Our Refund Policy:
       );
     }
   }
+
   function getTruncatedURL(fullUrl) {
     const baseUrl =
       "https://firebasestorage.googleapis.com/v0/b/shiphitmobileapppickup-fb7e2.firebasestorage.app/o/";
@@ -434,8 +508,12 @@ Our Refund Policy:
     logisticCost,
     additionalcharges,
     awbNumber,
+    Source,
+    companyName,
   ) {
     try {
+      // Select template based on Source
+
       const apiUrl = "https://public.doubletick.io/whatsapp/message/template";
       const authKey = "key_z6hIuLo8GC"; // Store this securely (e.g., in environment variables)
       // Message data
@@ -446,12 +524,11 @@ Our Refund Policy:
             to: `+91${consignorphonenumber}`,
             content: {
               language: "en",
-              templateName: "paymentrequestedtest2",
+              templateName: "paymentrequestedreceipt_final",
               templateData: {
                 body: {
                   placeholders: [
                     String(consignorname),
-                    String(awbNumber),
                     String(
                       logisticCost + parseInt(additionalcharges) - discount,
                     ),
@@ -476,7 +553,6 @@ Our Refund Policy:
       };
       // Sending WhatsApp message
       const response = await axios.post(apiUrl, messageData, { headers });
-      console.log("response pay request", response);
       // Extract message status
       const messageStatus = response?.status === 200;
       // Update Firestore document
@@ -506,14 +582,15 @@ Our Refund Policy:
       if (!details) {
         throw new Error("User details not found");
       }
-      const invoiceNumber = await getNextInvoiceNumber();
+      const receiptNumber = await getNextReceiptNumber();
 
       const Payment_URL = await generate_Invoice_PDF(
         data.costKg,
         data.discountCost,
         data.additionalcharges,
-        invoiceNumber,
+        receiptNumber.receiptNumber,
       );
+
       const q = query(
         collection(
           db,
@@ -560,7 +637,8 @@ Our Refund Policy:
         costKg: costKg,
         payment_Receipt_URL: Payment_URL,
         additionalcharges: data.additionalcharges,
-        invoiceNumber: invoiceNumber,
+        receiptNumber: receiptNumber.receiptNumber,
+        receiptCounter: receiptNumber.receiptCounter,
       };
       updateDoc(docRef, updatedFields);
       await makePaymentNotify(
@@ -572,6 +650,8 @@ Our Refund Policy:
         logisticCost,
         data.additionalcharges,
         details.awbNumber,
+        details.Source,
+        details.companyName,
       );
       setShowPopup(true);
     } catch (error) {
@@ -589,7 +669,6 @@ Our Refund Policy:
         setFormError("paymentMode");
         return;
       }
-
       if (!paymentProof) {
         setFormError("Payment proof Image is required.");
         return false;
@@ -604,7 +683,38 @@ Our Refund Policy:
         throw new Error("User details not found");
       }
       setSubmitLoading(true);
-      const Payment_URL = details.payment_Receipt_URL;
+
+      const isInvoice = shouldSendInvoice(paymentMode);
+
+      let Payment_gst_URL = null;
+      let gstInvoiceNumber = null;
+
+      if (isInvoice) {
+        const gstNumber = await getClientGSTNumber(details.companyName);
+
+        // Increment ONLY for GST invoice
+        gstInvoiceNumber = await getNextGSTInvoiceNumber();
+
+        Payment_gst_URL = await generate_GST_Invoice_PDF(
+          details,
+          details.awbNumber,
+          details.costKg,
+          details.discountCost,
+          details.additionalcharges,
+          gstNumber,
+          details.pickupDatetime,
+          gstInvoiceNumber.invoiceNumber, // pass invoice number
+        );
+      }
+
+      const Payment_URL = isInvoice
+        ? Payment_gst_URL
+        : details.payment_Receipt_URL;
+
+      const template = isInvoice
+        ? "payment_completed_final_gst_invoice"
+        : "payment_completed_final";
+
       const q = query(
         collection(
           db,
@@ -645,10 +755,16 @@ Our Refund Policy:
       });
 
       const updatedFields = {
+        gstInvoiceCounter: gstInvoiceNumber
+          ? gstInvoiceNumber.invoiceCounter
+          : null,
+        gstInvoiceNumber: gstInvoiceNumber
+          ? gstInvoiceNumber.invoiceNumber
+          : null,
         paymentMode: paymentMode,
+        payment_Invoice_URL: Payment_gst_URL,
         status: "PAYMENT DONE",
         paymentProof: await uploadFileToFirebase(paymentProof, "PAYMENT PROOF"),
-        payment_Receipt_URL: Payment_URL,
         PaymentComfirmedDate: await getTodayDate(),
       };
 
@@ -690,7 +806,7 @@ Our Refund Policy:
                       },
                     ],
                   },
-                  templateName: "payment_completed_final",
+                  templateName: template,
                 },
                 from: "+919600690881",
                 to: `+91${details.consignorphonenumber}`,
@@ -701,7 +817,6 @@ Our Refund Policy:
         const response = await axios.post(options.url, options.data, {
           headers: options.headers,
         });
-        console.log("response", response);
       } catch (error) {
         console.log("error", error.message);
       }
@@ -733,9 +848,7 @@ Our Refund Policy:
   };
 
   useEffect(() => {
-    console.log(details?.destination);
     const country = countryList.find((c) => c.name === details?.destination);
-    console.log("country", country);
     if (country) {
       setValue("countrycode", country.dialCode);
     }
@@ -1045,32 +1158,6 @@ Our Refund Policy:
           ) : (
             ""
           )}
-          {details.status == "PAYMENT REQUESTED" ? (
-            <div className="flex flex-col mb-4">
-              <label className="text-gray-700 font-medium mb-1">
-                Select Payment Mode
-              </label>
-              <select
-                className="p-2  border rounded bg-gray-100"
-                value={paymentMode}
-                onChange={(e) => setPaymentMode(e.target.value)}
-              >
-                <option value="">Select Option</option>
-                <option value="Cash">Cash</option>
-                <option value="Credit/Debit Cards">Credit/Debit Cards</option>
-                <option value="UPI">UPI</option>
-                <option value="Bank Transfer">Bank Transfer</option>
-              </select>
-
-              {formError === "paymentMode" && (
-                <p className="text-red-500 text-sm mt-2">
-                  Please select a payment mode!
-                </p>
-              )}
-            </div>
-          ) : (
-            ""
-          )}
 
           <div className="flex flex-col mb-1">
             <label className="text-gray-700 font-medium mb-1">
@@ -1135,8 +1222,6 @@ Our Refund Policy:
             <p className="text-red-500 text-sm mb-4">{errors.costKg.message}</p>
           )}
           <div className="flex flex-col mb-1">
-            {console.log(details.discountCost ? true : false)}
-            {console.log(details.discountCost)}
             <label className="text-gray-700 font-medium mb-1">
               Enter Discount Amount
             </label>
@@ -1172,7 +1257,7 @@ Our Refund Policy:
               type="text"
               className="p-2 border rounded bg-gray-100"
               placeholder="Enter 0  or Ex: 100"
-              readOnly={!!details.additionalcharges} // Readonly if discountCost exists
+              readOnly={details.additionalcharges == undefined ? false : true}
               {...register("additionalcharges", {
                 required:
                   "Please enter any additional charges, or enter 0 if none.",
@@ -1193,6 +1278,34 @@ Our Refund Policy:
               {errors.additionalcharges.message}
             </p>
           )}
+
+          {details.status == "PAYMENT REQUESTED" ? (
+            <div className="flex flex-col mb-4">
+              <label className="text-gray-700 font-medium mb-1">
+                Select Payment Mode
+              </label>
+              <select
+                className="p-2  border rounded bg-gray-100"
+                value={paymentMode}
+                onChange={(e) => setPaymentMode(e.target.value)}
+              >
+                <option value="">Select Option</option>
+                <option value="Cash">Cash</option>
+                <option value="Credit/Debit Cards">Credit/Debit Cards</option>
+                <option value="UPI">UPI</option>
+                <option value="Bank Transfer">Bank Transfer</option>
+              </select>
+
+              {formError === "paymentMode" && (
+                <p className="text-red-500 text-sm mt-2">
+                  Please select a payment mode!
+                </p>
+              )}
+            </div>
+          ) : (
+            ""
+          )}
+
           {details.makePaymentNotified ? (
             <>
               <div className="flex flex-col mb-4">

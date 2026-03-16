@@ -59,8 +59,6 @@ function App() {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [updateMessage, setUpdateMessage] = useState("");
 
-  console.log("Build: 04-12-2025!");
-
   // ✅ Notifications
   useEffect(() => {
     const getPermission = async () => {
@@ -473,7 +471,7 @@ function App() {
               path="/signin"
               element={
                 loading ? (
-                  <div>Loading...</div>
+                  <div>Loading</div>
                 ) : user ? (
                   <Navigate to="/" replace />
                 ) : (

@@ -329,7 +329,7 @@ function Pickups() {
     <>
       <Nav />
       <div className="container mx-auto p-6 rounded-lg">
-        <h1 className="text-3xl font-bold mb-6 text-purple-700">
+        <h1 className="text-3xl font-bold mb-6 text-[#714DD9]">
           {role !== "sales admin" ? (
             <>{Location} SHIPMENTS</>
           ) : (
@@ -388,20 +388,27 @@ function Pickups() {
         {/* Scrollable Table Wrapper */}
         <div className="overflow-auto border scrollbar-hide">
           <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow overflow-hidden">
-            <thead className="bg-purple-600 text-white">
+            <thead className="bg-[#714DD9] text-white">
               <tr>
-                <th className="py-3 px-4 border">AWB Number</th>
-                <th className="py-3 px-4 border">Consignor Name</th>
-                <th className="py-3 px-4 border">Consignor Phone</th>
-                <th className="py-3 px-4 border">Destination</th>
-                <th className="py-3 px-4 border">Weight (Apx)</th>
-                <th className="py-3 px-4 border">Pickup Area</th>
-                <th className="py-3 px-4 border">Status</th>
-                <th className="py-3 px-4 border">PickUp Status</th>
-                <th className="py-3 px-4  border">Pickup Date & Time</th>
-                <th className="py-3 px-4 border"> Pickup Booked by</th>
-                <th className="py-3 px-4 border">PickUp Person</th>
-                <th className="py-3 px-4 border">Edit Shipment</th>
+                <th className="py-3 px-4 border text-nowrap">AWB Number</th>
+                <th className="py-3 px-4 border text-nowrap">Consignor Name</th>
+                <th className="py-3 px-4 border text-nowrap">
+                  Consignor Phone
+                </th>
+                <th className="py-3 px-4 border text-nowrap">Destination</th>
+                <th className="py-3 px-4 border text-nowrap">Weight (Apx)</th>
+                <th className="py-3 px-4 border text-nowrap">Pickup Area</th>
+                <th className="py-3 px-4 border text-nowrap">Status</th>
+                <th className="py-3 px-4 border text-nowrap">PickUp Status</th>
+                <th className="py-3 px-4  border ext-nowrap">
+                  Pickup Date & Time
+                </th>
+                <th className="py-3 px-4 border text-nowrap">
+                  {" "}
+                  Pickup Booked by
+                </th>
+                <th className="py-3 px-4 border text-nowrap">PickUp Person</th>
+                <th className="py-3 px-4 border text-nowrap">Edit Shipment</th>
               </tr>
             </thead>
             <tbody>
@@ -436,7 +443,7 @@ function Pickups() {
                     <td className="py-10 px-4 border flex flex-col items-center">
                       {pickup.pickUpPersonName}
                       <img
-                        className="w-8 cursor-pointer mt-3"
+                        className="w-7 cursor-pointer mt-3"
                         src="more-icon.svg"
                         onClick={() => handleMoreIconClick(pickup)} // On click, show details in modal
                       />
@@ -444,7 +451,7 @@ function Pickups() {
                     <td className="p-4 border text-center align-middle">
                       <button
                         onClick={() => handleEditClick(pickup)}
-                        className="text-purple-600 hover:underline text-[16px]  font-medium"
+                        className="text-[#714DD9] hover:underline text-[16px]  font-medium"
                       >
                         Edit
                       </button>

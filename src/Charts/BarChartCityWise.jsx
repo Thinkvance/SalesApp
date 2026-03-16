@@ -6,17 +6,17 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  LabelList,
   ResponsiveContainer,
   Legend,
+  LabelList,
 } from "recharts";
 
-export default function SalesReportBarChartVendor({ pickups = [] }) {
+export default function BarChartCityWise({ pickups = [] }) {
   if (!Array.isArray(pickups) || pickups.length === 0) {
     return (
       <div className="max-w-5xl mx-auto p-6 bg-gradient-to-b from-purple-50 to-white rounded-xl shadow">
         <h2 className="text-2xl font-semibold text-center text-purple-900 mb-6">
-          📊 Sales Report by Vendor
+          📊 City Performance
         </h2>
         <div className="h-[260px] flex items-center justify-center text-gray-500">
           No data to display
@@ -25,55 +25,53 @@ export default function SalesReportBarChartVendor({ pickups = [] }) {
     );
   }
 
+  // Group by City
   const grouped = pickups.reduce((acc, item) => {
-    const key = item.vendorName || "Unknown Vendor";
+    const city = item.City || "Unknown";
 
-    if (!acc[key]) {
-      acc[key] = {
-        vendorName: key,
-        totalMargin: 0,
+    if (!acc[city]) {
+      acc[city] = {
+        city,
         totalWeight: 0,
+        totalMargin: 0,
         salesCount: 0,
         totalVendorPayment: 0,
         totalLogisticCost: 0,
       };
     }
 
-    acc[key].totalMargin += Number(item.margin) || 0;
-    acc[key].totalWeight += Number(item.internalWeight) || 0;
-    acc[key].salesCount += 1;
+    acc[city].totalWeight += Number(item.internalWeight) || 0;
+    acc[city].totalMargin += Number(item.margin) || 0;
+    acc[city].salesCount += 1;
 
     if (item.vendorPayment) {
-      acc[key].totalVendorPayment += Number(item.vendorPayment) || 0;
+      acc[city].totalVendorPayment += Number(item.vendorPayment) || 0;
     }
 
-    acc[key].totalLogisticCost += Number(item.logisticCost) || 0;
+    acc[city].totalLogisticCost += Number(item.logisticCost) || 0;
 
     return acc;
   }, {});
 
   const data = Object.values(grouped);
 
-  const formatNumber = (num) => Number(num).toLocaleString();
+  const formatNumber = (n) => Number(n).toLocaleString();
 
   return (
-    <div className="max-w-5xl mx-auto p-6 bg-gradient-to-b from-purple-50 to-white rounded-xl shadow">
+    <div className="max-w-6xl mx-auto p-6 bg-gradient-to-b from-purple-50 to-white rounded-xl shadow">
       <ResponsiveContainer width="100%" height={280}>
         <BarChart
           data={data}
-          margin={{ top: 30, right: 30, left: 20, bottom: 0 }}
-          barCategoryGap="30%"
+          margin={{ top: 20, right: 30, left: 20, bottom: 0 }}
+          barCategoryGap="25%"
         >
           <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
 
-          <XAxis
-            dataKey="vendorName"
-            tick={{ fill: "#4c1d95", fontSize: 13 }}
-          />
+          <XAxis dataKey="city" tick={{ fill: "#4c1d95", fontSize: 13 }} />
 
           <YAxis tick={{ fill: "#4c1d95", fontSize: 13 }} />
 
-          {/* Tooltip */}
+          {/* Tooltip with Margin Percentage */}
           <Tooltip
             content={({ active, payload, label }) => {
               if (active && payload && payload.length) {
@@ -81,14 +79,13 @@ export default function SalesReportBarChartVendor({ pickups = [] }) {
 
                 const logisticCost = Number(d.totalLogisticCost) || 0;
                 const margin = Number(d.totalMargin) || 0;
-                const vendorPayment = Number(d.totalVendorPayment) || 0;
 
                 const marginPercent =
                   logisticCost > 0 ? (margin / logisticCost) * 100 : 0;
 
                 return (
                   <div className="bg-white border rounded-lg shadow p-3 text-sm">
-                    <div className="font-semibold mb-2">Vendor: {label}</div>
+                    <div className="font-semibold mb-2">City: {label}</div>
 
                     <div>Weight: {formatNumber(d.totalWeight)} kg</div>
 
@@ -98,8 +95,10 @@ export default function SalesReportBarChartVendor({ pickups = [] }) {
 
                     <div>Shipment Count: {formatNumber(d.salesCount)}</div>
 
-                    {vendorPayment > 0 && (
-                      <div>Cost Price: ₹{formatNumber(vendorPayment)}</div>
+                    {d.totalVendorPayment > 0 && (
+                      <div>
+                        Cost Price: ₹{formatNumber(d.totalVendorPayment)}
+                      </div>
                     )}
 
                     <div>Margin: ₹{formatNumber(margin)}</div>
@@ -116,7 +115,7 @@ export default function SalesReportBarChartVendor({ pickups = [] }) {
             }}
           />
 
-          <Legend wrapperStyle={{ fontSize: 14 }} />
+          <Legend />
 
           {/* Weight */}
           <Bar
@@ -125,13 +124,13 @@ export default function SalesReportBarChartVendor({ pickups = [] }) {
             name="Weight (kg)"
             barSize={28}
             radius={[6, 6, 0, 0]}
-            minPointSize={2}
+            minPointSize={4}
           >
             <LabelList
               dataKey="totalWeight"
               position="top"
-              formatter={(v) => formatNumber(v)}
-              style={{ fontSize: 11 }}
+              formatter={formatNumber}
+              style={{ fontSize: 12 }}
             />
           </Bar>
 
@@ -142,12 +141,13 @@ export default function SalesReportBarChartVendor({ pickups = [] }) {
             name="Margin (₹)"
             barSize={28}
             radius={[6, 6, 0, 0]}
+            minPointSize={4}
           >
             <LabelList
               dataKey="totalMargin"
               position="top"
-              formatter={(v) => formatNumber(v)}
-              style={{ fontSize: 11 }}
+              formatter={formatNumber}
+              style={{ fontSize: 12 }}
             />
           </Bar>
 
@@ -155,16 +155,16 @@ export default function SalesReportBarChartVendor({ pickups = [] }) {
           <Bar
             dataKey="salesCount"
             fill="#f59e0b"
-            name="Sales Count"
+            name="Sales"
             barSize={28}
+            minPointSize={6}
             radius={[6, 6, 0, 0]}
-            minPointSize={4}
           >
             <LabelList
               dataKey="salesCount"
               position="top"
-              formatter={(v) => formatNumber(v)}
-              style={{ fontSize: 11 }}
+              formatter={formatNumber}
+              style={{ fontSize: 12 }}
             />
           </Bar>
         </BarChart>

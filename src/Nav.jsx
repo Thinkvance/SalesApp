@@ -40,7 +40,6 @@ function Nav() {
 
   // normalize role checks
   const roleLower = (user?.role || "").toLowerCase();
-  console.log("roleLower", roleLower);
   const shouldShowEscalationsNav =
     roleLower === "manager" || roleLower === "sales admin";
 
@@ -72,21 +71,13 @@ function Nav() {
     location.pathname.toLowerCase().startsWith(path.toLowerCase());
 
   return (
-    <nav className="sticky top-0 z-40 flex items-center justify-between bg-purple-400 p-2 shadow-md">
-      <div className="flex container mx-auto justify-between">
+    <nav className="sticky top-0 z-40 flex items-center justify-between bg-white p-2 shadow-md">
+      <div className=" px-6 flex container mx-auto justify-between">
         {/* Left section */}
         <div className="flex items-center gap-4">
           <Link to="/">
-            <img src="/logo.png" className="h-10" alt="Logo" />
+            <img src="/logo.png" className="h-8 sm:h-10" alt="Logo" />
           </Link>
-
-          {/* Mobile toggle */}
-          <button
-            className="lg:hidden block text-white"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <MenuIcon fontSize="large" />
-          </button>
 
           {/* Desktop Nav */}
           <ul className="hidden lg:flex space-x-8 items-center">
@@ -95,7 +86,7 @@ function Nav() {
               <li>
                 <button
                   onClick={handlePickupMenuOpen}
-                  className="text-white flex items-center gap-1 font-medium"
+                  className="text-black flex items-center gap-1 font-medium"
                 >
                   Pickup Management
                   <ArrowDropDownIcon />
@@ -124,7 +115,7 @@ function Nav() {
               <li>
                 <button
                   onClick={handleRateMenuOpen}
-                  className="text-white flex items-center gap-1 font-medium"
+                  className="text-black flex items-center gap-1 font-medium"
                 >
                   Rate Management
                   <ArrowDropDownIcon />
@@ -159,7 +150,7 @@ function Nav() {
               <li>
                 <button
                   onClick={handleReportsMenuOpen}
-                  className="text-white flex items-center gap-1 font-medium"
+                  className="text-black flex items-center gap-1 font-medium"
                 >
                   Reports
                   <ArrowDropDownIcon />
@@ -189,8 +180,8 @@ function Nav() {
               <li>
                 <Link
                   to="/My-Shipments"
-                  className={`text-white font-medium hover:text-gray-200 transition-all ${
-                    isActive("/My-Shipments") ? "underline" : ""
+                  className={`text-black font-medium transition-all ${
+                    isActive("/My-Shipments") ? "" : ""
                   }`}
                 >
                   My Shipments
@@ -203,14 +194,14 @@ function Nav() {
               <li>
                 <Link
                   to="/escalations"
-                  className={`text-white font-medium hover:text-gray-200 transition-all ${
-                    isActive("/escalations") ? "underline" : ""
+                  className={`text-black font-medium transition-all ${
+                    isActive("/escalations") ? "" : ""
                   }`}
                 >
                   Escalations
                   {pendingCount > 0 && (
-                    <span className="ml-2 inline-flex items-center justify-center rounded-full bg-white/30 text-white text-[11px] font-semibold px-2 py-0.5">
-                      {pendingCount}
+                    <span className="ml-0 inline-flex items-center justify-center rounded-full bg-white/30 text-[#7447D4] text-[12px] font-semibold px-1 py-0.6">
+                      ({pendingCount})
                     </span>
                   )}
                 </Link>
@@ -220,23 +211,22 @@ function Nav() {
         </div>
 
         {/* Right section */}
-        <div className="flex items-center gap-6 bg-purple-400 rounded-lg">
+        <div className="flex items-center gap-6 rounded-lg">
+          {/* Mobile toggle */}
+          <button
+            className="lg:hidden block text-[#7447D4]"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <MenuIcon fontSize="large" />
+          </button>
+
           <Avatar
             onClick={() => setOpen(true)}
-            className="bg-purple-600 cursor-pointer text-white p-3 text-lg font-semibold"
+            sx={{ width: 35, height: 35, fontSize: 14, cursor: "pointer" }}
+            className="cursor-pointer text-white h-5 w-8 text-lg font-semibold"
           >
             {user?.name?.[0]?.toUpperCase() || "?"}
           </Avatar>
-
-          <button
-            onClick={() => {
-              localStorage.removeItem("LoginCredentials");
-              auth.signOut();
-            }}
-            className="bg-white text-purple-700 font-semibold py-2 px-6 rounded-md hover:bg-purple-50 transition-all ease-in-out"
-          >
-            Logout
-          </button>
         </div>
 
         {/* Mobile Sidebar */}
@@ -245,7 +235,7 @@ function Nav() {
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           } transition-transform duration-300 ease-in-out shadow-lg`}
         >
-          <div className="flex justify-between items-center p-4 bg-purple-500">
+          <div className="flex justify-between items-center p-4 bg-[#7447D4]">
             <h2 className="text-white font-bold text-lg">Menu</h2>
             <button
               onClick={() => setSidebarOpen(false)}
@@ -338,7 +328,7 @@ function Nav() {
                 >
                   <span>Escalations</span>
                   {pendingCount > 0 && (
-                    <span className="ml-2 inline-flex items-center justify-center rounded-full bg-purple-600 text-white text-[11px] font-semibold px-2 py-0.5">
+                    <span className="ml-2 inline-flex items-center justify-center rounded-full bg-[#7447D4] text-white text-[11px] font-semibold px-2 py-0.5">
                       {pendingCount}
                     </span>
                   )}

@@ -418,6 +418,8 @@ function PickupBooking() {
         WHReached: false,
         KmDriven: 0,
         internalTracking,
+        companyName: companyName,
+
         // Consignor Data
         consignorname: data.Consignorname,
         consignorphonenumber: data.Consignornumber,
@@ -635,8 +637,6 @@ function PickupBooking() {
       (client) => client.companyName == CompanyName,
     );
 
-    console.log("client", client);
-
     if (client) {
       setValue("Consignorname", client.consignorName);
       setValue("Consignornumber", client.consignorPhone);
@@ -661,6 +661,25 @@ function PickupBooking() {
       setIsSourceFixed(false);
     }
   }
+
+  useEffect(() => {
+    if (!isOnboarded) {
+      setcompanyName("");
+      setClientKYC("");
+      setlatitudelongitude("");
+      setcity("");
+
+      setValue("Consignorname", "");
+      setValue("Consignornumber", "");
+      setValue("Consignorlocation", "");
+      setValue("pincode", "");
+      setValue("pickuparea", "");
+      setValue("instructions", "");
+
+      setsource("");
+      setIsSourceFixed(false);
+    }
+  }, [isOnboarded]);
 
   const fetchClientOnboardingData = async (currentUser) => {
     if (!currentUser?.name || !currentUser?.email) {
@@ -707,13 +726,17 @@ function PickupBooking() {
   return (
     <div className="">
       <Nav />
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4 flex-col gap-4">
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4 flex-col gap-4 pt-5">
         <form
           onSubmit={handleSubmit(onSubmit)}
           className="bg-white p-6  rounded-md shadow-none w-full max-w-4xl relative"
         >
-          <h2 className="text-sm sm:text-xl font-bold text-center mb-12 sm:mb-6 text-gray-800">
-            Submit Pickup Details
+          <h2
+            className="text-lg sm:text-2xl font-bold text-center mb-12 sm:mb-6 
+text-transparent bg-clip-text bg-gradient-to-r from-[#8847D9] to-[#6D28D9] 
+tracking-wide"
+          >
+            Schedule a Pickup
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
             <div>
@@ -782,6 +805,7 @@ function PickupBooking() {
                   </select>
                 </div>
               )}
+
               <div className="mb-4">
                 <label className="block text-gray-700 font-semibold mb-2">
                   Consignor Name
@@ -1015,6 +1039,7 @@ function PickupBooking() {
                     "Pondy",
                     "Coimbatore",
                     "mayiladuthurai",
+                    "tirupur",
                     "Others",
                   ]?.map((option, index) => (
                     <option key={index} value={option}>
@@ -1158,33 +1183,23 @@ function PickupBooking() {
                   </p>
                 )}
               </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="mb-4">
                 <div className="flex gap-2 items-center ">
                   <label className="block text-gray-700 font-semibold mb-2">
                     Latitude & Longitude
                   </label>
-                  {/* {latitudelongitude ? (
-                    <div
-                      onClick={() => openMap()}
-                      className="px-3 py-1 rounded-sm text-white bg-red-500 cursor-pointer"
-                    >
-                      Check
-                    </div>
-                  ) : (
-                    ""
-                  )} */}
                 </div>
                 <input
                   type="text"
                   value={latitudelongitude}
-                  placeholder="E.g. 11.00000 , 12.00000"
+                  placeholder="E.g. 11.000 , 12.000"
                   className={`w-fit px-3 py-2 border "border-gray-300 rounded-md focus:outline-none focus:border-[#8847D9]`}
                   onChange={(e) => setlatitudelongitude(e.target.value)}
                 />
                 {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
               </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="mb-4">
                 <label className="block text-gray-700 font-semibold mb-2">
                   Pickup Date
@@ -1255,51 +1270,72 @@ function PickupBooking() {
             </div>
           </div>
           {!isOnboarded && (
-            <div className="mb-4">
-              <label className="block text-gray-700 font-semibold mb-2">
-                Upload KYC Image (PDF Only)
+            <div className="mb-6">
+              <label className="block text-gray-800 font-semibold mb-2">
+                Upload KYC Document
+                <span className="text-gray-500 text-sm ml-1">(PDF only)</span>
               </label>
+
               <Controller
                 name="kycFile"
                 control={control}
-                // Remove required here or any validation related to file presence
                 render={({ field }) => (
-                  <input
-                    type="file"
-                    accept=".pdf"
-                    onChange={(e) => {
-                      const file = e.target.files[0];
-                      if (file) {
-                        setFiles([file]); // Update state with the selected file
-                        field.onChange(e.target.files); // Update form state
-                      } else {
-                        setFiles([]); // Clear files if no file is selected
-                        field.onChange([]); // Clear form state
-                      }
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#8847D9]"
-                  />
+                  <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-[#8847D9] transition-colors bg-gray-50">
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          setFiles([file]);
+                          field.onChange(e.target.files);
+                        } else {
+                          setFiles([]);
+                          field.onChange([]);
+                        }
+                      }}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+
+                    <div className="flex flex-col items-center justify-center text-center pointer-events-none">
+                      <p className="text-sm text-gray-600 font-medium">
+                        Click to upload KYC PDF
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Only PDF files are allowed
+                      </p>
+                    </div>
+                  </div>
                 )}
               />
+
               {errors.kycFile && (
-                <p className="text-red-500 text-sm mt-1">
+                <p className="text-red-500 text-sm mt-2">
                   {errors.kycFile.message}
                 </p>
               )}
+
               {files.length > 0 && (
-                <div className="mt-2">
-                  <p className="text-gray-700">{files[0].name}</p>
+                <div className="mt-3 flex items-center justify-between bg-purple-50 border border-purple-200 rounded-md px-3 py-2">
+                  <p className="text-sm text-gray-800 font-medium truncate">
+                    {files[0].name}
+                  </p>
+                  <span className="text-xs text-purple-600 font-semibold">
+                    PDF
+                  </span>
                 </div>
               )}
             </div>
           )}
 
-          <div className="flex justify-center">
+          <div className="flex justify-center mt-8">
             <button
               type="submit"
-              className={`bg-[#8847D9]  text-white font-semibold py-2 px-10 rounded-md transition duration-300 ${
-                loading ? "opacity-50 cursor-not-allowed" : ""
-              }`}
+              className={`bg-gradient-to-r from-[#784AD6] to-[#7a3fd1] text-white font-semibold text-lg py-3 px-12 rounded-xl 
+    shadow-lg hover:shadow-xl hover:scale-[1.03] active:scale-[0.98] 
+    transition-all duration-200 ease-in-out
+    focus:outline-none focus:ring-4 focus:ring-[#8847D9]/30
+    ${loading ? "opacity-50 cursor-not-allowed hover:scale-100 shadow-md" : ""}`}
               disabled={loading}
             >
               {loading ? "Submitting..." : "Submit"}

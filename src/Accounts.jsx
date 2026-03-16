@@ -24,7 +24,7 @@ import SalesReportBarChartSVendor from "./Charts/SalesReportBarChartSVendor";
 import EditShipmentModal from "./EditShipmentModal";
 import { FiCheck, FiClipboard } from "react-icons/fi";
 import formatFirestoreTimestamp from "./Utility/formatFirestoreTimestamp";
-
+import BarChartCityWise from "./Charts/BarChartCityWise";
 dayjs.extend(customParseFormat);
 dayjs.extend(isBetween);
 
@@ -175,13 +175,13 @@ function Accounts() {
             ];
 
       const unsubscribes = [];
-      where("status", "in", ["SHIPMENT CONNECTED", "PAYMENT DONE"]);
+      where("status", "in", ["SHIPMENT CONNECTED"]);
 
       Promise.all(
         collectionNames.map((name) => {
           const q = query(
             collection(db, name),
-            where("status", "in", ["SHIPMENT CONNECTED", "PAYMENT DONE"]),
+            where("status", "in", ["SHIPMENT CONNECTED"]),
           );
           return new Promise((resolve) => {
             const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -280,11 +280,7 @@ function Accounts() {
     const matchedvendor =
       selectedVendor === "All" ||
       pickup.vendorName?.toLowerCase() === selectedVendor.toLowerCase();
-    console.log(
-      "pickup?.vendorAwbnumber",
-      pickup?.vendorAwbnumber,
-      pickup?.vendorAwbnumber == null,
-    );
+
     const matchedVendorAWBnumber =
       selectedVendorAWBnumber === ""
         ? true // include all
@@ -304,8 +300,6 @@ function Accounts() {
       matchedVendorAWBnumber
     );
   });
-
-  console.log("filteredPickups", filteredPickups);
 
   const totalSales = filteredPickups.length;
 
@@ -420,7 +414,6 @@ function Accounts() {
   };
 
   const handleEditClick = (pickup) => {
-    console.log("test");
     setEditPickup({ ...pickup });
     setModalOpenEdit(true);
   };
@@ -429,7 +422,6 @@ function Accounts() {
   }
 
   const handleSave = async (value) => {
-    console.log("test handle save!", value);
     setLoadingEdit(true);
     try {
       const q = query(
@@ -446,6 +438,7 @@ function Accounts() {
           actualWeight: formatString(value.actualWeight),
           logisticCost: parseInt(value.logisticCost),
           vendorAwbnumber: value.vendorAwbnumber,
+          internalWeight: formatString(value.internalWeight),
         });
       } else {
         console.error("No document found with the given AWB number.");
@@ -467,7 +460,7 @@ function Accounts() {
     <>
       <Nav />
       <div className="container mx-auto p-6 rounded-lg">
-        <h1 className="text-3xl font-bold mb-6 text-purple-700">
+        <h1 className="text-3xl font-bold mb-6 text-[#714DD9]">
           Vendor Report
         </h1>
         <div className="flex flex-row  flex-wrap gap-6 mb-6 items-end">
@@ -580,6 +573,7 @@ function Accounts() {
                 Sales Executive Chart
               </option>
               <option value="Vendor-wise Chart">Vendor-wise Chart</option>
+              <option value="City-wise Chart">City-wise Chart</option>
             </select>
           </div>
 
@@ -597,7 +591,7 @@ function Accounts() {
           </div>
           <button
             onClick={exportOctoberData}
-            className="bg-purple-500 text-white px-4 py-2 rounded-lg"
+            className="bg-[#714DD9] text-white px-4 py-2 rounded-lg"
           >
             Export Data
           </button>
@@ -676,36 +670,37 @@ function Accounts() {
                   ? "Sales Executive Performance"
                   : "Vendor Performance"}
               </h2>
+              <div className="text-right">
+                <p className="text-sm text-gray-600">
+                  Data from{" "}
+                  <span className="font-semibold">{from.format("DD MMM")}</span>{" "}
+                  to{" "}
+                  <span className="font-semibold">
+                    {to.format("DD MMM YYYY")}
+                  </span>
+                </p>
+              </div>
               <span className="text-sm text-gray-500">
                 Total Margin:{" "}
                 <strong className="text-gray-900">₹ {totalMargin}</strong>
               </span>
             </div>
 
-            <div className="mb-6">
+            <div className="mb-0">
               {selectedChart === "Sales Executive Chart" ? (
                 <BarChartCom salesData={salesData} />
+              ) : selectedChart === "City-wise Chart" ? (
+                <BarChartCityWise pickups={filteredPickups} />
               ) : (
                 <SalesReportBarChartSVendor pickups={filteredPickups} />
               )}
-            </div>
-
-            <div className="text-right">
-              <p className="text-sm text-gray-600">
-                Data from{" "}
-                <span className="font-semibold">{from.format("DD MMM")}</span>{" "}
-                to{" "}
-                <span className="font-semibold">
-                  {to.format("DD MMM YYYY")}
-                </span>
-              </p>
             </div>
           </div>
         </div>
 
         <div className="overflow-x-auto overflow-y-hidden border scrollbar-hide relative">
           <table className="min-w-max table-auto bg-white border border-gray-200 rounded-lg shadow">
-            <thead className="bg-purple-600 text-white sticky top-0 z-30">
+            <thead className="bg-[#714DD9] text-white sticky top-0 z-30">
               <tr>
                 {[
                   "AWB Number",
@@ -720,7 +715,8 @@ function Accounts() {
                   "Booked By",
                   "Pickup Person",
                   "Status",
-                  "Weight",
+                  "Final Weight",
+                  "Internal Weight",
                   "Sales Close",
                   "Vendor Payment",
                   "Margin",
@@ -733,7 +729,7 @@ function Accounts() {
                   <th
                     key={i}
                     className={`py-3 px-4 border ${
-                      i === 0 ? "sticky left-0 bg-purple-600 z-20" : ""
+                      i === 0 ? "sticky left-0 bg-[#714DD9] z-20" : ""
                     }`}
                   >
                     {head}
@@ -785,6 +781,9 @@ function Accounts() {
                       </td>
                       <td className="py-3 px-4 border text-center">
                         {pickup.status}
+                      </td>
+                      <td className="py-3 px-4 border">
+                        {pickup.actualWeight}
                       </td>
                       <td className="py-3 px-4 border">
                         {pickup.internalWeight}

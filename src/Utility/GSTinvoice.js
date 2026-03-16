@@ -1,5 +1,7 @@
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import { storage } from "../firebase";
 
 async function generate_GST_Invoice_PDF(
   item,
@@ -9,7 +11,7 @@ async function generate_GST_Invoice_PDF(
   additionalcharges,
   gst,
   pickupDatetime,
-  setGst,
+  gstInvoiceNumber,
 ) {
   try {
     const actualWeight = item.actualWeight;
@@ -89,7 +91,7 @@ Phone: 9159 688 688`;
 
     const rightX = pageWidth - 40;
 
-    doc.text(`Invoice Number: RCPT-${awbNumber}`, rightX, 40, {
+    doc.text(`Invoice Number: ${gstInvoiceNumber}`, rightX, 40, {
       align: "right",
     });
 
@@ -247,8 +249,27 @@ Our Refund Policy:
 
     /* ---------------- Save ---------------- */
 
-    doc.save(`Receipt_${consignorname}.pdf`);
-    setGst("");
+    // Save the PDF as a Blob
+    const pdfBlob = doc.output("blob");
+
+    // Reference to Firebase Storage
+    const storagePath = `${item.awbNumber}/invoice/Receipt${item.consignorname} .pdf`;
+    const storageRef = ref(storage, storagePath);
+
+    try {
+      // Upload the PDF Blob to Firebase Storage
+      await uploadBytes(storageRef, pdfBlob);
+      // Get the download URL
+      const downloadURL = await getDownloadURL(storageRef);
+      // Log the download URL
+      return downloadURL;
+    } catch (error) {
+      utilityFunctions.ErrorNotify(
+        "An error occurred while uploading the document.",
+      );
+    }
+
+    // setGst("");
   } catch (error) {
     console.log(error);
     alert("Failed to generate Invoice PDF");

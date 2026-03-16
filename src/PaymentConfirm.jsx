@@ -338,7 +338,7 @@ Our Refund Policy:
           <button
             className={`py-2 px-4 rounded-lg font-semibold ${
               activeTab === "PAYMENT PENDING"
-                ? "bg-purple-600 text-white"
+                ? "bg-[#714DD9] text-white"
                 : "bg-gray-200 text-black"
             }`}
             onClick={() => setActiveTab("PAYMENT PENDING")}
@@ -348,7 +348,7 @@ Our Refund Policy:
           <button
             className={`py-2 px-4 rounded-lg font-semibold ${
               activeTab === "PAYMENT DONE"
-                ? "bg-purple-600 text-white"
+                ? "bg-[#714DD9] text-white"
                 : "bg-gray-200 text-black"
             }`}
             onClick={() => setActiveTab("PAYMENT DONE")}

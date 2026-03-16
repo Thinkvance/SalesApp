@@ -180,8 +180,6 @@ const ClientOnboarding = () => {
       setCountries([]);
       setCountryInput("");
       window.scrollTo({ top: 0, behavior: "smooth" });
-
-      console.log("✅ Client Onboarding Saved");
     } catch (error) {
       console.error("❌ Error submitting form:", error);
     } finally {
@@ -447,7 +445,7 @@ const ClientOnboarding = () => {
               <label className="flex items-center gap-3 mb-6">
                 <input
                   type="checkbox"
-                  className="w-5 h-5 accent-[#bf81fd]"
+                  className="w-5 h-5 accent-[#714DD9]"
                   {...register("needGST")}
                 />
                 <span className="font-semibold text-sm">Need GST Bill?</span>
@@ -644,8 +642,8 @@ const ClientOnboarding = () => {
               className={`w-full py-4 font-bold rounded-xl shadow-lg flex items-center justify-center gap-2
     ${
       loading
-        ? "bg-[#bf81fd]/70 cursor-not-allowed"
-        : "bg-[#bf81fd] hover:brightness-110"
+        ? "bg-[#714DD9] cursor-not-allowed"
+        : "bg-[#714DD9] hover:brightness-110"
     } text-white
   `}
             >
@@ -696,7 +694,7 @@ const Input = React.forwardRef(({ label, error, fullWidth, ...props }, ref) => (
 const FormSection = ({ icon, title, children }) => (
   <section>
     <div className="flex items-center gap-2 mb-6 border-b pb-4">
-      <span className="text-[#bf81fd] text-xl">{icon}</span>
+      <span className="text-[#714DD9] text-xl">{icon}</span>
       <h3 className="text-xl font-bold">{title}</h3>
     </div>
     {children}
@@ -751,7 +749,7 @@ const UploadCard = React.forwardRef(
           />
 
           {!selectedFile && (
-            <span className="text-xs text-[#bf81fd] font-medium">
+            <span className="text-xs text-[#714DD9] font-medium">
               Click to upload
             </span>
           )}

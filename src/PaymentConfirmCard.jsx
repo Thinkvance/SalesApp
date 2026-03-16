@@ -34,6 +34,7 @@ function PaymentConfirmCard({ item, index }) {
       setGstError("");
     }
   };
+
   useEffect(() => {
     setUser(JSON.parse(localStorage.getItem("LoginCredentials")));
   }, []);
@@ -317,22 +318,22 @@ function PaymentConfirmCard({ item, index }) {
           <a
             target="_blank"
             href={item.payment_Receipt_URL}
-            className="p-2 rounded-md bg-purple-600  text-white"
+            className="p-2 rounded-md bg-[#714DD9]  text-white"
           >
             Receipt
           </a>
           <button
             onClick={() => setisOpen(true)}
-            className="p-2 rounded-md bg-purple-600  text-white"
+            className="p-2 rounded-md bg-[#714DD9]  text-white"
           >
             GST Invoice
           </button>
-          <button
+          {/* <button
             onClick={() => generate_AWBNUMBER_PDF()}
-            className="p-2 rounded-md bg-purple-600  text-white"
+            className="p-2 rounded-md bg-[#714DD9]  text-white"
           >
             AWB Number
-          </button>
+          </button> */}
         </div>
       ) : (
         ""
