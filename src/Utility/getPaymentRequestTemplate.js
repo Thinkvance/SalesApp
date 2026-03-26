@@ -1,4 +1,5 @@
 import { collection, query, where, getDocs } from "firebase/firestore";
+import DB from "../DB/DB";
 
 export default async function getPaymentRequestTemplate(Source, companyName) {
   try {
@@ -13,7 +14,7 @@ export default async function getPaymentRequestTemplate(Source, companyName) {
     }
 
     const q = query(
-      collection(db, "ClientOnboarding"),
+      collection(db, DB.ClientOnboarding),
       where("companyName", "==", companyName),
     );
 

@@ -8,6 +8,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import Nav from "./Nav";
+import DB from "./DB/DB";
 
 function ExecutiveClientsScreen() {
   const [clients, setClients] = useState([]);
@@ -30,7 +31,7 @@ function ExecutiveClientsScreen() {
     if (!User?.name || !User?.email) return;
 
     const q = query(
-      collection(db, "ClientOnboarding"),
+      collection(db, DB.ClientOnboarding),
       where("CreatedBy", "==", User.name),
       where("CreatedByEmail", "==", User.email),
       orderBy("createdAt", "desc"),

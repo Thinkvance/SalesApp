@@ -11,6 +11,9 @@ import {
 import { db } from "./firebase";
 import { FaEye, FaCheck, FaXmark } from "react-icons/fa6";
 import Nav from "./Nav";
+import DB from "./DB/DB";
+import { useForm } from "react-hook-form";
+import { CiCircleMore } from "react-icons/ci";
 
 function ClientApprovals() {
   const [clients, setClients] = useState([]);
@@ -23,13 +26,27 @@ function ClientApprovals() {
   const [selectedClient, setSelectedClient] = useState(null);
   const [actionType, setActionType] = useState(null); // APPROVE | REJECT
   const [note, setNote] = useState("");
-
   const user = JSON.parse(localStorage.getItem("LoginCredentials"));
+  const [editClient, setEditClient] = useState(null);
+
+  const [billingData, setBillingData] = useState({
+    billingCompanyName: "",
+    GSTNumber: "",
+    GSTState: "",
+    billingAddress: "",
+  });
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm();
 
   // 🔥 Realtime Firestore listener
   useEffect(() => {
     const q = query(
-      collection(db, "ClientOnboarding"),
+      collection(db, DB.ClientOnboarding),
       orderBy("createdAt", "desc"),
     );
 
@@ -53,7 +70,7 @@ function ClientApprovals() {
   const updateStatus = async () => {
     if (!note.trim()) return;
 
-    await updateDoc(doc(db, "ClientOnboarding", selectedClient.id), {
+    await updateDoc(doc(db, DB.ClientOnboarding, selectedClient.id), {
       status: actionType === "APPROVE" ? "APPROVED" : "REJECTED",
       isApproved: actionType === "APPROVE",
 
@@ -73,6 +90,33 @@ function ClientApprovals() {
     setActionType(null);
     setNote("");
   };
+
+  const onSubmit = async (data) => {
+    await updateDoc(doc(db, DB.ClientOnboarding, editClient.id), {
+      billingCompanyName: data.billingCompanyName,
+      GSTNumber: data.GSTNumber,
+      GSTState: data.GSTState,
+      billingAddress: data.billingAddress,
+
+      needGST: true,
+
+      lastUpdatedAt: serverTimestamp(),
+      lastUpdatedBy: user.email,
+    });
+
+    setEditClient(null);
+  };
+
+  useEffect(() => {
+    if (editClient) {
+      reset({
+        billingCompanyName: editClient.billingCompanyName || "",
+        GSTNumber: editClient.GSTNumber || "",
+        GSTState: editClient.GSTState || "",
+        billingAddress: editClient.billingAddress || "",
+      });
+    }
+  }, [editClient, reset]);
 
   if (loading) {
     return <p className="p-6 text-gray-500">Loading clients…</p>;
@@ -111,7 +155,9 @@ function ClientApprovals() {
                     <th className="px-6 py-3 text-left">City</th>
                     <th className="px-6 py-3 text-left">Created On</th>
                     <th className="px-6 py-3 text-left">Status</th>
-                    <th className="px-6 py-3 text-center">Actions</th>
+                    <th className="px-6 py-3 text-left">Actions</th>
+                    <th className="px-6 py-3 text-left">Edit Profile dsfsd</th>
+                    <th className="px-6 py-3 text-left">View More</th>
                   </tr>
                 </thead>
 
@@ -119,7 +165,6 @@ function ClientApprovals() {
                   {clients.map((client) => (
                     <tr
                       key={client.id}
-                      onClick={() => setViewClient(client)}
                       className="border-b hover:bg-purple-50/50 cursor-pointer"
                     >
                       <td className="px-6 py-4">
@@ -160,15 +205,7 @@ function ClientApprovals() {
                       </td>
 
                       <td className="px-6 py-4">
-                        <div className="flex justify-center gap-4">
-                          <FaEye
-                            className="text-purple-500"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setViewClient(client);
-                            }}
-                          />
-
+                        <div className="flex justify-left gap-4">
                           {client.status === "PENDING" && (
                             <>
                               <FaCheck
@@ -190,6 +227,33 @@ function ClientApprovals() {
                             </>
                           )}
                         </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+
+                            setEditClient(client);
+
+                            setBillingData({
+                              billingCompanyName:
+                                client.billingCompanyName || "",
+                              GSTNumber: client.GSTNumber || "",
+                              GSTState: client.GSTState || "",
+                              billingAddress: client.billingAddress || "",
+                            });
+                          }}
+                          className="text-sm text-purple-600 underline"
+                        >
+                          {client.needGST ? "Edit GST" : "Add GST"}
+                        </button>
+                      </td>
+
+                      <td
+                        className="px-6 py-4"
+                        onClick={() => setViewClient(client)}
+                      >
+                        <CiCircleMore size={26} color="green" />
                       </td>
                     </tr>
                   ))}
@@ -238,6 +302,173 @@ function ClientApprovals() {
           </Overlay>
         )}
 
+        {editClient && (
+          <Overlay onClose={() => setEditClient(null)}>
+            <h3 className="text-lg font-bold text-purple-900 mb-4">
+              {!editClient.needGST ? "Add GST Details" : "Edit GST Details"}
+            </h3>
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              {/* Billing Company */}
+              <div>
+                <label className="text-xs text-gray-500">
+                  Billing Company Name
+                </label>
+                <input
+                  placeholder="Enter billing company name"
+                  {...register("billingCompanyName", {
+                    required: "Billing company name is required",
+                    minLength: {
+                      value: 3,
+                      message: "Minimum 3 characters required",
+                    },
+                  })}
+                  className={`w-full border rounded-lg p-2 text-sm mt-1 ${
+                    errors.billingCompanyName ? "border-red-400" : ""
+                  }`}
+                />
+                {errors.billingCompanyName && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.billingCompanyName.message}
+                  </p>
+                )}
+              </div>
+
+              {/* GST Number */}
+              <div>
+                <label className="text-xs text-gray-500">GST Number</label>
+                <input
+                  placeholder="e.g. 33ABCDE1234F1Z5"
+                  {...register("GSTNumber", {
+                    required: "GST number is required",
+                    minLength: {
+                      value: 15,
+                      message: "GST must be 15 characters",
+                    },
+                    maxLength: {
+                      value: 15,
+                      message: "GST must be 15 characters",
+                    },
+                    pattern: {
+                      value:
+                        /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/,
+                      message: "Invalid GST format (e.g. 33ABCDE1234F1Z5)",
+                    },
+                  })}
+                  onInput={(e) =>
+                    (e.target.value = e.target.value.toUpperCase())
+                  }
+                  className={`w-full border rounded-lg p-2 text-sm mt-1 uppercase ${
+                    errors.GSTNumber ? "border-red-400" : ""
+                  }`}
+                />
+                {errors.GSTNumber && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.GSTNumber.message}
+                  </p>
+                )}
+              </div>
+
+              {/* GST State */}
+              <div>
+                <label className="text-xs text-gray-500">
+                  GST Registered State
+                </label>
+                <select
+                  {...register("GSTState", {
+                    required: "GST registered state is required",
+                  })}
+                  className={`w-full border rounded-lg p-2 text-sm mt-1 ${
+                    errors.GSTState ? "border-red-400" : ""
+                  }`}
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    Select GST Registered State
+                  </option>
+                  <option value="Tamil Nadu">Tamil Nadu</option>
+                  <option value="Coimbatore">Coimbatore</option>
+                  <option value="Andhra Pradesh">Andhra Pradesh</option>
+                  <option value="Karnataka">Karnataka</option>
+                  <option value="Telangana">Telangana</option>
+                  <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+                  <option value="Assam">Assam</option>
+                  <option value="Bihar">Bihar</option>
+                  <option value="Chhattisgarh">Chhattisgarh</option>
+                  <option value="Goa">Goa</option>
+                  <option value="Gujarat">Gujarat</option>
+                  <option value="Haryana">Haryana</option>
+                  <option value="Himachal Pradesh">Himachal Pradesh</option>
+                  <option value="Jharkhand">Jharkhand</option>
+                  <option value="Kerala">Kerala</option>
+                  <option value="Madhya Pradesh">Madhya Pradesh</option>
+                  <option value="Maharashtra">Maharashtra</option>
+                  <option value="Manipur">Manipur</option>
+                  <option value="Meghalaya">Meghalaya</option>
+                  <option value="Mizoram">Mizoram</option>
+                  <option value="Nagaland">Nagaland</option>
+                  <option value="Odisha">Odisha</option>
+                  <option value="Punjab">Punjab</option>
+                  <option value="Rajasthan">Rajasthan</option>
+                  <option value="Sikkim">Sikkim</option>
+                  <option value="Tripura">Tripura</option>
+                  <option value="Uttar Pradesh">Uttar Pradesh</option>
+                  <option value="Uttarakhand">Uttarakhand</option>
+                  <option value="West Bengal">West Bengal</option>
+                </select>
+                {errors.GSTState && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.GSTState.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Billing Address */}
+              <div>
+                <label className="text-xs text-gray-500">
+                  GST Address / Billing Address
+                </label>
+                <textarea
+                  placeholder="Enter complete billing address"
+                  {...register("billingAddress", {
+                    required: "Billing address is required",
+                    minLength: {
+                      value: 10,
+                      message: "Minimum 10 characters required",
+                    },
+                  })}
+                  className={`w-full border rounded-lg p-2 text-sm mt-1 ${
+                    errors.billingAddress ? "border-red-400" : ""
+                  }`}
+                />
+                {errors.billingAddress && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.billingAddress.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setEditClient(null)}
+                  className="px-4 py-2 border rounded-lg"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-purple-600 text-white rounded-lg"
+                >
+                  {!editClient.needGST ? "Add GST" : "Update GST"}
+                </button>
+              </div>
+            </form>
+          </Overlay>
+        )}
+
         {/* DETAILS MODAL (FULL & SINGLE) */}
         {viewClient && (
           <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
@@ -276,6 +507,7 @@ function ClientApprovals() {
 
                 {/* Pickup / Consignor */}
                 <Section title="Pickup / Consignor Details">
+                  <KV label="Company Name" value={viewClient.companyName} />
                   <KV label="Consignor Name" value={viewClient.consignorName} />
                   <KV label="Phone" value={viewClient.consignorPhone} />
                   <KV label="Address" value={viewClient.consignorAddress} />

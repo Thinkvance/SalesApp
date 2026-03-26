@@ -1,5 +1,6 @@
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
+import DB from "../DB/DB";
 
 export default async function getClientGSTNumber(companyName) {
   try {
@@ -9,7 +10,7 @@ export default async function getClientGSTNumber(companyName) {
     }
 
     const q = query(
-      collection(db, "ClientOnboarding"),
+      collection(db, DB.ClientOnboarding),
       where("companyName", "==", companyName),
     );
 

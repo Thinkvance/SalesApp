@@ -20,6 +20,7 @@ import { db, storage } from "./firebase";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import Lottie from "lottie-react";
 import { runTransaction } from "firebase/firestore";
+import DB from "./DB/DB";
 
 const ClientOnboarding = () => {
   const [countries, setCountries] = useState([]);
@@ -100,7 +101,7 @@ const ClientOnboarding = () => {
       // ✅ Reference as string (UI friendly)
       const referenceCode = refNumber.toString();
 
-      const docRef = doc(collection(db, "ClientOnboarding"));
+      const docRef = doc(collection(db, DB.ClientOnboarding));
 
       const kycFile = data.kyc[0];
       const rateCardFile = data.rateCard[0];
@@ -150,7 +151,7 @@ const ClientOnboarding = () => {
         coordinates: data.coordinates,
         pickupArea: data.pickupArea,
         specialInstructions: data.specialInstructions,
-
+        content: data.content,
         needGST: !!data.needGST,
         billingCompanyName: data.needGST ? data.billingCompany : null,
         GSTNumber: data.needGST ? data.gst : null,
@@ -396,6 +397,27 @@ const ClientOnboarding = () => {
                     "Minimum 10 characters required",
                 })}
               />
+              <Textarea
+                label="Content (Products)"
+                placeholder="Describe the products for pickup..."
+                rows={4}
+                fullWidth
+                error={errors.content}
+                {...register("content", {
+                  required: "Content is required",
+                  minLength: {
+                    value: 10,
+                    message: "Minimum 10 characters required",
+                  },
+                  maxLength: {
+                    value: 200,
+                    message: "Maximum 200 characters allowed",
+                  },
+                  validate: (value) =>
+                    value.trim().length >= 10 ||
+                    "Minimum 10 characters required",
+                })}
+              />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                 {/* KYC Upload */}
@@ -469,7 +491,7 @@ const ClientOnboarding = () => {
 
                     <Input
                       label="GST Number"
-                      placeholder="GSTIN"
+                      placeholder="e.g. 33ABCDE1234F1Z5"
                       error={errors.gst}
                       {...register("gst", {
                         required: "GST number is required",
@@ -482,8 +504,9 @@ const ClientOnboarding = () => {
                           message: "GST must be 15 characters",
                         },
                         pattern: {
-                          value: /^[0-9A-Z]{15}$/,
-                          message: "Invalid GST format",
+                          value:
+                            /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/,
+                          message: "Invalid GST format (e.g. 33ABCDE1234F1Z5)",
                         },
                       })}
                     />

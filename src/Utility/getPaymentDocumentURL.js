@@ -1,4 +1,6 @@
 import { collection, query, where, getDocs } from "firebase/firestore";
+import DB from "../DB/DB";
+import { db } from "../firebase";
 
 export default async function getPaymentDocumentURL(
   Source,
@@ -18,7 +20,7 @@ export default async function getPaymentDocumentURL(
     }
 
     const q = query(
-      collection(db, "ClientOnboarding"),
+      collection(db, DB.ClientOnboarding),
       where("companyName", "==", companyName),
     );
 

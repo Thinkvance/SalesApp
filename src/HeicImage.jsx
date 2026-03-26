@@ -17,8 +17,8 @@ export default function HeicImage({ src, alt, className }) {
       .then((res) => res.blob())
       .then((blob) =>
         heic2any({ blob, toType: "image/jpeg" }).then((out) =>
-          setConverted(URL.createObjectURL(out))
-        )
+          setConverted(URL.createObjectURL(out)),
+        ),
       )
       .catch((err) => {
         console.error("HEIC conversion failed:", err);
@@ -29,7 +29,6 @@ export default function HeicImage({ src, alt, className }) {
   if (!converted) return <p className="text-gray-400">Loading image...</p>;
   return (
     <a
-      href={converted}
       //   key={imgIndex}
       target="_blank"
       rel="noopener noreferrer"

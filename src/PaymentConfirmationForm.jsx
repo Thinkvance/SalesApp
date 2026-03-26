@@ -559,9 +559,9 @@ Our Refund Policy:
       const pickupRef = doc(db, DB.db_collection, docId);
       await updateDoc(pickupRef, { makePaymentNotified: messageStatus });
       // Success message
-      utilityFunctions.SuccessNotify(
-        "Make Payment notification sent successfully.",
-      );
+      // utilityFunctions.SuccessNotify(
+      //   "Make Payment notification sent successfully.",
+      // );
     } catch (error) {
       console.log("error", error);
       utilityFunctions.ErrorNotify(error.message);
@@ -897,12 +897,7 @@ Our Refund Policy:
             <label className="text-gray-700 font-medium mb-1">
               Consignor Name:
             </label>
-            <input
-              type="text"
-              value={details.consignorname}
-              readOnly
-              className="p-2 border rounded bg-gray-100"
-            />
+            <p>{details.consignorname}</p>
           </div>
           <div className="flex flex-col mb-4">
             <label className="text-gray-700 font-medium mb-1">

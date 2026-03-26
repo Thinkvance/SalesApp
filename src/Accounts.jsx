@@ -59,6 +59,7 @@ function Accounts() {
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [Editedvalue, setEditedvalue] = useState(null);
   const [copied, setCopied] = useState(null);
+  const [selectedModeOfPay, setselectedModeOfPay] = useState("All");
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
@@ -277,6 +278,10 @@ function Accounts() {
     const matchedsource =
       selectedSource === "All" ||
       pickup.Source?.toLowerCase() === selectedSource.toLowerCase();
+    const matchedModeOfPay =
+      selectedModeOfPay === "All" ||
+      pickup.paymentMode?.toLowerCase() === selectedModeOfPay.toLowerCase();
+
     const matchedvendor =
       selectedVendor === "All" ||
       pickup.vendorName?.toLowerCase() === selectedVendor.toLowerCase();
@@ -297,7 +302,8 @@ function Accounts() {
       matchedCity &&
       matchedsource &&
       matchedvendor &&
-      matchedVendorAWBnumber
+      matchedVendorAWBnumber &&
+      matchedModeOfPay
     );
   });
 
@@ -537,6 +543,23 @@ function Accounts() {
 
           <div className="w-fit col-span-1 md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
+              Mode Of Pay
+            </label>
+            <select
+              value={selectedModeOfPay}
+              onChange={(e) => setselectedModeOfPay(e.target.value)}
+              className="border rounded  input-style w-full"
+            >
+              <option value="All">All</option>
+              <option value="Cash">Cash</option>
+              <option value="Credit/Debit Cards">Credit/Debit Cards</option>
+              <option value="UPI">UPI</option>
+              <option value="Bank Transfer">Bank Transfer</option>
+            </select>
+          </div>
+
+          <div className="w-fit col-span-1 md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Vendor
             </label>
             <select
@@ -712,6 +735,8 @@ function Accounts() {
                   "Pickup Status",
                   "Invoice Date",
                   "Pickup Booked Date",
+                  "Invoice Number",
+                  "Invoice",
                   "Booked By",
                   "Pickup Person",
                   "Status",
@@ -722,6 +747,7 @@ function Accounts() {
                   "Margin",
                   "Vendor AWB Number",
                   "Vendor",
+                  "Payment Mode",
                   "Payment Proof",
                   "Edit Details",
                   "Details",
@@ -772,6 +798,19 @@ function Accounts() {
                       </td>
                       <td className="py-3 px-4 border text-nowrap">
                         {formatFirestoreTimestamp(pickup.pickupDatetime)}
+                      </td>
+                      <td className="py-3 px-4 border text-nowrap">
+                        {pickup.receiptNumber}
+                      </td>
+                      <td className="py-3 px-4 border text-nowrap">
+                        <a
+                          href={pickup.payment_Receipt_URL}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-[#714DD9] text-white text-sm font-medium rounded-lg shadow-sm hover:bg-[#886dda] active:scale-95 transition-all duration-200"
+                        >
+                          📄 View Invoice
+                        </a>
                       </td>
                       <td className="py-3 px-4 border">
                         {pickup.pickupBookedBy}
@@ -848,6 +887,9 @@ function Accounts() {
                       </td>
                       <td className="py-3 px-4 border">
                         {pickup.vendorName ? pickup.vendorName : "--"}
+                      </td>
+                      <td className="py-3 px-4 border">
+                        {pickup.paymentMode ? pickup.paymentMode : "--"}
                       </td>
                       <td className="py-3 px-4 border">
                         {pickup.paymentProof ? (

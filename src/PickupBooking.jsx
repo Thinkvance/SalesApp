@@ -60,8 +60,6 @@ function PickupBooking() {
 
   const [sourceOptions, setSourceOptions] = useState(baseSourceOptions);
 
-  const [city, setcity] = useState("");
-  const [source, setsource] = useState("Select");
   const [newAwbNumber, setnewAwbNumber] = useState();
   const [companyName, setcompanyName] = useState("");
   const [currentUser, setcurrentUser] = useState({});
@@ -158,6 +156,7 @@ function PickupBooking() {
     register,
     watch,
     handleSubmit,
+    clearErrors,
     formState: { errors },
     reset,
   } = useForm({
@@ -256,42 +255,26 @@ function PickupBooking() {
 
         if (!querySnapshot.empty) {
           const data = querySnapshot.docs.map((doc) => doc.data());
-          console.log("All data:", data);
           const dynamicSource = "Repeated Customer"; // Get source from DB
           const recentShipment = getRecentData(data);
-          console.log("recentShipment", recentShipment);
           setSourceOptions((prev) =>
             prev.includes(dynamicSource) ? prev : [...prev, dynamicSource],
           );
 
           // Wait for state update before setting value
-          setTimeout(() => {
-            setValue("source", dynamicSource); // Set form value dynamically
-            setValue("Consignorlocation", recentShipment.consignorlocation);
-            // setValue(
-            //   "consigneephonenumber",
-            //   recentShipment.consigneephonenumber.split(" ")[1]
-            // );
-            // setValue("consigneelocation", recentShipment.consigneelocation);
-            setsource(dynamicSource);
-            setIsSourceFixed(true);
-          }, 100);
+          setValue("Consignorlocation", recentShipment.consignorlocation);
+          setValue("source", dynamicSource); // Set form value dynamically
+          // setIsSourceFixed(true);
         } else {
-          // Reset if no match found
-          // setValue("consigneephonenumber", ""); // Set form value dynamically
-          // setValue("consigneename", ""); // Set form value dynamically
-          // setValue("consigneelocation", ""); // Set form value dynamically
-          // setValue("Consignorlocation", ""); // Set form value dynamically
-          setValue("source", source); // Set form value dynamically
-          setsource(source);
-          setIsSourceFixed(false);
+          setValue("source", ""); // Set form value dynamically
+          // setIsSourceFixed(false);
         }
       } catch (error) {
         console.log(error);
       }
     } else {
       // Reset if input is too short or long
-      setValue("source", "Select");
+      setValue("source", "");
       setIsSourceFixed(false);
     }
   };
@@ -391,10 +374,6 @@ function PickupBooking() {
     }
 
     try {
-      if (latitudelongitude == "") {
-        seterror("Latitude & Longitude  Is Required!");
-        return;
-      }
       setLoading(true);
       seterror("");
       const pickupDateTime_firebase_timestamp = convertToFirebaseTimestamp(
@@ -403,7 +382,7 @@ function PickupBooking() {
       const internalTracking = createDefaultInternalTracking(
         pickupDateTime_firebase_timestamp,
       );
-      const result = splitLati_Logi(latitudelongitude);
+      const result = splitLati_Logi(data.latlong);
       const destinationCountryName =
         countryCodeToName[data.country] || data.country;
       // Step 1: Fetch current maximum awbNumber
@@ -463,8 +442,8 @@ function PickupBooking() {
           : uploadedImageURLs.length == 0
             ? ""
             : uploadedImageURLs[0],
-        Source: source,
-        City: city,
+        Source: data.source,
+        City: data.city,
       });
       if (isRepeated == "Not REP") {
         const options = {
@@ -545,7 +524,7 @@ function PickupBooking() {
 
       setFiles([]);
       setIsSourceFixed(false);
-      setsource("");
+      setValue("source", "");
       reset();
       setUploadProgress({});
       setIsOnboarded(false);
@@ -569,6 +548,7 @@ function PickupBooking() {
       ) {
         setNetworkError(true);
       } else {
+        console.log(error);
         utility.ErrorNotify("Something went wrong. Please try again.");
       }
     } finally {
@@ -642,11 +622,12 @@ function PickupBooking() {
       setValue("Consignornumber", client.consignorPhone);
       setValue("Consignorlocation", client.consignorAddress);
       setValue("pincode", client.pincode);
-      setcity(client.city);
+
+      setValue("city", client.city);
       setValue("pickuparea", client.pickupArea);
-      setsource("B To C");
+      setValue("source", "B To C");
       setValue("instructions", client.specialInstructions);
-      setlatitudelongitude(client.coordinates);
+      setValue("latlong", client.coordinates);
       setClientKYC(client.kycFileUrl);
       setIsSourceFixed(true);
     } else {
@@ -654,9 +635,10 @@ function PickupBooking() {
       setValue("Consignornumber", "");
       setValue("Consignorlocation", "");
       setValue("pincode", "");
-      setcity("");
+
+      setValue("city", "");
       setValue("pickuparea", "");
-      setsource("");
+      setValue("source", "");
       setValue("instructions", "");
       setIsSourceFixed(false);
     }
@@ -667,16 +649,26 @@ function PickupBooking() {
       setcompanyName("");
       setClientKYC("");
       setlatitudelongitude("");
-      setcity("");
-
+      setValue("city", "");
       setValue("Consignorname", "");
       setValue("Consignornumber", "");
       setValue("Consignorlocation", "");
       setValue("pincode", "");
       setValue("pickuparea", "");
       setValue("instructions", "");
-
-      setsource("");
+      setValue("source", "");
+      setValue("latlong", "");
+      setValue("country", "");
+      setValue("consigneename", "");
+      setValue("consigneephonenumber", "");
+      setValue("consigneelocation", "");
+      setservice("");
+      setValue("service", "");
+      setValue("pickupDate", "");
+      setValue("pickupHour", "");
+      setValue("weight", "");
+      setValue("Content", "");
+      setFiles([]);
       setIsSourceFixed(false);
     }
   }, [isOnboarded]);
@@ -689,7 +681,7 @@ function PickupBooking() {
 
     try {
       const q = query(
-        collection(db, "ClientOnboarding"),
+        collection(db, DB.ClientOnboarding),
         where("CreatedBy", "==", currentUser.name),
         where("CreatedByEmail", "==", currentUser.email),
         where("isApproved", "==", true),
@@ -726,10 +718,10 @@ function PickupBooking() {
   return (
     <div className="">
       <Nav />
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4 flex-col gap-4 pt-5">
+      <div className="min-h-screen bg-white  flex items-center justify-center px-4 flex-col gap-4 pt-5">
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="bg-white p-6  rounded-md shadow-none w-full max-w-4xl relative"
+          className="bg-white p-3 sm:p-6  border border-gray-300 rounded-md shadow-none w-full max-w-4xl relative"
         >
           <h2
             className="text-lg sm:text-2xl font-bold text-center mb-12 sm:mb-6 
@@ -747,7 +739,7 @@ tracking-wide"
                     type="button"
                     onClick={() => setIsOnboarded((prev) => !prev)}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300
-      ${isOnboarded ? "bg-purple-600" : "bg-gray-300"}`}
+      ${isOnboarded ? "bg-[#8847D9]" : "bg-gray-300"}`}
                   >
                     <span
                       className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-300
@@ -811,6 +803,7 @@ tracking-wide"
                   Consignor Name
                 </label>
                 <input
+                  disabled={isSourceFixed}
                   type="text"
                   placeholder="E.g. Ram Kumar (Letters only)"
                   {...register("Consignorname", {
@@ -832,6 +825,7 @@ tracking-wide"
                 </label>
                 <input
                   type="text"
+                  disabled={isSourceFixed}
                   placeholder="E.g. 9876543210 (10 digits, should not add '+91')"
                   {...register("Consignornumber", {
                     required: "Consignor phone number is required",
@@ -867,6 +861,7 @@ tracking-wide"
                 </label>
                 <input
                   type="text"
+                  disabled={isSourceFixed}
                   placeholder="E.g. Door No, Area, City, State, Pincode"
                   {...register("Consignorlocation", {
                     required: "Enter Consignor location",
@@ -898,6 +893,7 @@ tracking-wide"
                     onChange={(e) => {
                       setValue("country", e.target.value);
                       setSelectedCountry(e.target.value?.toLowerCase());
+                      clearErrors("country");
                     }}
                     className={`w-full px-3 py-2 border ${
                       errors.country ? "border-red-500" : "border-gray-300"
@@ -1012,6 +1008,7 @@ tracking-wide"
                   Pickup Pincode
                 </label>
                 <input
+                  disabled={isSourceFixed}
                   type="text"
                   placeholder="E.g. 560001 (6-digits)"
                   {...register("pincode", { required: "Pincode is required" })}
@@ -1028,10 +1025,9 @@ tracking-wide"
               <div>
                 <p className="text-gray-700 font-semibold mb-2">City</p>
                 <select
+                  disabled={isSourceFixed}
                   {...register("city", { required: "City is required" })}
-                  value={city} // Ensure correct value
                   className="px-3 py-2 border rounded-md focus:outline-none focus:border-[#8847D9]"
-                  onChange={(e) => setcity(e.target.value)}
                 >
                   <option value="">Select</option>
                   {[
@@ -1058,6 +1054,7 @@ tracking-wide"
                   Pickup Area
                 </label>
                 <input
+                  disabled={isSourceFixed}
                   type="text"
                   placeholder="E.g. Guindy, T. Nagar"
                   {...register("pickuparea", {
@@ -1079,17 +1076,15 @@ tracking-wide"
                 <p className="text-gray-700 font-semibold mb-2">Source</p>
                 <select
                   {...register("source", { required: "Source is required" })}
-                  value={source} // Ensure correct value
-                  disabled={isSourceFixed} // Disable if auto-populated
-                  className={`px-3 py-2 border rounded-md focus:outline-none ${
+                  disabled={isSourceFixed}
+                  className={`px-3 py-2 border rounded-md ${
                     isSourceFixed
                       ? "bg-gray-200 cursor-not-allowed"
                       : "focus:border-[#8847D9]"
                   }`}
-                  onChange={(e) => setsource(e.target.value)}
                 >
                   <option value="">Select</option>
-                  {sourceOptions?.map((option, index) => (
+                  {sourceOptions.map((option, index) => (
                     <option key={index} value={option}>
                       {option}
                     </option>
@@ -1110,6 +1105,7 @@ tracking-wide"
                   })}
                   onChange={(e) => {
                     setservice(e.target.value);
+                    clearErrors("service"); // 👈 remove error
                   }}
                 >
                   <option value="">Select</option>
@@ -1171,6 +1167,7 @@ tracking-wide"
                   Special Instructions
                 </label>
                 <textarea
+                  disabled={isSourceFixed}
                   placeholder="E.g. Take swiping machine, Bubble wrap, Take extra boxes"
                   {...register("instructions", {
                     // required: "Source is required",
@@ -1184,19 +1181,49 @@ tracking-wide"
                 )}
               </div>
               <div className="mb-4">
-                <div className="flex gap-2 items-center ">
-                  <label className="block text-gray-700 font-semibold mb-2">
-                    Latitude & Longitude
-                  </label>
-                </div>
+                <label className="block text-gray-700 font-semibold mb-2">
+                  Latitude & Longitude
+                </label>
                 <input
                   type="text"
-                  value={latitudelongitude}
-                  placeholder="E.g. 11.000 , 12.000"
-                  className={`w-fit px-3 py-2 border "border-gray-300 rounded-md focus:outline-none focus:border-[#8847D9]`}
-                  onChange={(e) => setlatitudelongitude(e.target.value)}
+                  disabled={isSourceFixed}
+                  placeholder="E.g. 11.000,12.000"
+                  {...register("latlong", {
+                    required: "Latitude & Longitude is required",
+                    validate: (value) => {
+                      // 1. Remove ALL spaces
+                      const cleaned = value.replace(/\s/g, "");
+
+                      // 2. Basic format check
+                      const regex = /^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/;
+                      if (!regex.test(cleaned)) {
+                        return "Invalid format. Use: latitude,longitude";
+                      }
+
+                      // 3. Extract values
+                      const [lat, long] = cleaned.split(",").map(Number);
+
+                      // 4. Range validation
+                      if (lat < -90 || lat > 90) {
+                        return "Latitude must be between -90 and 90";
+                      }
+
+                      if (long < -180 || long > 180) {
+                        return "Longitude must be between -180 and 180";
+                      }
+
+                      return true;
+                    },
+                  })}
+                  className={`w-fit px-3 py-2 border ${
+                    errors.latlong ? "border-red-500" : "border-gray-300"
+                  } rounded-md focus:outline-none focus:border-[#8847D9]`}
                 />
-                {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+                {errors.latlong && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.latlong.message}
+                  </p>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
