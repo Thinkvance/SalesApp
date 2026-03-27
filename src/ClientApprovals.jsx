@@ -205,26 +205,39 @@ function ClientApprovals() {
                       </td>
 
                       <td className="px-6 py-4">
-                        <div className="flex justify-left gap-4">
-                          {client.status === "PENDING" && (
+                        <div className="flex items-center gap-3">
+                          {client.status === "PENDING" ? (
                             <>
-                              <FaCheck
-                                className="text-green-600"
+                              <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setSelectedClient(client);
                                   setActionType("APPROVE");
                                 }}
-                              />
-                              <FaXmark
-                                className="text-red-600"
+                                className="p-2 rounded-full bg-green-100 text-green-600 hover:bg-green-200 transition"
+                              >
+                                <FaCheck />
+                              </button>
+
+                              <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setSelectedClient(client);
                                   setActionType("REJECT");
                                 }}
-                              />
+                                className="p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition"
+                              >
+                                <FaXmark />
+                              </button>
                             </>
+                          ) : client.status === "APPROVED" ? (
+                            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">
+                              APPROVED
+                            </span>
+                          ) : (
+                            <span className="px-3 py-1 text-xs font- rounded-full bg-red-100 text-red-700">
+                              REJECTED
+                            </span>
                           )}
                         </div>
                       </td>
@@ -243,7 +256,13 @@ function ClientApprovals() {
                               billingAddress: client.billingAddress || "",
                             });
                           }}
-                          className="text-sm text-purple-600 underline"
+                          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 active:scale-95
+    ${
+      client.needGST
+        ? "bg-purple-100 text-purple-700 hover:bg-purple-200"
+        : "bg-orange-100 text-orange-700 hover:bg-orange-200"
+    }
+  `}
                         >
                           {client.needGST ? "Edit GST" : "Add GST"}
                         </button>

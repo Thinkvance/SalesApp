@@ -43,8 +43,8 @@ export default function SalesReportBarChartVendor({ pickups = [] }) {
     acc[key].totalWeight += Number(item.internalWeight) || 0;
     acc[key].salesCount += 1;
 
-    if (item.vendorPayment) {
-      acc[key].totalVendorPayment += Number(item.vendorPayment) || 0;
+    if (item.vendorpayment) {
+      acc[key].totalVendorPayment += Number(item.vendorpayment) || 0;
     }
 
     acc[key].totalLogisticCost += Number(item.logisticCost) || 0;
@@ -82,28 +82,19 @@ export default function SalesReportBarChartVendor({ pickups = [] }) {
                 const logisticCost = Number(d.totalLogisticCost) || 0;
                 const margin = Number(d.totalMargin) || 0;
                 const vendorPayment = Number(d.totalVendorPayment) || 0;
-
                 const marginPercent =
                   logisticCost > 0 ? (margin / logisticCost) * 100 : 0;
 
                 return (
                   <div className="bg-white border rounded-lg shadow p-3 text-sm">
                     <div className="font-semibold mb-2">Vendor: {label}</div>
-
+                    <div>Shipment Count: {formatNumber(d.salesCount)}</div>
                     <div>Weight: {formatNumber(d.totalWeight)} kg</div>
-
                     {logisticCost > 0 && (
                       <div>Selling Price: ₹{formatNumber(logisticCost)}</div>
                     )}
-
-                    <div>Shipment Count: {formatNumber(d.salesCount)}</div>
-
-                    {vendorPayment > 0 && (
-                      <div>Cost Price: ₹{formatNumber(vendorPayment)}</div>
-                    )}
-
+                    <div>Cost Price: ₹{formatNumber(vendorPayment || 0)}</div>
                     <div>Margin: ₹{formatNumber(margin)}</div>
-
                     {logisticCost > 0 && (
                       <div className="font-semibold text-purple-700">
                         Margin: {marginPercent.toFixed(1)}%
