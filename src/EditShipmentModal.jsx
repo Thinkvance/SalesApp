@@ -3,6 +3,7 @@ import Lottie from "lottie-react";
 import loadingAnimation from "./assets/loading_animation.json";
 import { useEffect, useState } from "react";
 import utilityFunctions from "./Utility/utilityFunctions";
+import vendorList from "./DB/vendorList.js";
 
 // Reusable InputField component
 const InputField = ({ label, name, register, error, rules }) => (
@@ -102,8 +103,18 @@ const EditShipmentModal = ({
               error={errors.service}
             />
 
-            {pickup.actualWeight &&
-            ["sales admin", "Manager"].includes(user?.role) ? (
+            {pickup.vendorName && (
+              <SelectField
+                label="Vendor Name"
+                name="vendorName"
+                register={register}
+                rules={{ required: "Please select a vendor." }}
+                options={vendorList}
+                error={errors.vendorName}
+              />
+            )}
+
+            {pickup.actualWeight && ["Manager"].includes(user?.role) ? (
               <InputField
                 label="Final Weight"
                 name="actualWeight"
@@ -115,8 +126,7 @@ const EditShipmentModal = ({
               ""
             )}
 
-            {pickup.internalWeight &&
-            ["sales admin", "Manager"].includes(user?.role) ? (
+            {pickup.internalWeight && ["Manager"].includes(user?.role) ? (
               <InputField
                 label="Internal Weight"
                 name="internalWeight"

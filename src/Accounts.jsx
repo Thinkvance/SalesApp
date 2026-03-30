@@ -25,6 +25,7 @@ import EditShipmentModal from "./EditShipmentModal";
 import { FiCheck, FiClipboard } from "react-icons/fi";
 import formatFirestoreTimestamp from "./Utility/formatFirestoreTimestamp";
 import BarChartCityWise from "./Charts/BarChartCityWise";
+import vendorList from "./DB/vendorList.js";
 dayjs.extend(customParseFormat);
 dayjs.extend(isBetween);
 
@@ -568,18 +569,9 @@ function Accounts() {
               className="border rounded  input-style w-full"
             >
               <option value="All">All</option>
-              <option value="DHL">DHL</option>
-              <option value="Aramex">Aramex</option>
-              <option value="UPS">UPS</option>
-              <option value="ExPlus">ExPlus</option>
-              <option value="TurboFox">TurboFox</option>
-              <option value="ICL SELF">ICL SELF</option>
-              <option value="ICL FedEx">ICL FedEx</option>
-              <option value="ATLANTIC">ATLANTIC</option>
-              <option value="IMD Courier">IMD Courier</option>
-              <option value="Sky Express">Sky Express</option>
-              <option value="World First">World First</option>
-              <option value="Legend Xpress">Legend Xpress</option>
+              {vendorList.map((vendor) => (
+                <option value={vendor}>{vendor}</option>
+              ))}
             </select>
           </div>
 

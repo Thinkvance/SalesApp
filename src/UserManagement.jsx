@@ -1,16 +1,8 @@
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import VpnKeyOutlinedIcon from "@mui/icons-material/VpnKeyOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
-import { useEffect, useMemo, useState } from "react";
-import {
-  collection,
-  getDocs,
-  updateDoc,
-  doc,
-  addDoc,
-  serverTimestamp,
-} from "firebase/firestore";
-import { Navigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
 import { Menu, MenuItem } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
@@ -65,8 +57,8 @@ const MobileUserList = ({
 
                         <div className="leading-tight">
                           <div className="text-sm font-semibold text-gray-900">
-                            {getUserDetailsByEmailId(user.email).name
-                              ? getUserDetailsByEmailId(user.email).name
+                            {getUserDetailsByEmailId(user.email)?.name
+                              ? getUserDetailsByEmailId(user.email)?.name
                               : "-"}
                           </div>
                           <div className="text-xs text-gray-500">
@@ -87,7 +79,7 @@ const MobileUserList = ({
                         <div>
                           <div className="text-gray-400">Access</div>
                           <div className="font-medium capitalize text-gray-800">
-                            {getUserDetailsByEmailId(user?.email)["role"]}
+                            {getUserDetailsByEmailId(user?.email)?.role}
                           </div>
                         </div>
 
@@ -145,6 +137,11 @@ export default function UserManagement() {
 
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [menuUser, setMenuUser] = useState(null);
+
+  const filteredUsers =
+    users?.users?.filter((u) =>
+      u.email?.toLowerCase().includes(search.toLowerCase()),
+    ) || [];
 
   /* ===============================
      FETCH USERS
@@ -211,7 +208,7 @@ export default function UserManagement() {
           <div className="text-sm font-medium text-gray-700">
             All Users{" "}
             <span className="ml-1 rounded-full bg-purple-100 px-3 py-1 text-purple-600 font-semibold">
-              {users.total ? users.total : "-"}
+              {users?.total ?? "-"}
             </span>
           </div>
 
@@ -233,7 +230,7 @@ export default function UserManagement() {
 
         {/* MOBILE */}
         <MobileUserList
-          users={users.users}
+          users={filteredUsers}
           currentEmail={currentEmail}
           onMenu={(e, user) => {
             setMenuAnchor(e.currentTarget);
@@ -259,7 +256,7 @@ export default function UserManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {users?.users?.map((user) => (
+                {filteredUsers?.map((user) => (
                   <tr key={user.email} className="hover:bg-purple-50">
                     <td className="px-8 py-5">
                       <div className="flex items-center gap-4">
@@ -268,8 +265,8 @@ export default function UserManagement() {
                         </div>
                         <div>
                           <div className="font-semibold">
-                            {getUserDetailsByEmailId(user.email).name
-                              ? getUserDetailsByEmailId(user.email).name
+                            {getUserDetailsByEmailId(user.email)?.name
+                              ? getUserDetailsByEmailId(user.email)?.name
                               : "-"}
                           </div>
                           <div className="text-xs text-gray-500">
@@ -291,7 +288,7 @@ export default function UserManagement() {
                             ROLE_BADGE[user?.role]
                           }`}
                         >
-                          {getUserDetailsByEmailId(user?.email)["role"]}
+                          {getUserDetailsByEmailId(user?.email)?.role}
                         </span>
                       </div>
                     </td>
@@ -347,6 +344,7 @@ export default function UserManagement() {
           {/* Change role */}
           <MenuItem
             onClick={() => {
+              if (!menuUser) return;
               setPendingChange({ user: menuUser, newRole: menuUser.role });
               setMenuAnchor(null);
             }}
@@ -362,7 +360,6 @@ export default function UserManagement() {
           {/* Delete user */}
           <MenuItem
             onClick={() => {
-              handleDeleteUser(menuUser);
               setMenuAnchor(null);
             }}
             className="flex items-center gap-3 py-3 text-red-600 hover:bg-red-50"

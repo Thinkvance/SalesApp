@@ -213,7 +213,7 @@ function Pickups() {
     <>
       <Nav />
       <div className="container mx-auto p-6 rounded-lg">
-        <h1 className="text-3xl font-bold mb-6 text-purple-700">
+        <h1 className="text-3xl font-bold mb-6 text-[#7A4BC0]">
           {role === "sales admin" || role === "Manager"
             ? "All Shipments"
             : `Pickups Booked by ${username}`}
@@ -266,7 +266,7 @@ function Pickups() {
         </div>
         <div className="overflow-auto border scrollbar-hide">
           <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow overflow-hidden">
-            <thead className="bg-purple-600 text-white">
+            <thead className="bg-[#7A4BC0] text-white">
               <tr className="text-nowrap">
                 <th className="py-3 px-4 border">AWB Number</th>
                 <th className="py-3 px-4 border">Status</th>

@@ -2,19 +2,58 @@ import { useEffect, useState } from "react";
 import {
   collection,
   onSnapshot,
+  updateDoc,
   query,
   orderBy,
+  doc,
   where,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import Nav from "./Nav";
 import DB from "./DB/DB";
-
+import { useForm } from "react-hook-form";
+import { serverTimestamp } from "firebase/firestore";
 function ExecutiveClientsScreen() {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [User, setUser] = useState(null);
   const [viewClient, setViewClient] = useState(null);
+  const [editClient, setEditClient] = useState(null);
+  const user = JSON.parse(localStorage.getItem("LoginCredentials"));
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm();
+
+  const onSubmit = async (data) => {
+    await updateDoc(doc(db, DB.ClientOnboarding, editClient.id), {
+      billingCompanyName: data.billingCompanyName,
+      GSTNumber: data.GSTNumber,
+      GSTState: data.GSTState,
+      billingAddress: data.billingAddress,
+
+      needGST: true,
+
+      lastUpdatedAt: serverTimestamp(),
+      lastUpdatedBy: user.email,
+    });
+
+    setEditClient(null);
+  };
+
+  useEffect(() => {
+    if (editClient) {
+      reset({
+        billingCompanyName: editClient.billingCompanyName || "",
+        GSTNumber: editClient.GSTNumber || "",
+        GSTState: editClient.GSTState || "",
+        billingAddress: editClient.billingAddress || "",
+      });
+    }
+  }, [editClient, reset]);
 
   /* -------------------- LOAD USER -------------------- */
   useEffect(() => {
@@ -93,7 +132,7 @@ function ExecutiveClientsScreen() {
     <div>
       <Nav />
 
-      <div className="p-6 bg-gray-100 min-h-screen">
+      <div className="p-4 sm:p-6 bg-gray-100 min-h-screen">
         <div className="max-w-7xl mx-auto bg-white rounded-2xl border shadow-sm">
           {/* Header */}
           <div className="px-6 py-4 border-b rounded-t-2xl bg-purple-50 flex justify-between items-center">
@@ -132,6 +171,7 @@ function ExecutiveClientsScreen() {
                     <th className="px-6 py-3 text-left">City</th>
                     <th className="px-6 py-3 text-left">Onboarded On</th>
                     <th className="px-6 py-3 text-left">Current Status</th>
+                    <th className="px-6 py-3 text-left">Edit Profile</th>
                   </tr>
                 </thead>
 
@@ -177,6 +217,24 @@ function ExecutiveClientsScreen() {
                         >
                           {client.status}
                         </span>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditClient(client);
+                          }}
+                          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 active:scale-95
+    ${
+      client.needGST
+        ? "bg-purple-100 text-purple-700 hover:bg-purple-200"
+        : "bg-orange-100 text-orange-700 hover:bg-orange-200"
+    }
+  `}
+                        >
+                          {client.needGST ? "Edit GST" : "Add GST"}
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -351,6 +409,171 @@ function ExecutiveClientsScreen() {
           </div>
         )}
       </div>
+
+      {editClient && (
+        <Overlay onClose={() => setEditClient(null)}>
+          <h3 className="text-lg font-bold text-purple-900 mb-4">
+            {!editClient.needGST ? "Add GST Details" : "Edit GST Details"}
+          </h3>
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {/* Billing Company */}
+            <div>
+              <label className="text-xs text-gray-500">
+                Billing Company Name
+              </label>
+              <input
+                placeholder="Enter billing company name"
+                {...register("billingCompanyName", {
+                  required: "Billing company name is required",
+                  minLength: {
+                    value: 3,
+                    message: "Minimum 3 characters required",
+                  },
+                })}
+                className={`w-full border rounded-lg p-2 text-sm mt-1 ${
+                  errors.billingCompanyName ? "border-red-400" : ""
+                }`}
+              />
+              {errors.billingCompanyName && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.billingCompanyName.message}
+                </p>
+              )}
+            </div>
+
+            {/* GST Number */}
+            <div>
+              <label className="text-xs text-gray-500">GST Number</label>
+              <input
+                placeholder="e.g. 33ABCDE1234F1Z5"
+                {...register("GSTNumber", {
+                  required: "GST number is required",
+                  minLength: {
+                    value: 15,
+                    message: "GST must be 15 characters",
+                  },
+                  maxLength: {
+                    value: 15,
+                    message: "GST must be 15 characters",
+                  },
+                  pattern: {
+                    value:
+                      /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/,
+                    message: "Invalid GST format (e.g. 33ABCDE1234F1Z5)",
+                  },
+                })}
+                onInput={(e) => (e.target.value = e.target.value.toUpperCase())}
+                className={`w-full border rounded-lg p-2 text-sm mt-1 uppercase ${
+                  errors.GSTNumber ? "border-red-400" : ""
+                }`}
+              />
+              {errors.GSTNumber && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.GSTNumber.message}
+                </p>
+              )}
+            </div>
+
+            {/* GST State */}
+            <div>
+              <label className="text-xs text-gray-500">
+                GST Registered State
+              </label>
+              <select
+                {...register("GSTState", {
+                  required: "GST registered state is required",
+                })}
+                className={`w-full border rounded-lg p-2 text-sm mt-1 ${
+                  errors.GSTState ? "border-red-400" : ""
+                }`}
+                defaultValue=""
+              >
+                <option value="" disabled>
+                  Select GST Registered State
+                </option>
+                <option value="Tamil Nadu">Tamil Nadu</option>
+                <option value="Coimbatore">Coimbatore</option>
+                <option value="Andhra Pradesh">Andhra Pradesh</option>
+                <option value="Karnataka">Karnataka</option>
+                <option value="Telangana">Telangana</option>
+                <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+                <option value="Assam">Assam</option>
+                <option value="Bihar">Bihar</option>
+                <option value="Chhattisgarh">Chhattisgarh</option>
+                <option value="Goa">Goa</option>
+                <option value="Gujarat">Gujarat</option>
+                <option value="Haryana">Haryana</option>
+                <option value="Himachal Pradesh">Himachal Pradesh</option>
+                <option value="Jharkhand">Jharkhand</option>
+                <option value="Kerala">Kerala</option>
+                <option value="Madhya Pradesh">Madhya Pradesh</option>
+                <option value="Maharashtra">Maharashtra</option>
+                <option value="Manipur">Manipur</option>
+                <option value="Meghalaya">Meghalaya</option>
+                <option value="Mizoram">Mizoram</option>
+                <option value="Nagaland">Nagaland</option>
+                <option value="Odisha">Odisha</option>
+                <option value="Punjab">Punjab</option>
+                <option value="Rajasthan">Rajasthan</option>
+                <option value="Sikkim">Sikkim</option>
+                <option value="Tripura">Tripura</option>
+                <option value="Uttar Pradesh">Uttar Pradesh</option>
+                <option value="Uttarakhand">Uttarakhand</option>
+                <option value="West Bengal">West Bengal</option>
+              </select>
+              {errors.GSTState && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.GSTState.message}
+                </p>
+              )}
+            </div>
+
+            {/* Billing Address */}
+            <div>
+              <label className="text-xs text-gray-500">
+                GST Address / Billing Address
+              </label>
+              <textarea
+                placeholder="Enter complete billing address"
+                {...register("billingAddress", {
+                  required: "Billing address is required",
+                  minLength: {
+                    value: 10,
+                    message: "Minimum 10 characters required",
+                  },
+                })}
+                className={`w-full border rounded-lg p-2 text-sm mt-1 ${
+                  errors.billingAddress ? "border-red-400" : ""
+                }`}
+              />
+              {errors.billingAddress && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.billingAddress.message}
+                </p>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3 pt-4">
+              <button
+                type="button"
+                onClick={() => setEditClient(null)}
+                className="px-4 py-2 border rounded-lg"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="submit"
+                className="px-5 py-2 bg-purple-600 text-white rounded-lg"
+              >
+                {!editClient.needGST ? "Add GST" : "Update GST"}
+              </button>
+            </div>
+          </form>
+        </Overlay>
+      )}
     </div>
   );
 }
@@ -376,6 +599,21 @@ const EmptyState = ({ title, description }) => (
     <div className="text-purple-200 text-6xl mb-4">✓</div>
     <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
     <p className="text-sm text-gray-500 mt-1">{description}</p>
+  </div>
+);
+
+const Overlay = ({ children, onClose, large }) => (
+  <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
+    <div
+      className={`bg-white rounded-2xl shadow-xl p-6 max-h-[90vh] overflow-y-auto ${
+        large ? "max-w-3xl w-full" : "max-w-md w-full"
+      }`}
+    >
+      <button onClick={onClose} className="float-right text-gray-400 text-xl">
+        ×
+      </button>
+      {children}
+    </div>
   </div>
 );
 

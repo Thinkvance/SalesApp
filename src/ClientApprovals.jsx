@@ -29,13 +29,6 @@ function ClientApprovals() {
   const user = JSON.parse(localStorage.getItem("LoginCredentials"));
   const [editClient, setEditClient] = useState(null);
 
-  const [billingData, setBillingData] = useState({
-    billingCompanyName: "",
-    GSTNumber: "",
-    GSTState: "",
-    billingAddress: "",
-  });
-
   const {
     register,
     handleSubmit,
@@ -156,7 +149,7 @@ function ClientApprovals() {
                     <th className="px-6 py-3 text-left">Created On</th>
                     <th className="px-6 py-3 text-left">Status</th>
                     <th className="px-6 py-3 text-left">Actions</th>
-                    <th className="px-6 py-3 text-left">Edit Profile dsfsd</th>
+                    <th className="px-6 py-3 text-left">Edit Profile</th>
                     <th className="px-6 py-3 text-left">View More</th>
                   </tr>
                 </thead>
@@ -247,14 +240,6 @@ function ClientApprovals() {
                             e.stopPropagation();
 
                             setEditClient(client);
-
-                            setBillingData({
-                              billingCompanyName:
-                                client.billingCompanyName || "",
-                              GSTNumber: client.GSTNumber || "",
-                              GSTState: client.GSTState || "",
-                              billingAddress: client.billingAddress || "",
-                            });
                           }}
                           className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 active:scale-95
     ${

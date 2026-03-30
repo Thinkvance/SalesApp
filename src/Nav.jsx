@@ -34,6 +34,7 @@ function Nav() {
 
   useEffect(() => {
     const u = JSON.parse(localStorage.getItem("LoginCredentials"));
+    console.log("user", u);
     setUser(u);
     setRoleBasedScreens(utility.rolesPermissions());
   }, []);
