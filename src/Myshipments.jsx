@@ -12,6 +12,8 @@ import {
   updateDoc,
   serverTimestamp,
   getDocs,
+  limit,
+  startAfter,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import axios from "axios";
@@ -28,6 +30,11 @@ export default function Myshipments() {
   const [role, setRole] = useState("");
   const [data, setdata] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(false);
+  const PAGE_SIZE = 20;
+  const [currentPage, setCurrentPage] = useState(0); // 0-indexed
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [pageCursors, setPageCursors] = useState([null]); // pageCursors[i] = startAfter doc for page i
   const [awbSearchTerm, setAwbSearchTerm] = useState("");
   const [consignorPhoneSearchTerm, setConsignorPhoneSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -408,33 +415,75 @@ export default function Myshipments() {
     setRole(storedUser?.role || "");
   }, []);
 
+  const fetchPage = async (pageIndex, cursors, currentRole, currentUsername) => {
+    const resolvedRole = currentRole ?? role;
+    const resolvedUsername = currentUsername ?? username;
+    if (!resolvedRole) return;
+    if (resolvedRole !== "Manager" && resolvedRole !== "sales admin" && !resolvedUsername) return;
+
+    setDataLoading(true);
+    try {
+      const cursor = cursors[pageIndex];
+
+      let baseConstraints;
+      if (resolvedRole === "Manager" || resolvedRole === "sales admin") {
+        baseConstraints = [orderBy("pickupDatetime", "desc")];
+      } else {
+        baseConstraints = [
+          where("pickupBookedBy", "==", resolvedUsername),
+          where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo)),
+          orderBy("pickupDatetime", "desc"),
+        ];
+      }
+
+      const qy = cursor
+        ? query(collection(db, DB.db_collection), ...baseConstraints, startAfter(cursor), limit(PAGE_SIZE))
+        : query(collection(db, DB.db_collection), ...baseConstraints, limit(PAGE_SIZE));
+
+      const snap = await getDocs(qy);
+      const pickupData = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setdata(pickupData);
+
+      if (snap.docs.length === PAGE_SIZE) {
+        setHasNextPage(true);
+        const nextCursor = snap.docs[snap.docs.length - 1];
+        setCursorForPage(pageIndex + 1, nextCursor, cursors);
+      } else {
+        setHasNextPage(false);
+      }
+      setCurrentPage(pageIndex);
+    } catch (e) {
+      console.error("Error fetching page:", e);
+    } finally {
+      setDataLoading(false);
+    }
+  };
+
+  const setCursorForPage = (pageIndex, cursor, existingCursors) => {
+    setPageCursors((prev) => {
+      const base = existingCursors ?? prev;
+      const updated = [...base];
+      updated[pageIndex] = cursor;
+      return updated;
+    });
+  };
+
   useEffect(() => {
     if (!role) return;
-    let qy;
-    if (role === "Manager" || role === "sales admin") {
-      qy = query(
-        collection(db, DB.db_collection),
-        orderBy("pickupDatetime", "desc"),
-      );
-    } else {
-      qy = query(
-        collection(db, DB.db_collection),
-        where("pickupBookedBy", "==", username),
-        orderBy("pickupDatetime", "desc"),
-        where("pickupDatetime", ">=", Timestamp.fromDate(oneMonthAgo)),
-      );
-    }
-
-    const unsubscribe = onSnapshot(qy, (querySnapshot) => {
-      const pickupData = [];
-      querySnapshot.forEach((docSnap) => {
-        pickupData.push({ id: docSnap.id, ...docSnap.data() });
-      });
-      setdata(pickupData);
-    });
-
-    return () => unsubscribe();
+    if (role !== "Manager" && role !== "sales admin" && !username) return;
+    const initialCursors = [null];
+    setPageCursors(initialCursors);
+    setCurrentPage(0);
+    fetchPage(0, initialCursors, role, username);
   }, [role, username]);
+
+  const goNextPage = () => {
+    fetchPage(currentPage + 1, pageCursors);
+  };
+
+  const goPrevPage = () => {
+    fetchPage(currentPage - 1, pageCursors);
+  };
 
   const filteredPickups = data.filter((pickup) => {
     const awbMatch = String(pickup.awbNumber)
@@ -593,7 +642,18 @@ export default function Myshipments() {
               </tr>
             </thead>
             <tbody>
-              {filteredPickups.length > 0
+              {dataLoading ? (
+                <tr>
+                  <td colSpan={tableHeader.length} className="py-16 text-center">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <div className="w-20 h-20">
+                        <Lottie animationData={loadingAnimation} loop autoplay />
+                      </div>
+                      <span className="text-sm text-gray-400">Loading shipments…</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredPickups.length > 0
                 ? filteredPickups.map((item, i) => {
                     const escStatus = (
                       item.escalationStatus || "none"
@@ -809,12 +869,38 @@ export default function Myshipments() {
             </tbody>
           </table>
 
-          {filteredPickups.length <= 0 ? (
-            <div className="flex p-10 w-full  justify-center items-center">
+          {!dataLoading && filteredPickups.length <= 0 ? (
+            <div className="flex p-10 w-full justify-center items-center">
               <span className="font-[12px] text-gray-400">No data</span>
             </div>
           ) : null}
         </div>
+
+        {/* -------- Pagination Controls -------- */}
+        {!dataLoading && (
+          <div className="mt-4 flex items-center justify-between px-1">
+            <span className="text-sm text-gray-500">
+              Page {currentPage + 1}
+            </span>
+            <div className="flex gap-3">
+              <button
+                onClick={goPrevPage}
+                disabled={currentPage === 0}
+                className="px-4 py-1.5 rounded-md border text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                ← Prev
+              </button>
+              <button
+                onClick={goNextPage}
+                disabled={!hasNextPage}
+                className="px-4 py-1.5 rounded-md border text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        )}
+        {/* -------- End Pagination Controls -------- */}
 
         {isModalOpen && selectedPickup && (
           <ShipmentDetails

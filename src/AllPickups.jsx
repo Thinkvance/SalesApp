@@ -17,6 +17,8 @@ import DB from "./DB/DB";
 import ShipmentDetails from "./ShipmentDetails";
 import EditShipmentModal from "./EditShipmentModal";
 import formatFirestoreTimestamp from "./Utility/formatFirestoreTimestamp";
+import Lottie from "lottie-react";
+import loadingAnimation from "../public/loading_sharebtn.json";
 
 function Pickups() {
   const [username, setUsername] = useState(null);
@@ -33,18 +35,25 @@ function Pickups() {
   const [selectedPickup, setSelectedPickup] = useState(null); // State to hold the selected pickup for modal
   const [pickupPersons, setPickupPersons] = useState(["Unassigned"]);
   const [loadingEdit, setLoadingEdit] = useState(false);
+  const PAGE_SIZE = 10;
+  const [currentPage, setCurrentPage] = useState(0);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
       collection(db, "OpsPickupLoginCredentials"),
       (querySnapshot) => {
         const names = ["Unassigned"];
+
         querySnapshot.forEach((doc) => {
           const data = doc.data();
+
           Object.values(data).forEach((arr) => {
-            names.push(arr[0]); // Push only the name (index 0)
+            if (arr[2] === "pickup") {
+              names.push(arr[0]);
+            }
           });
         });
+
         setPickupPersons(names);
       },
       (error) => {
@@ -302,6 +311,17 @@ function Pickups() {
     }
   }, [username, Location, dateSearchTerm]);
 
+  // Reset to page 1 when any filter changes
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [
+    awbSearchTerm,
+    consignorPhoneSearchTerm,
+    PickupPersonName,
+    Location,
+    dateSearchTerm,
+  ]);
+
   // Filter pickups based on search terms
   const filteredPickups = pickups.filter((pickup) => {
     const awbMatch = String(pickup.awbNumber)
@@ -318,7 +338,14 @@ function Pickups() {
   });
 
   if (loading) {
-    return <div className="text-center">Loading...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-2">
+        <div className="w-24 h-24">
+          <Lottie animationData={loadingAnimation} loop autoplay />
+        </div>
+        <span className="text-sm text-gray-400">Loading shipments…</span>
+      </div>
+    );
   }
 
   if (error) {
@@ -370,10 +397,10 @@ function Pickups() {
           />
           <input
             type="text"
-            placeholder="Consignor Phone Number"
+            placeholder="Consignor Number"
             value={consignorPhoneSearchTerm}
             onChange={(e) => setConsignorPhoneSearchTerm(e.target.value)}
-            className="border border-gray-300 rounded py-2 px-4 w-fit mb-2 focus:outline-none focus:ring-2 focus:ring-purple-600"
+            className="border border-gray-300  rounded py-2 px-4 w-fit mb-2 focus:outline-none focus:ring-2 focus:ring-purple-600"
           />
           <select
             onChange={(e) => setPickUpPersonName(e.target.value)}
@@ -413,51 +440,55 @@ function Pickups() {
             </thead>
             <tbody>
               {filteredPickups.length > 0 ? (
-                filteredPickups.map((pickup) => (
-                  <tr key={pickup.id}>
-                    <td className="py-10 px-4 border">{pickup.awbNumber}</td>
-                    <td className="py-10 px-4 border">
-                      {pickup.consignorname}
-                    </td>
-                    <td className="py-10 px-4 border">
-                      {pickup.consignorphonenumber}
-                    </td>
-                    <td className="py-10 px-4 border">{pickup.destination}</td>
-                    <td className="py-10 px-4 border">{pickup.weightapx}</td>
-                    <td className="py-10 px-4 border">{pickup.pickuparea}</td>
-                    <td className="py-10 px-4 border text-nowrap">
-                      {pickup.status}
-                    </td>
-                    <td className="py-10 px-4 border text-nowrap">
-                      {pickup.pickUpPersonNameStatus == "" ||
-                      pickup.pickUpPersonNameStatus == null
-                        ? "NOT COMPLETED"
-                        : pickup.pickUpPersonNameStatus}
-                    </td>
-                    <td className="py-10 px-4 border text-nowrap">
-                      {formatFirestoreTimestamp(pickup.pickupDatetime)}
-                    </td>
-                    <td className="py-10 px-4 border">
-                      {pickup.pickupBookedBy}
-                    </td>
-                    <td className="py-10 px-4 border flex flex-col items-center">
-                      {pickup.pickUpPersonName}
-                      <img
-                        className="w-7 cursor-pointer mt-3"
-                        src="more-icon.svg"
-                        onClick={() => handleMoreIconClick(pickup)} // On click, show details in modal
-                      />
-                    </td>
-                    <td className="p-4 border text-center align-middle">
-                      <button
-                        onClick={() => handleEditClick(pickup)}
-                        className="text-[#714DD9] hover:underline text-[16px]  font-medium"
-                      >
-                        Edit
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                filteredPickups
+                  .slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE)
+                  .map((pickup) => (
+                    <tr key={pickup.id}>
+                      <td className="py-10 px-4 border">{pickup.awbNumber}</td>
+                      <td className="py-10 px-4 border">
+                        {pickup.consignorname}
+                      </td>
+                      <td className="py-10 px-4 border">
+                        {pickup.consignorphonenumber}
+                      </td>
+                      <td className="py-10 px-4 border">
+                        {pickup.destination}
+                      </td>
+                      <td className="py-10 px-4 border">{pickup.weightapx}</td>
+                      <td className="py-10 px-4 border">{pickup.pickuparea}</td>
+                      <td className="py-10 px-4 border text-nowrap">
+                        {pickup.status}
+                      </td>
+                      <td className="py-10 px-4 border text-nowrap">
+                        {pickup.pickUpPersonNameStatus == "" ||
+                        pickup.pickUpPersonNameStatus == null
+                          ? "NOT COMPLETED"
+                          : pickup.pickUpPersonNameStatus}
+                      </td>
+                      <td className="py-10 px-4 border text-nowrap">
+                        {formatFirestoreTimestamp(pickup.pickupDatetime)}
+                      </td>
+                      <td className="py-10 px-4 border">
+                        {pickup.pickupBookedBy}
+                      </td>
+                      <td className="py-10 px-4 border flex flex-col items-center">
+                        {pickup.pickUpPersonName}
+                        <img
+                          className="w-7 cursor-pointer mt-3"
+                          src="more-icon.svg"
+                          onClick={() => handleMoreIconClick(pickup)} // On click, show details in modal
+                        />
+                      </td>
+                      <td className="p-4 border text-center align-middle">
+                        <button
+                          onClick={() => handleEditClick(pickup)}
+                          className="text-[#714DD9] hover:underline text-[16px]  font-medium"
+                        >
+                          Edit
+                        </button>
+                      </td>
+                    </tr>
+                  ))
               ) : (
                 <tr>
                   <td
@@ -471,6 +502,44 @@ function Pickups() {
             </tbody>
           </table>
         </div>
+
+        {/* -------- Pagination Controls -------- */}
+        {filteredPickups.length > PAGE_SIZE && (
+          <div className="mt-4 flex items-center justify-between px-1">
+            <span className="text-sm text-gray-500">
+              Page {currentPage + 1} of{" "}
+              {Math.ceil(filteredPickups.length / PAGE_SIZE)}
+            </span>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                disabled={currentPage === 0}
+                className="px-4 py-1.5 rounded-md border text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                ← Prev
+              </button>
+              <button
+                onClick={() =>
+                  setCurrentPage((p) =>
+                    Math.min(
+                      Math.ceil(filteredPickups.length / PAGE_SIZE) - 1,
+                      p + 1,
+                    ),
+                  )
+                }
+                disabled={
+                  currentPage >=
+                  Math.ceil(filteredPickups.length / PAGE_SIZE) - 1
+                }
+                className="px-4 py-1.5 rounded-md border text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        )}
+        {/* -------- End Pagination Controls -------- */}
+
         {isModalOpen && selectedPickup && (
           <ShipmentDetails
             selectedPickup={selectedPickup}

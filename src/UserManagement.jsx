@@ -51,7 +51,7 @@ const MobileUserList = ({
                     {/* PANEL 1 — BASIC INFO */}
                     <div className="w-full snap-start px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 shrink-0 rounded-full bg-purple-600 text-white flex items-center justify-center font-semibold">
+                        <div className="h-10 w-10 shrink-0 rounded-full bg-[#7A4BC0] text-white flex items-center justify-center font-semibold">
                           {user.email?.[0]?.toUpperCase()}
                         </div>
 
@@ -195,7 +195,7 @@ export default function UserManagement() {
       <div className="container mx-auto rounded-lg bg-gradient-to-br  px-4 md:px-8 py-6">
         {/* Header */}
         <div className="mb-4">
-          <h1 className="text-xl md:text-3xl font-bold text-purple-600">
+          <h1 className="text-xl md:text-3xl font-bold text-[#7A4BC0]">
             User Management
           </h1>
           <p className="text-sm text-gray-500">
@@ -207,7 +207,7 @@ export default function UserManagement() {
         <div className="flex flex-col gap-3 mb-5 md:flex-row md:items-center md:justify-between">
           <div className="text-sm font-medium text-gray-700">
             All Users{" "}
-            <span className="ml-1 rounded-full bg-purple-100 px-3 py-1 text-purple-600 font-semibold">
+            <span className="ml-1 rounded-full bg-purple-100 px-3 py-1 text-[#7A4BC0] font-semibold">
               {users?.total ?? "-"}
             </span>
           </div>
@@ -221,7 +221,7 @@ export default function UserManagement() {
             />
             <button
               onClick={() => setOpen((prev) => !prev)}
-              className="rounded-xl bg-purple-600 px-5 text-nowrap py-2 text-sm font-semibold text-white"
+              className="rounded-xl bg-[#7A4BC0] px-5 text-nowrap py-2 text-sm font-semibold text-white"
             >
               + Add user
             </button>
@@ -246,8 +246,8 @@ export default function UserManagement() {
             <div className="p-10 text-center text-gray-500">Loading users…</div>
           ) : (
             <table className="w-full text-sm">
-              <thead className="bg-purple-200 border-b">
-                <tr className="text-xs uppercase text-gray-600">
+              <thead className="bg-[#7A4BC0] border-b">
+                <tr className="text-xs uppercase text-white">
                   <th className="px-8 py-4 text-left">User Name</th>
                   <th className="px-6 py-4 text-left">Role</th>
                   <th className="px-6 py-4 text-left">Last Active</th>
@@ -260,7 +260,7 @@ export default function UserManagement() {
                   <tr key={user.email} className="hover:bg-purple-50">
                     <td className="px-8 py-5">
                       <div className="flex items-center gap-4">
-                        <div className="h-11 w-11 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold">
+                        <div className="h-11 w-11 rounded-full bg-[#7A4BC0] text-white flex items-center justify-center font-bold">
                           {user.email?.[0]?.toUpperCase()}
                         </div>
                         <div>

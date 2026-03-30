@@ -201,6 +201,16 @@ const ShipmentDetails = React.memo(function ShipmentDetails({
         {/* Payment */}
         <Section title="Payment & Cost">
           <div className="grid md:grid-cols-3 gap-4">
+            <Field
+              label="Payment DateTime"
+              value={
+                selectedPickup.internalTracking?.[3]?.datetime
+                  ? formatFirestoreTimestamp(
+                      selectedPickup.internalTracking[3].datetime,
+                    )
+                  : "N/A"
+              }
+            />
             <Field label="Payment Mode" value={selectedPickup.paymentMode} />
             <Field
               label="Logistics Cost"
