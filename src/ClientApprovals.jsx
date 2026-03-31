@@ -7,6 +7,8 @@ import {
   onSnapshot,
   query,
   orderBy,
+  getDocs,
+  where,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { FaEye, FaCheck, FaXmark } from "react-icons/fa6";
@@ -14,10 +16,23 @@ import Nav from "./Nav";
 import DB from "./DB/DB";
 import { useForm } from "react-hook-form";
 import { CiCircleMore } from "react-icons/ci";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  LabelList,
+} from "recharts";
 
 function ClientApprovals() {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [chartData, setChartData] = useState([]);
+  const [trackedCompanies, setTrackedCompanies] = useState([]);
 
   // Detail modal
   const [viewClient, setViewClient] = useState(null);
@@ -35,6 +50,59 @@ function ClientApprovals() {
     formState: { errors },
     reset,
   } = useForm();
+
+  // 📊 Step 1: fetch company names from ClientOnboarding, then aggregate pickup data
+  useEffect(() => {
+    const fetchChartData = async () => {
+      try {
+        // Get all company names from ClientOnboarding
+        const clientSnap = await getDocs(collection(db, DB.ClientOnboarding));
+        const companies = [];
+        clientSnap.forEach((d) => {
+          const name = d.data().companyName;
+          if (name) companies.push(name);
+        });
+        if (companies.length === 0) return;
+        setTrackedCompanies(companies);
+
+        // Firestore "in" supports max 30 items — chunk if needed
+        const chunks = [];
+        for (let i = 0; i < companies.length; i += 30)
+          chunks.push(companies.slice(i, i + 30));
+
+        const allDocs = [];
+        await Promise.all(
+          chunks.map(async (chunk) => {
+            const snap = await getDocs(
+              query(
+                collection(db, DB.db_collection),
+                where("companyName", "in", chunk),
+              ),
+            );
+            snap.forEach((d) => allDocs.push(d.data()));
+          }),
+        );
+
+        // Aggregate per company
+        const agg = {};
+        companies.forEach((c) => {
+          agg[c] = { name: c, shipments: 0, totalCost: 0, totalWeight: 0 };
+        });
+        allDocs.forEach(({ companyName, logisticCost, actualWeight }) => {
+          if (agg[companyName]) {
+            agg[companyName].shipments += 1;
+            agg[companyName].totalCost += Number(logisticCost) || 0;
+            agg[companyName].totalWeight += parseFloat(actualWeight) || 0;
+          }
+        });
+        setChartData(Object.values(agg));
+      } catch (e) {
+        console.error("Chart data fetch error:", e);
+      }
+    };
+    fetchChartData();
+  }, []);
+
 
   // 🔥 Realtime Firestore listener
   useEffect(() => {
@@ -130,6 +198,75 @@ function ClientApprovals() {
               Pending: {clients.filter((c) => c.status === "PENDING").length}
             </span>
           </div>
+
+          {/* -------- Overview Section -------- */}
+          {chartData.length > 0 && (() => {
+            const totals = chartData.reduce(
+              (acc, c) => ({ shipments: acc.shipments + c.shipments, totalCost: acc.totalCost + c.totalCost, totalWeight: acc.totalWeight + c.totalWeight }),
+              { shipments: 0, totalCost: 0, totalWeight: 0 },
+            );
+            return (
+              <div className="border-b px-6 py-5">
+                <h3 className="text-sm font-semibold text-purple-800 mb-4">Shipment Overview by Company</h3>
+                <div className="flex flex-col md:flex-row gap-4">
+                  {/* 30% stat cards */}
+                  <div className="flex flex-row md:flex-col gap-2 md:w-[30%] w-full">
+                    <div className="flex-1 rounded-lg bg-purple-50 border border-purple-100 px-3 py-2.5 flex items-center gap-3">
+                      <div className="w-1 self-stretch rounded-full bg-purple-400" />
+                      <div>
+                        <p className="text-[11px] text-purple-500 font-semibold uppercase tracking-wide">Shipments</p>
+                        <p className="text-lg font-bold text-purple-800 leading-tight">{totals.shipments}</p>
+                        <p className="text-[10px] text-purple-400">across all clients</p>
+                      </div>
+                    </div>
+                    <div className="flex-1 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2.5 flex items-center gap-3">
+                      <div className="w-1 self-stretch rounded-full bg-emerald-400" />
+                      <div>
+                        <p className="text-[11px] text-emerald-600 font-semibold uppercase tracking-wide">Total Cost</p>
+                        <p className="text-lg font-bold text-emerald-700 leading-tight">₹{totals.totalCost.toLocaleString()}</p>
+                        <p className="text-[10px] text-emerald-400">logistic cost</p>
+                      </div>
+                    </div>
+                    <div className="flex-1 rounded-lg bg-sky-50 border border-sky-100 px-3 py-2.5 flex items-center gap-3">
+                      <div className="w-1 self-stretch rounded-full bg-sky-400" />
+                      <div>
+                        <p className="text-[11px] text-sky-500 font-semibold uppercase tracking-wide">Total Weight</p>
+                        <p className="text-lg font-bold text-sky-700 leading-tight">{totals.totalWeight.toFixed(2)} kg</p>
+                        <p className="text-[10px] text-sky-400">actual weight</p>
+                      </div>
+                    </div>
+                  </div>
+                  {/* 70% bar chart */}
+                  <div className="md:w-[70%] w-full">
+                    <ResponsiveContainer width="100%" height={320}>
+                      <BarChart data={chartData} margin={{ top: 28, right: 60, left: 10, bottom: 70 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ede9fe" />
+                        <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#6b21a8" }} angle={-35} textAnchor="end" interval={0} />
+                        <YAxis yAxisId="left" orientation="left" allowDecimals={false} tick={{ fontSize: 11, fill: "#7c3aed" }} />
+                        <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: "#059669" }} tickFormatter={(v) => v >= 1000 ? `₹${(v / 1000).toFixed(0)}k` : `₹${v}`} />
+                        <Tooltip formatter={(value, name) => {
+                          if (name === "Total Cost (₹)") return [`₹${Number(value).toLocaleString()}`, name];
+                          if (name === "Total Weight (kg)") return [`${Number(value).toFixed(2)} kg`, name];
+                          return [value, name];
+                        }} />
+                        <Legend verticalAlign="top" wrapperStyle={{ fontSize: 12, paddingBottom: 8 }} />
+                        <Bar yAxisId="left" dataKey="shipments" name="Shipments" fill="#7c3aed" radius={[4, 4, 0, 0]} barSize={16}>
+                          <LabelList dataKey="shipments" position="top" style={{ fontSize: 10, fill: "#7c3aed", fontWeight: 700 }} formatter={(v) => v > 0 ? v : ""} />
+                        </Bar>
+                        <Bar yAxisId="right" dataKey="totalCost" name="Total Cost (₹)" fill="#10b981" radius={[4, 4, 0, 0]} barSize={16}>
+                          <LabelList dataKey="totalCost" position="top" style={{ fontSize: 10, fill: "#059669", fontWeight: 700 }} formatter={(v) => v > 0 ? `₹${(v / 1000).toFixed(1)}k` : ""} />
+                        </Bar>
+                        <Bar yAxisId="left" dataKey="totalWeight" name="Total Weight (kg)" fill="#0ea5e9" radius={[4, 4, 0, 0]} barSize={16}>
+                          <LabelList dataKey="totalWeight" position="top" style={{ fontSize: 10, fill: "#0ea5e9", fontWeight: 700 }} formatter={(v) => v > 0 ? `${Number(v).toFixed(1)}` : ""} />
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+          {/* -------- End Overview Section -------- */}
 
           {/* Table */}
 

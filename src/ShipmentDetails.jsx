@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { FiClipboard, FiCheck } from "react-icons/fi";
 import HeicImage from "./HeicImage";
+import Lottie from "lottie-react";
+import loadingAnimation from "../public/loading_sharebtn.json";
 
 /* ------------------- Reusable Components ------------------- */
 
@@ -47,6 +49,12 @@ const ShipmentDetails = React.memo(function ShipmentDetails({
 }) {
   const [copied, setCopied] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setInitialLoading(false), 800);
+    return () => clearTimeout(t);
+  }, []);
 
   const scrollRef = useRef(null);
   const scrollPosition = useRef(0);
@@ -102,21 +110,30 @@ const ShipmentDetails = React.memo(function ShipmentDetails({
       onClick={() => {
         if (!previewImage) closeModal();
       }}
-      className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4"
+      className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-2 sm:p-4"
     >
       <div
         ref={scrollRef}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white w-full max-w-5xl rounded-xl shadow-xl max-h-[95vh] overflow-y-auto px-4  relative"
+        className="bg-white w-full max-w-5xl rounded-xl shadow-xl max-h-[95vh] overflow-y-auto px-3 sm:px-6 relative"
       >
-        <div className="sticky flex justify-between top-0 bg-white  z-10 pt-8 ">
-          <h2 className="text-2xl font-semibold text-purple-700 text-left mb-6">
+        {/* ---- Lottie loading overlay ---- */}
+        {initialLoading && (
+          <div className="absolute inset-0 bg-white rounded-xl z-20 flex flex-col items-center justify-center gap-2">
+            <div className="w-20 h-20">
+              <Lottie animationData={loadingAnimation} loop autoplay />
+            </div>
+            <span className="text-sm text-gray-400">Loading details…</span>
+          </div>
+        )}
+
+        <div className="sticky flex justify-between top-0 bg-white z-10 pt-4 sm:pt-8 pb-2">
+          <h2 className="text-lg sm:text-2xl font-semibold text-purple-700 text-left mb-2 sm:mb-6">
             Pickup Details
           </h2>
-          {/* Close Button */}
           <button
             onClick={closeModal}
-            className=" text-red-500   bg-gray-100 hover:bg-gray-200 rounded-full p-3 w-10 h-10 flex items-center justify-center text-lg"
+            className="text-red-500 bg-gray-100 hover:bg-gray-200 rounded-full p-2 w-9 h-9 flex items-center justify-center text-base"
           >
             ✕
           </button>
@@ -157,7 +174,7 @@ const ShipmentDetails = React.memo(function ShipmentDetails({
         </Section>
 
         {/* Consignor & Consignee */}
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Section title="Consignor">
             <Field label="Name" value={selectedPickup.consignorname} />
             <Field label="Phone" value={selectedPickup.consignorphonenumber} />
@@ -280,7 +297,7 @@ const ShipmentDetails = React.memo(function ShipmentDetails({
           )}
         </Section>
 
-        {/* AWB */}
+        {/* AWB — last section, needs bottom spacing on mobile */}
         <Section
           title="AWB Details"
           selectedPickup={formatFirestoreTimestamp(
@@ -321,7 +338,7 @@ const ShipmentDetails = React.memo(function ShipmentDetails({
                 </div>
 
                 <a
-                  href={`https://shiphit.in/track-your-courier/${selectedPickup.awbHashedValue}`}
+                  href={`https://shiphit.com/track-your-courier/${selectedPickup.awbHashedValue}`}
                   target="_blank"
                   rel="noreferrer"
                 >
@@ -335,6 +352,7 @@ const ShipmentDetails = React.memo(function ShipmentDetails({
             <p className="text-gray-500">No Image</p>
           )}
         </Section>
+        <div className="pb-6" />
       </div>
 
       {/* Preview Modal */}
