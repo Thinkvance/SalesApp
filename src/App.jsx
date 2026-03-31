@@ -49,6 +49,7 @@ import UserManagement from "./UserManagement";
 import ClientApprovals from "./ClientApprovals";
 import ExecutiveClientsScreen from "./ExecutiveClientsScreen";
 import ClientOnboarding from "./ClientOnboarding";
+import { fetchLowestRate } from "./Utility/fetchLowestRate";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -143,6 +144,15 @@ function App() {
     });
 
     return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const testFetch = async () => {
+      const result = await fetchRate("USA", "Express", "1 Kg FLAT");
+      console.log("Rate:", result);
+    };
+
+    testFetch();
   }, []);
 
   // Optional: Timeout fallback
