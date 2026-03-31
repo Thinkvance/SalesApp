@@ -15,7 +15,7 @@ const loadFirestore = async () => {
 /* ------------------------------------------------------------------ */
 /* ✅ FETCH RATE BY COUNTRY + SERVICE + WEIGHT                        */
 /* ------------------------------------------------------------------ */
-export async function fetchRate(country, service, weight) {
+export async function fetchLowestRate(country, service, weight) {
   try {
     const { db, doc, getDoc } = await loadFirestore();
 

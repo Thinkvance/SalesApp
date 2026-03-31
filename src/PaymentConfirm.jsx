@@ -20,7 +20,6 @@ function PaymentConfirm() {
   const [activeTab, setActiveTab] = useState("PAYMENT PENDING");
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-
   useEffect(() => {
     const loginCredentials = JSON.parse(
       localStorage.getItem("LoginCredentials"),
@@ -85,7 +84,6 @@ function PaymentConfirm() {
         : allowedStatusesDone.includes(item.status)) &&
       String(item.awbNumber).includes(searchTerm),
   );
-
   async function generate_Invoice_PDF_Test() {
     const doc = new jsPDF("p", "pt");
 
