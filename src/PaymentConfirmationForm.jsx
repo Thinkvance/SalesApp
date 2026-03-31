@@ -26,6 +26,7 @@ import countryList from "./CountryDialCode.json";
 import generate_GST_Invoice_PDF from "./Utility/GSTinvoice";
 import shouldSendInvoice from "./Utility/shouldSendInvoice.jsx";
 import getClientGSTNumber from "./Utility/getClientGSTNumber.js";
+import { fetchLowestRate, getWeightSlab, normaliseService } from "./Utility/fetchLowestRate.js";
 function PaymentConfirmationForm() {
   const [costKg, setcostKg] = useState(0);
   const { awbnumber } = useParams();
@@ -37,6 +38,9 @@ function PaymentConfirmationForm() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [showPopup, setShowPopup] = useState(false); // State to control popup visibility
   const [showPopupForPayConfirm, setshowPopupForPayConfirm] = useState(false);
+  const [showGetPaymentConfirm, setShowGetPaymentConfirm] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState(null);
+  const [costKgAutoPopulated, setCostKgAutoPopulated] = useState(false);
   const barcodeRef = useRef(null); // Ref for barcode generation
   const [paymentMode, setPaymentMode] = useState("");
   const {
@@ -45,6 +49,7 @@ function PaymentConfirmationForm() {
     control,
     setValue,
     setError,
+    watch,
     formState: { errors },
   } = useForm();
   const navigate = useNavigate();
@@ -739,7 +744,7 @@ Our Refund Policy:
 
       const now = Timestamp.now();
 
-      const updatedInternalTracking = details.internalTracking.map((step) => {
+      const updatedInternalTracking = (details.internalTracking || []).map((step) => {
         if (step.code === "PAYMENT_RECEIVED") {
           return {
             ...step,
@@ -854,6 +859,33 @@ Our Refund Policy:
     }
   }, [details]);
 
+  // Auto-populate Cost/KG from rate card (only when not already set)
+  useEffect(() => {
+    if (!details || details.costKg != null) return;
+    if (!details.destination || !details.service) return;
+
+    const weightSlab = getWeightSlab(details.actualWeight);
+    if (!weightSlab) return;
+    const service = normaliseService(details.service);
+
+    fetchLowestRate(details.destination, service, weightSlab)
+      .then((result) => {
+        if (result && result.amount) {
+          setcostKg(result.amount);
+          setValue("costKg", result.amount);
+          setCostKgAutoPopulated(true);
+        }
+      })
+      .catch((err) => {
+        console.log("Rate fetch failed:", err);
+      });
+  }, [details?.destination, details?.service, details?.costKg]);
+
+  const handleGetPaymentPreview = (data) => {
+    setPendingFormData(data);
+    setShowGetPaymentConfirm(true);
+  };
+
   const resetForm = () => {
     setPaymentProof(null);
   };
@@ -876,287 +908,279 @@ Our Refund Policy:
   // }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto bg-white shadow-md rounded-lg">
+    <div className="p-3 sm:p-6 max-w-3xl mx-auto bg-white shadow-md rounded-lg">
       {details ? (
         <form
           onSubmit={handleSubmit(onSubmit)}
           className="bg-gray-50 p-4 rounded-lg shadow-sm"
         >
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">
-            Payment Confirmation
-          </h2>
-          {/* Back Button */}
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="mb-4 py-2 px-4 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 focus:outline-none"
-          >
-            Back
-          </button>
-          <div className="flex flex-col mb-4">
-            <label className="text-gray-700 font-medium mb-1">
-              Consignor Name:
-            </label>
-            <p>{details.consignorname}</p>
-          </div>
-          <div className="flex flex-col mb-4">
-            <label className="text-gray-700 font-medium mb-1">
-              Consignor Phone Number:
-            </label>
-            <input
-              type="text"
-              value={details.consignorphonenumber}
-              readOnly
-              className="p-2 border rounded bg-gray-100"
-            />
-          </div>
-          {/* TO */}
-          <div className="flex flex-col mb-4">
-            <label className="text-gray-700 font-medium mb-1">
-              From Address:
-            </label>
-            <input
-              type="text"
-              value={details.consignorlocation}
-              readOnly
-              className="p-2 border rounded bg-gray-100"
-            />
-          </div>
-          {/* consignee data */}
-          {details.consigneename ? (
-            <div className="flex flex-col mb-4">
-              <label className="text-gray-700 font-medium mb-1">
-                Consignee Name:
-              </label>
-              <input
-                type="text"
-                value={details.consigneename}
-                readOnly
-                className="p-2 border rounded bg-gray-100"
-              />
+          {/* Header row */}
+          <div className="flex items-center gap-3 mb-5">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition shrink-0"
+              aria-label="Go back"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            </button>
+            <div>
+              <h2 className="text-xl font-bold text-gray-800 leading-tight">Payment Confirmation</h2>
+              <p className="text-xs text-gray-400 mt-0.5">Review shipment details and enter pricing</p>
             </div>
-          ) : (
-            ""
-          )}
-          {details.consigneephonenumber ? (
-            <div className="flex flex-col mb-4">
-              <label className="text-gray-700 font-medium mb-1">
-                Consignee Phone Number:
-              </label>
-              <input
-                type="text"
-                value={details.consigneephonenumber}
-                readOnly
-                className="p-2 border rounded bg-gray-100"
-              />
+          </div>
+          {/* Shipment Info Card */}
+          <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm mb-5">
+            {/* Card Header */}
+            <div className="bg-[#714DD9] px-4 py-3 flex items-center justify-between">
+              <span className="text-white font-semibold text-sm tracking-wide">
+                Shipment Details
+              </span>
+              <span className="bg-white/20 text-white text-xs font-bold px-3 py-1 rounded-full tracking-wide">
+                AWB # {awbnumber}
+              </span>
             </div>
-          ) : (
-            ""
-          )}
-          {details.consigneelocation ? (
-            <div className="flex flex-col mb-4">
-              <label className="text-gray-700 font-medium mb-1">
-                Consignor Address:
-              </label>
-              <input
-                type="text"
-                value={details.consigneelocation}
-                readOnly
-                className="p-2 border rounded bg-gray-100"
-              />
-            </div>
-          ) : (
-            ""
-          )}
-          <div className="flex flex-col mb-4">
-            <label className="text-gray-700 font-medium mb-1">
-              Destination:
-            </label>
-            <input
-              type="text"
-              value={details.destination}
-              readOnly
-              className="p-2 border rounded bg-gray-100"
-            />
-          </div>
-          <div className="flex flex-col mb-4">
-            <label className="text-gray-700 font-medium mb-1">
-              Actual Weight:
-            </label>
-            <input
-              type="text"
-              value={details.actualWeight + " " + "KG"}
-              readOnly
-              className="p-2 border rounded bg-gray-100"
-            />
-          </div>
-          <div className="flex flex-col mb-4">
-            <label className="text-gray-700 font-medium mb-1">
-              PickUp Person Name:
-            </label>
-            <input
-              type="text"
-              value={details.pickUpPersonName}
-              readOnly
-              className="p-2 border rounded bg-gray-100"
-            />
-          </div>
-          <div className="flex flex-col mb-4">
-            <label className="text-gray-700 font-medium mb-1">
-              Shiphit AWB Number:
-            </label>
-            <input
-              type="text"
-              value={awbnumber}
-              readOnly
-              className="p-2 border rounded bg-gray-100"
-            />
-          </div>
-          <div className="flex flex-col mb-4">
-            <label className="text-gray-700 font-medium mb-1">
-              Pickup Completed Datatime
-            </label>
-            <input
-              type="text"
-              value={details.pickupCompletedDatatime}
-              readOnly
-              className="p-2 border rounded bg-gray-100"
-            />
-          </div>
 
-          {/* consignee data */}
-          {details.consigneename == "" ? (
-            <>
-              <div className="flex flex-col mb-2">
-                <label className="text-gray-700 font-medium mb-1">
-                  Consignee Name:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter Consignee Name"
-                  className="p-2 border rounded bg-gray-100"
-                  {...register("consigneename1", {
-                    required: "Consignee name is required",
-                  })}
-                />
-              </div>
-              {errors.consigneename1 && (
-                <p className="text-red-500 text-sm mb-4">
-                  {errors.consigneename1.message}
-                </p>
-              )}
-            </>
-          ) : (
-            ""
-          )}
-          {/* consigneenumber1 */}
-          {details.consigneephonenumber == "" ? (
-            <div className="flex flex-col">
-              <label className="block text-gray-700 font-semibold mb-2">
-                Consignee Phone Number
-              </label>
-              <div className="flex flex-row">
-                <div className="mb-4">
-                  <Controller
-                    name="countrycode"
-                    control={control}
-                    render={({ field }) => (
-                      <PhoneInput
-                        enableSearch
-                        value={field.value}
-                        onChange={(value) => field.onChange(value)}
-                        inputStyle={{
-                          width: "108px",
-                          height: "42px",
-                          borderColor: errors.countrycode
-                            ? "#f87171"
-                            : "#d1d5db",
-                          borderRadius: "0.375rem",
-                          fontSize: "1rem",
-                        }}
-                        inputProps={{
-                          readOnly: true,
-                          disabled: true,
-                        }}
-                        buttonStyle={{
-                          pointerEvents: "none", // disables flag click
-                          backgroundColor: "#f3f4f6",
-                          cursor: "not-allowed",
-                        }}
-                        specialLabel=""
-                      />
-                    )}
-                  />
-                  {errors.countrycode && (
-                    <p className="text-red-500 text-sm mt-1">
-                      {errors.countrycode.message}
-                    </p>
-                  )}
+            {/* Sender Section */}
+            <div className="bg-white px-4 pt-3 pb-1">
+              <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest mb-2">
+                Sender
+              </p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-3 pb-3 border-b border-gray-100">
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">
+                    Name
+                  </p>
+                  <p className="text-gray-800 font-medium text-sm">
+                    {details.consignorname}
+                  </p>
                 </div>
                 <div>
-                  <input
-                    type="text"
-                    placeholder="Enter number without country code"
-                    {...register("consigneenumber1", {
-                      required: "Enter consignee phone number",
-                      pattern: {
-                        value: /^[0-9]+$/,
-                        message: "Only digits are allowed",
-                      },
-                      minLength: {
-                        value: 6,
-                        message: "Must be at least 6 digits",
-                      },
-                      maxLength: {
-                        value: 15,
-                        message: "Must be at most 15 digits",
-                      },
-                    })}
-                    className={`w-full border rounded-md ml-6 pl-2 py-2 ${
-                      errors.consigneenumber1
-                        ? "border-red-500"
-                        : "border-gray-400"
-                    }`}
-                  />
-                  {errors.consigneenumber1 && (
-                    <p className="text-red-500 ml-6 mt-1 text-sm">
-                      {errors.consigneenumber1.message}
-                    </p>
-                  )}
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">
+                    Phone
+                  </p>
+                  <p className="text-gray-800 font-medium text-sm">
+                    {details.consignorphonenumber}
+                  </p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">
+                    Address
+                  </p>
+                  <p className="text-gray-800 font-medium text-sm">
+                    {details.consignorlocation}
+                  </p>
                 </div>
               </div>
             </div>
-          ) : (
-            ""
-          )}
-          {details.consigneelocation == "" ? (
-            <>
-              <div className="flex flex-col mb-2">
-                <label className="text-gray-700 font-medium mb-1">
-                  Consignee Address:
-                </label>
-                <input
-                  {...register("consigneelocation1", {
-                    required: "Consignee location required",
-                  })}
-                  type="text"
-                  placeholder="Enter Consignee Address"
-                  className="p-2 border rounded bg-gray-100"
-                />
-              </div>
-              {errors.consigneelocation1 && (
-                <p className="text-red-500 text-sm mb-4">
-                  {errors.consigneelocation1.message}
+
+            {/* Receiver Section — only shown if any consignee data exists */}
+            {details.consigneename ||
+            details.consigneephonenumber ||
+            details.consigneelocation ? (
+              <div className="bg-white px-4 pt-3 pb-1">
+                <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest mb-2">
+                  Receiver
                 </p>
-              )}
-            </>
-          ) : (
-            ""
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3 pb-3 border-b border-gray-100">
+                  {details.consigneename ? (
+                    <div>
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">
+                        Name
+                      </p>
+                      <p className="text-gray-800 font-medium text-sm">
+                        {details.consigneename}
+                      </p>
+                    </div>
+                  ) : null}
+                  {details.consigneephonenumber ? (
+                    <div>
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">
+                        Phone
+                      </p>
+                      <p className="text-gray-800 font-medium text-sm">
+                        {details.consigneephonenumber}
+                      </p>
+                    </div>
+                  ) : null}
+                  {details.consigneelocation ? (
+                    <div className="col-span-2">
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">
+                        Address
+                      </p>
+                      <p className="text-gray-800 font-medium text-sm">
+                        {details.consigneelocation}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+
+            {/* Shipment Meta */}
+            <div className="bg-white px-4 pt-3 pb-3">
+              <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest mb-2">
+                Shipment
+              </p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">
+                    Destination
+                  </p>
+                  <p className="text-gray-800 font-medium text-sm">
+                    {details.destination}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">
+                    Weight
+                  </p>
+                  <p className="text-gray-800 font-medium text-sm">
+                    {details.actualWeight} KG
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">
+                    Pickup Person
+                  </p>
+                  <p className="text-gray-800 font-medium text-sm">
+                    {details.pickUpPersonName}
+                  </p>
+                </div>
+                {details.pickupCompletedDatatime ? (
+                  <div>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">
+                      Pickup Completed
+                    </p>
+                    <p className="text-gray-800 font-medium text-sm">
+                      {details.pickupCompletedDatatime}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
+          {/* Consignee editable fields — shown only when data is missing */}
+          {(details.consigneename == "" || details.consigneephonenumber == "" || details.consigneelocation == "") && (
+            <div className="rounded-xl overflow-hidden border border-purple-200 shadow-sm mb-5">
+              <div className="bg-[#714DD9] px-4 py-3 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-white/80 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                </svg>
+                <span className="text-white font-semibold text-sm tracking-wide">Receiver Details</span>
+                <span className="ml-auto bg-white/20 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">Required</span>
+              </div>
+
+              <div className="bg-white px-4 py-4 space-y-4">
+                {details.consigneename == "" && (
+                  <div>
+                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5 block">
+                      Name
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Enter consignee name"
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:outline-none ${errors.consigneename1 ? "border-red-400 bg-red-50" : "border-gray-300 bg-white focus:border-purple-400"}`}
+                      {...register("consigneename1", {
+                        required: "Consignee name is required",
+                      })}
+                    />
+                    {errors.consigneename1 && (
+                      <p className="text-red-500 text-xs mt-1">{errors.consigneename1.message}</p>
+                    )}
+                  </div>
+                )}
+
+                {details.consigneephonenumber == "" && (
+                  <div>
+                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5 block">
+                      Phone Number
+                    </label>
+                    <div className="flex items-center gap-2 w-full">
+                      <div className="shrink-0">
+                        <Controller
+                          name="countrycode"
+                          control={control}
+                          render={({ field }) => (
+                            <PhoneInput
+                              enableSearch
+                              value={field.value}
+                              onChange={(value) => field.onChange(value)}
+                              inputStyle={{
+                                width: "108px",
+                                height: "42px",
+                                borderColor: errors.countrycode ? "#f87171" : "#d1d5db",
+                                borderRadius: "0.5rem",
+                                fontSize: "0.875rem",
+                              }}
+                              inputProps={{ readOnly: true, disabled: true }}
+                              buttonStyle={{
+                                pointerEvents: "none",
+                                backgroundColor: "#f9fafb",
+                                cursor: "not-allowed",
+                                borderRadius: "0.5rem 0 0 0.5rem",
+                              }}
+                              specialLabel=""
+                            />
+                          )}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <input
+                          type="text"
+                          placeholder="Number without country code"
+                          inputMode="numeric"
+                          onInput={(e) => { e.target.value = e.target.value.replace(/[^0-9]/g, ""); }}
+                          {...register("consigneenumber1", {
+                            required: "Enter consignee phone number",
+                            pattern: { value: /^[0-9]+$/, message: "Only digits are allowed" },
+                            minLength: { value: 6, message: "Must be at least 6 digits" },
+                            maxLength: { value: 15, message: "Must be at most 15 digits" },
+                          })}
+                          className={`w-full p-2.5 rounded-lg border text-sm focus:outline-none ${errors.consigneenumber1 ? "border-red-400 bg-red-50" : "border-gray-300 bg-white focus:border-purple-400"}`}
+                        />
+                        {errors.consigneenumber1 && (
+                          <p className="text-red-500 text-xs mt-1">{errors.consigneenumber1.message}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {details.consigneelocation == "" && (
+                  <div>
+                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5 block">
+                      Address
+                    </label>
+                    <input
+                      {...register("consigneelocation1", {
+                        required: "Consignee location required",
+                      })}
+                      type="text"
+                      placeholder="Enter consignee address"
+                      className={`w-full p-2.5 rounded-lg border text-sm focus:outline-none ${errors.consigneelocation1 ? "border-red-400 bg-red-50" : "border-gray-300 bg-white focus:border-purple-400"}`}
+                    />
+                    {errors.consigneelocation1 && (
+                      <p className="text-red-500 text-xs mt-1">{errors.consigneelocation1.message}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
           )}
 
-          <div className="flex flex-col mb-1">
-            <label className="text-gray-700 font-medium mb-1">
-              Enter Logistics Cost
+          <div className="border-t border-gray-200 mt-4 mb-4 pt-4">
+            <h3 className="text-sm font-semibold text-purple-700 uppercase tracking-wide mb-3">
+              Pricing Details
+            </h3>
+          </div>
+
+          <div className="flex flex-col mb-3">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+              Logistics Cost
             </label>
             <input
               value={
@@ -1165,9 +1189,9 @@ Our Refund Policy:
                   : parseInt(details?.actualWeight) * costKg
               }
               type="text"
-              className="p-2 border rounded bg-gray-100"
-              placeholder="Enter Logistic Cost"
-              readOnly={!!details.logisticCost} // Makes input readonly if discountCost exists
+              className="p-2.5 rounded-lg border border-transparent bg-gray-50 text-gray-700 text-sm cursor-default select-none outline-none"
+              placeholder="Logistics Cost"
+              readOnly
               {...register("logisticsCost", {
                 required: "Logistics cost is required",
                 pattern: {
@@ -1175,7 +1199,7 @@ Our Refund Policy:
                   message:
                     "Please enter a valid phone number consisting of digits only",
                 },
-                valueAsNumber: true, // Converts input value to an integer
+                valueAsNumber: true,
                 validate: (value) =>
                   Number.isInteger(value) ||
                   "Please enter a valid integer number",
@@ -1183,18 +1207,25 @@ Our Refund Policy:
             />
           </div>
           {errors.logisticsCost && (
-            <p className="text-red-500 text-sm mb-4">
+            <p className="text-red-500 text-sm mb-3">
               {errors.logisticsCost.message}
             </p>
           )}
-          <div className="flex flex-col mt-3 mb-3">
-            <label className="text-gray-700 font-medium mb-1">Cost/KG</label>
+          <div className="flex flex-col mb-3">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+              Cost / KG
+              {costKgAutoPopulated && (
+                <span className="ml-2 text-purple-600 normal-case font-normal">
+                  (auto-filled from rate card)
+                </span>
+              )}
+            </label>
             <input
               type="text"
               value={details.costKg == null ? costKg : details.costKg}
-              className="p-2 border rounded bg-gray-100"
+              className={`p-2.5 rounded-lg border text-sm ${details.costKg != null || costKgAutoPopulated ? "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed" : "bg-white border-gray-300 focus:outline-none focus:border-purple-400"}`}
               placeholder="Enter Cost/KG"
-              readOnly={details.costKg == null ? false : true} // Makes input readonly if discountCost exists
+              readOnly={details.costKg != null || costKgAutoPopulated}
               {...register("costKg", {
                 required: "Cost/KG is required",
                 pattern: {
@@ -1214,16 +1245,18 @@ Our Refund Policy:
             />
           </div>
           {errors.costKg && (
-            <p className="text-red-500 text-sm mb-4">{errors.costKg.message}</p>
+            <p className="text-red-500 text-sm mb-3">{errors.costKg.message}</p>
           )}
-          <div className="flex flex-col mb-1">
-            <label className="text-gray-700 font-medium mb-1">
-              Enter Discount Amount
+          <div className="flex flex-col mb-3">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+              Discount Amount
             </label>
             <input
               type="text"
-              className="p-2 border rounded bg-gray-100"
-              placeholder="Enter Discount Amount"
+              inputMode="numeric"
+              onInput={(e) => { e.target.value = e.target.value.replace(/[^0-9]/g, ""); }}
+              className={`p-2.5 rounded-lg border text-sm ${details.discountCost == undefined ? "bg-white border-gray-300 focus:outline-none focus:border-purple-400" : "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed"}`}
+              placeholder="Enter 0 or amount"
               readOnly={details.discountCost == undefined ? false : true}
               {...register("discountCost", {
                 required: "Please enter the discount amount.",
@@ -1232,7 +1265,7 @@ Our Refund Policy:
                   message:
                     "Please enter a valid discount number consisting of digits only.",
                 },
-                valueAsNumber: true, // Converts input value to an integer
+                valueAsNumber: true,
                 validate: (value) =>
                   Number.isInteger(value) ||
                   "Please enter a valid integer number",
@@ -1240,18 +1273,20 @@ Our Refund Policy:
             />
           </div>
           {errors.discountCost && (
-            <p className="text-red-500 text-sm mb-4">
+            <p className="text-red-500 text-sm mb-3">
               {errors.discountCost.message}
             </p>
           )}
-          <div className="flex flex-col mb-1">
-            <label className="text-gray-700 font-medium mb-1">
-              Enter Additional Charges If Any
+          <div className="flex flex-col mb-3">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+              Additional Charges
             </label>
             <input
               type="text"
-              className="p-2 border rounded bg-gray-100"
-              placeholder="Enter 0  or Ex: 100"
+              inputMode="numeric"
+              onInput={(e) => { e.target.value = e.target.value.replace(/[^0-9]/g, ""); }}
+              className={`p-2.5 rounded-lg border text-sm ${details.additionalcharges == undefined ? "bg-white border-gray-300 focus:outline-none focus:border-purple-400" : "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed"}`}
+              placeholder="Enter 0 or amount"
               readOnly={details.additionalcharges == undefined ? false : true}
               {...register("additionalcharges", {
                 required:
@@ -1261,7 +1296,7 @@ Our Refund Policy:
                   message:
                     "Please enter a valid additional charges number consisting of digits only.",
                 },
-                valueAsNumber: true, // Converts input value to an integer
+                valueAsNumber: true,
                 validate: (value) =>
                   Number.isInteger(value) ||
                   "Please enter a valid integer number",
@@ -1269,10 +1304,59 @@ Our Refund Policy:
             />
           </div>
           {errors.additionalcharges && (
-            <p className="text-red-500 text-sm mb-4">
+            <p className="text-red-500 text-sm mb-3">
               {errors.additionalcharges.message}
             </p>
           )}
+
+          {/* Live total summary */}
+          {(() => {
+            const liveDiscount = parseInt(watch("discountCost")) || 0;
+            const liveAdditional = parseInt(watch("additionalcharges")) || 0;
+            const liveCostKg = details.costKg != null ? parseInt(details.costKg) : costKg;
+            const liveLogistics = parseInt(details?.actualWeight) * liveCostKg;
+            const liveTotal = liveLogistics + liveAdditional - liveDiscount;
+            return (
+              <div className="mt-4 mb-2 rounded-xl border border-purple-100 bg-purple-50 p-4 text-sm">
+                <div className="flex justify-between py-1">
+                  <span className="text-gray-500">Logistics Cost</span>
+                  <span className="font-medium text-gray-700">
+                    ₹ {liveLogistics}
+                  </span>
+                </div>
+                {liveAdditional > 0 && (
+                  <div className="flex justify-between py-1">
+                    <span className="text-gray-500">Additional Charges</span>
+                    <span className="font-medium text-orange-500">
+                      + ₹ {liveAdditional}
+                    </span>
+                  </div>
+                )}
+                {liveDiscount > 0 && (
+                  <div className="flex justify-between py-1">
+                    <span className="text-gray-500">Discount</span>
+                    <span className="font-medium text-green-600">
+                      − ₹ {liveDiscount}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between pt-2 mt-1 border-t border-purple-200">
+                  <span className="font-bold text-gray-800">
+                    Total (Client Pays)
+                  </span>
+                  <span className="font-bold text-purple-700 text-base">
+                    ₹ {liveTotal}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
+
+          <div className="border-t border-gray-200 mt-4 mb-4 pt-4">
+            <h3 className="text-sm font-semibold text-purple-700 uppercase tracking-wide mb-3">
+              Payment & Documents
+            </h3>
+          </div>
 
           {details.status == "PAYMENT REQUESTED" ? (
             <div className="flex flex-col mb-4">
@@ -1359,7 +1443,8 @@ Our Refund Policy:
             </div>
           ) : (
             <button
-              type="submit"
+              type="button"
+              onClick={handleSubmit(handleGetPaymentPreview)}
               className="w-full mt-4 p-2 flex items-center justify-center bg-purple-600 text-white font-semibold rounded hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-600"
               disabled={submitLoading}
             >
@@ -1422,6 +1507,86 @@ Our Refund Policy:
           </div>
         </div>
       )}
+      {/* Pre-submit confirmation modal for Get Payment */}
+      {showGetPaymentConfirm && pendingFormData && (
+        <div className="fixed inset-0 z-50 flex justify-center items-center bg-black bg-opacity-70">
+          <div className="bg-white w-full max-w-sm mx-4 rounded-xl shadow-2xl p-6">
+            <h3 className="text-lg font-bold text-gray-800 mb-1">
+              Confirm Payment Request
+            </h3>
+            <p className="text-sm text-gray-500 mb-5">
+              Review the details before sending to customer.
+            </p>
+
+            {(() => {
+              const popupLogistics =
+                parseInt(details.actualWeight) * parseInt(pendingFormData.costKg);
+              const popupDiscount = parseInt(pendingFormData.discountCost) || 0;
+              const popupAdditional =
+                parseInt(pendingFormData.additionalcharges) || 0;
+              const popupTotal =
+                popupLogistics + popupAdditional - popupDiscount;
+              return (
+                <div className="space-y-0 text-sm">
+                  <div className="flex justify-between py-2.5 border-b border-gray-100">
+                    <span className="text-gray-500">Logistics Cost</span>
+                    <span className="font-medium text-gray-800">
+                      ₹ {popupLogistics}
+                    </span>
+                  </div>
+                  {popupAdditional > 0 && (
+                    <div className="flex justify-between py-2.5 border-b border-gray-100">
+                      <span className="text-gray-500">Additional Charges</span>
+                      <span className="font-medium text-orange-500">
+                        + ₹ {popupAdditional}
+                      </span>
+                    </div>
+                  )}
+                  {popupDiscount > 0 && (
+                    <div className="flex justify-between py-2.5 border-b border-gray-100">
+                      <span className="text-gray-500">Discount</span>
+                      <span className="font-medium text-green-600">
+                        − ₹ {popupDiscount}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center py-3 mt-2 bg-purple-50 rounded-xl px-4">
+                    <span className="font-bold text-gray-800">
+                      Total (Client Pays)
+                    </span>
+                    <span className="font-bold text-purple-700 text-lg">
+                      ₹ {popupTotal}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div className="flex gap-3 mt-6">
+              <button
+                className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                onClick={() => {
+                  setShowGetPaymentConfirm(false);
+                  setPendingFormData(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                disabled={submitLoading}
+                className="flex-1 py-2 px-4 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition disabled:opacity-60"
+                onClick={() => {
+                  setShowGetPaymentConfirm(false);
+                  onSubmit(pendingFormData);
+                }}
+              >
+                {submitLoading ? "Submitting..." : "Confirm & Send"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hidden canvas for generating barcode */}
       <canvas ref={barcodeRef} style={{ display: "none" }} />
     </div>

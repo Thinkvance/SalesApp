@@ -37,6 +37,8 @@ export default function Myshipments() {
   const [pageCursors, setPageCursors] = useState([null]); // pageCursors[i] = startAfter doc for page i
   const [awbSearchTerm, setAwbSearchTerm] = useState("");
   const [consignorPhoneSearchTerm, setConsignorPhoneSearchTerm] = useState("");
+  const [awbSearchResults, setAwbSearchResults] = useState([]);
+  const [awbSearchLoading, setAwbSearchLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPickup, setSelectedPickup] = useState(null);
   // -------- Escalation helpers --------
@@ -485,15 +487,53 @@ export default function Myshipments() {
     fetchPage(currentPage - 1, pageCursors);
   };
 
+  useEffect(() => {
+    const term = awbSearchTerm.trim();
+    if (!term) {
+      setAwbSearchResults([]);
+      return;
+    }
+    const timeout = setTimeout(async () => {
+      setAwbSearchLoading(true);
+      try {
+        const termNum = Number(term);
+        const isNum = !isNaN(termNum);
+        let docsStr = [];
+        let docsNum = [];
+        const qStr = query(collection(db, DB.db_collection), where("awbNumber", "==", term));
+        const snapStr = await getDocs(qStr);
+        docsStr = snapStr.docs;
+        if (isNum) {
+          const qNum = query(collection(db, DB.db_collection), where("awbNumber", "==", termNum));
+          const snapNum = await getDocs(qNum);
+          docsNum = snapNum.docs;
+        }
+        const mergedMap = new Map();
+        [...docsStr, ...docsNum].forEach((d) => mergedMap.set(d.id, { id: d.id, ...d.data() }));
+        setAwbSearchResults(Array.from(mergedMap.values()));
+      } catch (e) {
+        console.error("AWB search error:", e);
+      } finally {
+        setAwbSearchLoading(false);
+      }
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [awbSearchTerm]);
+
   const filteredPickups = data.filter((pickup) => {
-    const awbMatch = String(pickup.awbNumber)
-      .toLowerCase()
-      .includes(awbSearchTerm.toLowerCase());
     const consignorPhoneMatch = (pickup.consignorphonenumber || "")
       .toLowerCase()
       .includes(consignorPhoneSearchTerm.toLowerCase());
-    return awbMatch && consignorPhoneMatch;
+    return consignorPhoneMatch;
   });
+
+  const displayData = awbSearchTerm.trim()
+    ? awbSearchResults.filter((pickup) =>
+        (pickup.consignorphonenumber || "")
+          .toLowerCase()
+          .includes(consignorPhoneSearchTerm.toLowerCase())
+      )
+    : filteredPickups;
 
   const closeModal = () => {
     setIsModalOpen(false);
@@ -642,7 +682,7 @@ export default function Myshipments() {
               </tr>
             </thead>
             <tbody>
-              {dataLoading ? (
+              {dataLoading || awbSearchLoading ? (
                 <tr>
                   <td colSpan={tableHeader.length} className="py-16 text-center">
                     <div className="flex flex-col items-center justify-center gap-2">
@@ -653,8 +693,8 @@ export default function Myshipments() {
                     </div>
                   </td>
                 </tr>
-              ) : filteredPickups.length > 0
-                ? filteredPickups.map((item, i) => {
+              ) : displayData.length > 0
+                ? displayData.map((item, i) => {
                     const escStatus = (
                       item.escalationStatus || "none"
                     ).toLowerCase(); // "none" | "pending" | "closed"
@@ -877,7 +917,7 @@ export default function Myshipments() {
         </div>
 
         {/* -------- Pagination Controls -------- */}
-        {!dataLoading && (
+        {!dataLoading && !awbSearchTerm.trim() && (
           <div className="mt-4 flex items-center justify-between px-1">
             <span className="text-sm text-gray-500">
               Page {currentPage + 1}

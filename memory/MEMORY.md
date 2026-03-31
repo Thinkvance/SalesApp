@@ -1,0 +1,2 @@
+- [PaymentConfirmationForm rate-card auto-fill](project_payment_form.md) — fetchLowestRate helpers: country map, weight slab, service normaliser
+- [PaymentConfirmationForm UI improvements](project_payment_form_ui.md) — card layout, live total, pre-submit modal
