@@ -26,7 +26,11 @@ import countryList from "./CountryDialCode.json";
 import generate_GST_Invoice_PDF from "./Utility/GSTinvoice";
 import shouldSendInvoice from "./Utility/shouldSendInvoice.jsx";
 import getClientGSTNumber from "./Utility/getClientGSTNumber.js";
-import { fetchLowestRate, getWeightSlab, normaliseService } from "./Utility/fetchLowestRate.js";
+import {
+  fetchLowestRate,
+  getWeightSlab,
+  normaliseService,
+} from "./Utility/fetchLowestRate.js";
 function PaymentConfirmationForm() {
   const [costKg, setcostKg] = useState(0);
   const { awbnumber } = useParams();
@@ -451,7 +455,7 @@ Our Refund Policy:
 • No refunds for fragile/delicate shipments sent via duty free/Self mode.
 • Damage must be reported within 48 hours of delivery.
 • No refunds for delay/abandonment due to customs clearance.
-• In case of loss, refund includes logistics cost and max product value $100 or declared invoice value (whichever higher).
+• In case of loss, refund includes logistics cost and max product value $100 or declared invoice value (whichever is lower).
 • For important products, opt for insurance by declaring just 5% of the invoice value (available for Economy and Express services only) to receive full reimbursement.
 • For refund assessment within 3 business days submit damage pictures and packaging proof.
 • Maximum refund limited to declared damaged item value.
@@ -744,20 +748,22 @@ Our Refund Policy:
 
       const now = Timestamp.now();
 
-      const updatedInternalTracking = (details.internalTracking || []).map((step) => {
-        if (step.code === "PAYMENT_RECEIVED") {
-          return {
-            ...step,
-            status: "COMPLETED",
-            datetime: now,
-            updatedAt: now,
-            updatedBy: "system",
-            notes: "Payment received successfully",
-          };
-        }
+      const updatedInternalTracking = (details.internalTracking || []).map(
+        (step) => {
+          if (step.code === "PAYMENT_RECEIVED") {
+            return {
+              ...step,
+              status: "COMPLETED",
+              datetime: now,
+              updatedAt: now,
+              updatedBy: "system",
+              notes: "Payment received successfully",
+            };
+          }
 
-        return step;
-      });
+          return step;
+        },
+      );
 
       const updatedFields = {
         gstInvoiceCounter: gstInvoiceNumber
@@ -859,27 +865,27 @@ Our Refund Policy:
     }
   }, [details]);
 
-  // Auto-populate Cost/KG from rate card (only when not already set)
-  useEffect(() => {
-    if (!details || details.costKg != null) return;
-    if (!details.destination || !details.service) return;
+  // // Auto-populate Cost/KG from rate card (only when not already set)
+  // useEffect(() => {
+  //   if (!details || details.costKg != null) return;
+  //   if (!details.destination || !details.service) return;
 
-    const weightSlab = getWeightSlab(details.actualWeight);
-    if (!weightSlab) return;
-    const service = normaliseService(details.service);
+  //   const weightSlab = getWeightSlab(details.actualWeight);
+  //   if (!weightSlab) return;
+  //   const service = normaliseService(details.service);
 
-    fetchLowestRate(details.destination, service, weightSlab)
-      .then((result) => {
-        if (result && result.amount) {
-          setcostKg(result.amount);
-          setValue("costKg", result.amount);
-          setCostKgAutoPopulated(true);
-        }
-      })
-      .catch((err) => {
-        console.log("Rate fetch failed:", err);
-      });
-  }, [details?.destination, details?.service, details?.costKg]);
+  //   fetchLowestRate(details.destination, service, weightSlab)
+  //     .then((result) => {
+  //       if (result && result.amount) {
+  //         setcostKg(result.amount);
+  //         setValue("costKg", result.amount);
+  //         setCostKgAutoPopulated(true);
+  //       }
+  //     })
+  //     .catch((err) => {
+  //       console.log("Rate fetch failed:", err);
+  //     });
+  // }, [details?.destination, details?.service, details?.costKg]);
 
   const handleGetPaymentPreview = (data) => {
     setPendingFormData(data);
@@ -922,13 +928,26 @@ Our Refund Policy:
               className="flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition shrink-0"
               aria-label="Go back"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-4 h-4"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                  clipRule="evenodd"
+                />
               </svg>
             </button>
             <div>
-              <h2 className="text-xl font-bold text-gray-800 leading-tight">Payment Confirmation</h2>
-              <p className="text-xs text-gray-400 mt-0.5">Review shipment details and enter pricing</p>
+              <h2 className="text-xl font-bold text-gray-800 leading-tight">
+                Payment Confirmation
+              </h2>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Review shipment details and enter pricing
+              </p>
             </div>
           </div>
           {/* Shipment Info Card */}
@@ -1064,14 +1083,29 @@ Our Refund Policy:
           </div>
 
           {/* Consignee editable fields — shown only when data is missing */}
-          {(details.consigneename == "" || details.consigneephonenumber == "" || details.consigneelocation == "") && (
+          {(details.consigneename == "" ||
+            details.consigneephonenumber == "" ||
+            details.consigneelocation == "") && (
             <div className="rounded-xl overflow-hidden border border-purple-200 shadow-sm mb-5">
               <div className="bg-[#714DD9] px-4 py-3 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-white/80 shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-4 h-4 text-white/80 shrink-0"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                    clipRule="evenodd"
+                  />
                 </svg>
-                <span className="text-white font-semibold text-sm tracking-wide">Receiver Details</span>
-                <span className="ml-auto bg-white/20 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">Required</span>
+                <span className="text-white font-semibold text-sm tracking-wide">
+                  Receiver Details
+                </span>
+                <span className="ml-auto bg-white/20 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                  Required
+                </span>
               </div>
 
               <div className="bg-white px-4 py-4 space-y-4">
@@ -1089,7 +1123,9 @@ Our Refund Policy:
                       })}
                     />
                     {errors.consigneename1 && (
-                      <p className="text-red-500 text-xs mt-1">{errors.consigneename1.message}</p>
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.consigneename1.message}
+                      </p>
                     )}
                   </div>
                 )}
@@ -1112,7 +1148,9 @@ Our Refund Policy:
                               inputStyle={{
                                 width: "108px",
                                 height: "42px",
-                                borderColor: errors.countrycode ? "#f87171" : "#d1d5db",
+                                borderColor: errors.countrycode
+                                  ? "#f87171"
+                                  : "#d1d5db",
                                 borderRadius: "0.5rem",
                                 fontSize: "0.875rem",
                               }}
@@ -1133,17 +1171,33 @@ Our Refund Policy:
                           type="text"
                           placeholder="Number without country code"
                           inputMode="numeric"
-                          onInput={(e) => { e.target.value = e.target.value.replace(/[^0-9]/g, ""); }}
+                          onInput={(e) => {
+                            e.target.value = e.target.value.replace(
+                              /[^0-9]/g,
+                              "",
+                            );
+                          }}
                           {...register("consigneenumber1", {
                             required: "Enter consignee phone number",
-                            pattern: { value: /^[0-9]+$/, message: "Only digits are allowed" },
-                            minLength: { value: 6, message: "Must be at least 6 digits" },
-                            maxLength: { value: 15, message: "Must be at most 15 digits" },
+                            pattern: {
+                              value: /^[0-9]+$/,
+                              message: "Only digits are allowed",
+                            },
+                            minLength: {
+                              value: 6,
+                              message: "Must be at least 6 digits",
+                            },
+                            maxLength: {
+                              value: 15,
+                              message: "Must be at most 15 digits",
+                            },
                           })}
                           className={`w-full p-2.5 rounded-lg border text-sm focus:outline-none ${errors.consigneenumber1 ? "border-red-400 bg-red-50" : "border-gray-300 bg-white focus:border-purple-400"}`}
                         />
                         {errors.consigneenumber1 && (
-                          <p className="text-red-500 text-xs mt-1">{errors.consigneenumber1.message}</p>
+                          <p className="text-red-500 text-xs mt-1">
+                            {errors.consigneenumber1.message}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -1164,7 +1218,9 @@ Our Refund Policy:
                       className={`w-full p-2.5 rounded-lg border text-sm focus:outline-none ${errors.consigneelocation1 ? "border-red-400 bg-red-50" : "border-gray-300 bg-white focus:border-purple-400"}`}
                     />
                     {errors.consigneelocation1 && (
-                      <p className="text-red-500 text-xs mt-1">{errors.consigneelocation1.message}</p>
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.consigneelocation1.message}
+                      </p>
                     )}
                   </div>
                 )}
@@ -1254,7 +1310,9 @@ Our Refund Policy:
             <input
               type="text"
               inputMode="numeric"
-              onInput={(e) => { e.target.value = e.target.value.replace(/[^0-9]/g, ""); }}
+              onInput={(e) => {
+                e.target.value = e.target.value.replace(/[^0-9]/g, "");
+              }}
               className={`p-2.5 rounded-lg border text-sm ${details.discountCost == undefined ? "bg-white border-gray-300 focus:outline-none focus:border-purple-400" : "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed"}`}
               placeholder="Enter 0 or amount"
               readOnly={details.discountCost == undefined ? false : true}
@@ -1284,7 +1342,9 @@ Our Refund Policy:
             <input
               type="text"
               inputMode="numeric"
-              onInput={(e) => { e.target.value = e.target.value.replace(/[^0-9]/g, ""); }}
+              onInput={(e) => {
+                e.target.value = e.target.value.replace(/[^0-9]/g, "");
+              }}
               className={`p-2.5 rounded-lg border text-sm ${details.additionalcharges == undefined ? "bg-white border-gray-300 focus:outline-none focus:border-purple-400" : "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed"}`}
               placeholder="Enter 0 or amount"
               readOnly={details.additionalcharges == undefined ? false : true}
@@ -1313,7 +1373,8 @@ Our Refund Policy:
           {(() => {
             const liveDiscount = parseInt(watch("discountCost")) || 0;
             const liveAdditional = parseInt(watch("additionalcharges")) || 0;
-            const liveCostKg = details.costKg != null ? parseInt(details.costKg) : costKg;
+            const liveCostKg =
+              details.costKg != null ? parseInt(details.costKg) : costKg;
             const liveLogistics = parseInt(details?.actualWeight) * liveCostKg;
             const liveTotal = liveLogistics + liveAdditional - liveDiscount;
             return (
@@ -1520,7 +1581,8 @@ Our Refund Policy:
 
             {(() => {
               const popupLogistics =
-                parseInt(details.actualWeight) * parseInt(pendingFormData.costKg);
+                parseInt(details.actualWeight) *
+                parseInt(pendingFormData.costKg);
               const popupDiscount = parseInt(pendingFormData.discountCost) || 0;
               const popupAdditional =
                 parseInt(pendingFormData.additionalcharges) || 0;

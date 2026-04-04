@@ -49,6 +49,7 @@ import UserManagement from "./UserManagement";
 import ClientApprovals from "./ClientApprovals";
 import ExecutiveClientsScreen from "./ExecutiveClientsScreen";
 import ClientOnboarding from "./ClientOnboarding";
+import axios from "axios";
 // import { fetchLowestRate } from "./Utility/fetchLowestRate";
 
 function App() {
@@ -128,7 +129,8 @@ function App() {
         const version = data?.version;
         const forceUpdate = data?.forceUpdate;
         const message = data?.message;
-
+        console.log("CURRENT_APP_VERSION", CURRENT_APP_VERSION);
+        console.log("Firestore Version", version);
         if (
           typeof version === "string" &&
           typeof forceUpdate === "boolean" &&

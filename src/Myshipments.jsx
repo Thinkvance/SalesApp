@@ -417,11 +417,21 @@ export default function Myshipments() {
     setRole(storedUser?.role || "");
   }, []);
 
-  const fetchPage = async (pageIndex, cursors, currentRole, currentUsername) => {
+  const fetchPage = async (
+    pageIndex,
+    cursors,
+    currentRole,
+    currentUsername,
+  ) => {
     const resolvedRole = currentRole ?? role;
     const resolvedUsername = currentUsername ?? username;
     if (!resolvedRole) return;
-    if (resolvedRole !== "Manager" && resolvedRole !== "sales admin" && !resolvedUsername) return;
+    if (
+      resolvedRole !== "Manager" &&
+      resolvedRole !== "sales admin" &&
+      !resolvedUsername
+    )
+      return;
 
     setDataLoading(true);
     try {
@@ -439,8 +449,17 @@ export default function Myshipments() {
       }
 
       const qy = cursor
-        ? query(collection(db, DB.db_collection), ...baseConstraints, startAfter(cursor), limit(PAGE_SIZE))
-        : query(collection(db, DB.db_collection), ...baseConstraints, limit(PAGE_SIZE));
+        ? query(
+            collection(db, DB.db_collection),
+            ...baseConstraints,
+            startAfter(cursor),
+            limit(PAGE_SIZE),
+          )
+        : query(
+            collection(db, DB.db_collection),
+            ...baseConstraints,
+            limit(PAGE_SIZE),
+          );
 
       const snap = await getDocs(qy);
       const pickupData = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -500,16 +519,24 @@ export default function Myshipments() {
         const isNum = !isNaN(termNum);
         let docsStr = [];
         let docsNum = [];
-        const qStr = query(collection(db, DB.db_collection), where("awbNumber", "==", term));
+        const qStr = query(
+          collection(db, DB.db_collection),
+          where("awbNumber", "==", term),
+        );
         const snapStr = await getDocs(qStr);
         docsStr = snapStr.docs;
         if (isNum) {
-          const qNum = query(collection(db, DB.db_collection), where("awbNumber", "==", termNum));
+          const qNum = query(
+            collection(db, DB.db_collection),
+            where("awbNumber", "==", termNum),
+          );
           const snapNum = await getDocs(qNum);
           docsNum = snapNum.docs;
         }
         const mergedMap = new Map();
-        [...docsStr, ...docsNum].forEach((d) => mergedMap.set(d.id, { id: d.id, ...d.data() }));
+        [...docsStr, ...docsNum].forEach((d) =>
+          mergedMap.set(d.id, { id: d.id, ...d.data() }),
+        );
         setAwbSearchResults(Array.from(mergedMap.values()));
       } catch (e) {
         console.error("AWB search error:", e);
@@ -531,7 +558,7 @@ export default function Myshipments() {
     ? awbSearchResults.filter((pickup) =>
         (pickup.consignorphonenumber || "")
           .toLowerCase()
-          .includes(consignorPhoneSearchTerm.toLowerCase())
+          .includes(consignorPhoneSearchTerm.toLowerCase()),
       )
     : filteredPickups;
 
@@ -684,228 +711,235 @@ export default function Myshipments() {
             <tbody>
               {dataLoading || awbSearchLoading ? (
                 <tr>
-                  <td colSpan={tableHeader.length} className="py-16 text-center">
+                  <td
+                    colSpan={tableHeader.length}
+                    className="py-16 text-center"
+                  >
                     <div className="flex flex-col items-center justify-center gap-2">
                       <div className="w-20 h-20">
-                        <Lottie animationData={loadingAnimation} loop autoplay />
+                        <Lottie
+                          animationData={loadingAnimation}
+                          loop
+                          autoplay
+                        />
                       </div>
-                      <span className="text-sm text-gray-400">Loading shipments…</span>
+                      <span className="text-sm text-gray-400">
+                        Loading shipments…
+                      </span>
                     </div>
                   </td>
                 </tr>
-              ) : displayData.length > 0
-                ? displayData.map((item, i) => {
-                    const escStatus = (
-                      item.escalationStatus || "none"
-                    ).toLowerCase(); // "none" | "pending" | "closed"
-                    const fbKey = String(item.awbNumber);
-                    const hasFeedback = !!feedbackByAwb[fbKey];
+              ) : displayData.length > 0 ? (
+                displayData.map((item, i) => {
+                  const escStatus = (
+                    item.escalationStatus || "none"
+                  ).toLowerCase(); // "none" | "pending" | "closed"
+                  const fbKey = String(item.awbNumber);
+                  const hasFeedback = !!feedbackByAwb[fbKey];
 
-                    return (
-                      <tr
-                        key={item.awbNumber}
-                        className="border-b hover:bg-gray-50 transition"
-                      >
-                        <td className="px-4  py-2">{item.awbNumber}</td>
-                        <td className="px-4 border py-2">
-                          {item.consignorname}
-                        </td>
-                        <td className="px-4 border py-2">
-                          {item.consignorphonenumber}
-                        </td>
-                        <td className="px-4 border py-2">
-                          {item.consigneephonenumber}
-                        </td>
-                        <td className="px-4 border py-2 whitespace-nowrap">
-                          {item.status}
-                        </td>
+                  return (
+                    <tr
+                      key={item.awbNumber}
+                      className="border-b hover:bg-gray-50 transition"
+                    >
+                      <td className="px-4  py-2">{item.awbNumber}</td>
+                      <td className="px-4 border py-2">{item.consignorname}</td>
+                      <td className="px-4 border py-2">
+                        {item.consignorphonenumber}
+                      </td>
+                      <td className="px-4 border py-2">
+                        {item.consigneephonenumber}
+                      </td>
+                      <td className="px-4 border py-2 whitespace-nowrap">
+                        {item.status}
+                      </td>
 
-                        <td className="px-4 border  py-2">
-                          <div className="flex gap-2">
-                            {["consignor", "consignee"].map((type) => {
-                              const isSelected =
-                                selectedRecipient[item.awbNumber] === type;
-                              return (
-                                <label
-                                  key={type}
-                                  className={`px-3 py-1 rounded-md border cursor-pointer text-xs font-medium ${
-                                    isSelected
-                                      ? "bg-purple-700 text-white"
-                                      : "bg-gray-100 text-gray-700"
-                                  }`}
-                                >
-                                  <input
-                                    type="radio"
-                                    name={`recipient-${i}`}
-                                    value={type}
-                                    checked={isSelected}
-                                    onChange={() =>
-                                      setSelectedRecipient((prev) => ({
-                                        ...prev,
-                                        [item.awbNumber]: type,
-                                      }))
-                                    }
-                                    className="hidden"
-                                  />
-                                  {type.charAt(0).toUpperCase() + type.slice(1)}
-                                </label>
-                              );
-                            })}
-                          </div>
-                        </td>
-
-                        <td className="text-center border  w-[100px] h-[40px]">
-                          {selectedRecipient[item.awbNumber] ? (
-                            <button
-                              onClick={async () => {
-                                const recipientPhone =
-                                  selectedRecipient[item.awbNumber] ===
-                                  "consignor"
-                                    ? item.consignorphonenumber
-                                    : item.consigneephonenumber;
-
-                                const recipientname =
-                                  selectedRecipient[item.awbNumber] ===
-                                  "consignor"
-                                    ? item.consignorname
-                                    : item.consigneename;
-
-                                try {
-                                  await Sharetrackinglink({
-                                    name: recipientname,
-                                    awb: item.awbNumber,
-                                    awb: item.awbHashedValue,
-                                    mode: item.service,
-                                    destination: item.destination,
-                                    phone: recipientPhone,
-                                    currentStatus:
-                                      item?.currentStatus?.toLowerCase(),
-                                    packageConnectedDataTime:
-                                      item.packageConnectedDataTime,
-                                  });
-                                } catch (err) {
-                                  console.error(
-                                    "Error sharing tracking link:",
-                                    err,
-                                  );
-                                }
-                              }}
-                              className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-1.5 rounded-md text-xs font-semibold flex items-center justify-center gap-1"
-                              disabled={loading}
-                            >
-                              {loading ? (
-                                <div className="w-4 h-4">
-                                  <Lottie
-                                    animationData={loadingAnimation}
-                                    loop
-                                    autoplay
-                                  />
-                                </div>
-                              ) : (
-                                "Share"
-                              )}
-                            </button>
-                          ) : (
-                            <span className="text-gray-400 text-xs">
-                              Select first
-                            </span>
-                          )}
-                        </td>
-
-                        <td className="text-[12px]  border px-4 py-2 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
-                          {item.currentStatus}
-                        </td>
-                        <td className="text-[12px] px-4 py-2 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
-                          {utilityFunctions.formateFirebaseTimestamp(
-                            item.lastStatusUpdated,
-                          )}
-                        </td>
-
-                        <td className="px-4 py-2  border text-center">
-                          <a
-                            href={`https://shiphit.com/track-your-courier/${item.awbHashedValue}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-md text-xs font-semibold"
-                          >
-                            Track
-                          </a>
-                        </td>
-
-                        <td className="px-4 py-2 text-center">
-                          <img
-                            className="w-8 cursor-pointer mt-3"
-                            src="more-icon.svg"
-                            onClick={() => handleMoreIconClick(item)}
-                          />
-                        </td>
-
-                        {/* -------- Escalation Column -------- */}
-                        <td className="px-4 py-2 border text-center">
-                          {escStatus === "none" ? (
-                            <div className="flex itemscenter justify-center gap-2">
-                              <button
-                                onClick={() => handleAddReport(item)}
-                                className="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-md text-xs font-semibold transition-colors duration-200"
-                                title="Add escalation report"
+                      <td className="px-4 border  py-2">
+                        <div className="flex gap-2">
+                          {["consignor", "consignee"].map((type) => {
+                            const isSelected =
+                              selectedRecipient[item.awbNumber] === type;
+                            return (
+                              <label
+                                key={type}
+                                className={`px-3 py-1 rounded-md border cursor-pointer text-xs font-medium ${
+                                  isSelected
+                                    ? "bg-purple-700 text-white"
+                                    : "bg-gray-100 text-gray-700"
+                                }`}
                               >
-                                Escalate
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-center gap-2">
-                              <Pill
-                                type={
-                                  escStatus === "closed" ? "closed" : "pending"
-                                }
-                              >
-                                {escStatus === "closed" ? "Closed" : "Pending"}
-                              </Pill>
-                              <button
-                                onClick={() => handleViewEscalation(item)}
-                                className="bg-slate-800 hover:bg-black text-white px-3 py-1.5 rounded-md text-xs font-semibold transition-colors duration-200"
-                                title="View submitted escalation(s)"
-                              >
-                                View
-                              </button>
-                            </div>
-                          )}
-                        </td>
-                        {/* -------- Feedback Column -------- */}
-                        {role == "Manager" || role == "sales admin" ? (
-                          <td className="px-4 py-2 border text-center">
-                            {(() => {
-                              const fbDoc = feedbackByAwb[fbKey];
-                              const ratingValue = fbDoc?.starRatings || 0;
-
-                              return (
-                                <button
-                                  onClick={() => openFeedbackModal(item)}
-                                  className={getFeedbackButtonClasses(
-                                    hasFeedback,
-                                    ratingValue,
-                                  )}
-                                  title={
-                                    hasFeedback
-                                      ? `View Feedback — Rating: ${
-                                          ratingValue || "N/A"
-                                        }`
-                                      : "Add Feedback"
+                                <input
+                                  type="radio"
+                                  name={`recipient-${i}`}
+                                  value={type}
+                                  checked={isSelected}
+                                  onChange={() =>
+                                    setSelectedRecipient((prev) => ({
+                                      ...prev,
+                                      [item.awbNumber]: type,
+                                    }))
                                   }
-                                >
-                                  {hasFeedback ? "View" : "Feedback"}
-                                </button>
-                              );
-                            })()}
-                          </td>
+                                  className="hidden"
+                                />
+                                {type.charAt(0).toUpperCase() + type.slice(1)}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </td>
+
+                      <td className="text-center border  w-[100px] h-[40px]">
+                        {selectedRecipient[item.awbNumber] ? (
+                          <button
+                            onClick={async () => {
+                              const recipientPhone =
+                                selectedRecipient[item.awbNumber] ===
+                                "consignor"
+                                  ? item.consignorphonenumber
+                                  : item.consigneephonenumber;
+
+                              const recipientname =
+                                selectedRecipient[item.awbNumber] ===
+                                "consignor"
+                                  ? item.consignorname
+                                  : item.consigneename;
+
+                              try {
+                                await Sharetrackinglink({
+                                  name: recipientname,
+                                  awb: item.awbNumber,
+                                  awbHashedValue: item.awbHashedValue,
+                                  mode: item.service,
+                                  destination: item.destination,
+                                  phone: recipientPhone,
+                                  currentStatus:
+                                    item?.currentStatus?.toLowerCase(),
+                                  packageConnectedDataTime:
+                                    item.packageConnectedDataTime,
+                                });
+                              } catch (err) {
+                                console.error(
+                                  "Error sharing tracking link:",
+                                  err,
+                                );
+                              }
+                            }}
+                            className="bg-purple-700 hover:bg-purple-800 text-white px-4 py-1.5 rounded-md text-xs font-semibold flex items-center justify-center gap-1"
+                            disabled={loading}
+                          >
+                            {loading ? (
+                              <div className="w-4 h-4">
+                                <Lottie
+                                  animationData={loadingAnimation}
+                                  loop
+                                  autoplay
+                                />
+                              </div>
+                            ) : (
+                              "Share"
+                            )}
+                          </button>
                         ) : (
-                          ""
+                          <span className="text-gray-400 text-xs">
+                            Select first
+                          </span>
                         )}
-                        {/* -------- End Feedback Column -------- */}
-                      </tr>
-                    );
-                  })
-                : null}
+                      </td>
+
+                      <td className="text-[12px]  border px-4 py-2 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
+                        {item.currentStatus}
+                      </td>
+                      <td className="text-[12px] px-4 py-2 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
+                        {utilityFunctions.formateFirebaseTimestamp(
+                          item.lastStatusUpdated,
+                        )}
+                      </td>
+
+                      <td className="px-4 py-2  border text-center">
+                        <a
+                          href={`https://shiphit.com/track-your-courier/${item.awbHashedValue}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-md text-xs font-semibold"
+                        >
+                          Track
+                        </a>
+                      </td>
+
+                      <td className="px-4 py-2 text-center">
+                        <img
+                          className="w-8 cursor-pointer mt-3"
+                          src="more-icon.svg"
+                          onClick={() => handleMoreIconClick(item)}
+                        />
+                      </td>
+
+                      {/* -------- Escalation Column -------- */}
+                      <td className="px-4 py-2 border text-center">
+                        {escStatus === "none" ? (
+                          <div className="flex itemscenter justify-center gap-2">
+                            <button
+                              onClick={() => handleAddReport(item)}
+                              className="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-md text-xs font-semibold transition-colors duration-200"
+                              title="Add escalation report"
+                            >
+                              Escalate
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center gap-2">
+                            <Pill
+                              type={
+                                escStatus === "closed" ? "closed" : "pending"
+                              }
+                            >
+                              {escStatus === "closed" ? "Closed" : "Pending"}
+                            </Pill>
+                            <button
+                              onClick={() => handleViewEscalation(item)}
+                              className="bg-slate-800 hover:bg-black text-white px-3 py-1.5 rounded-md text-xs font-semibold transition-colors duration-200"
+                              title="View submitted escalation(s)"
+                            >
+                              View
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                      {/* -------- Feedback Column -------- */}
+                      {role == "Manager" || role == "sales admin" ? (
+                        <td className="px-4 py-2 border text-center">
+                          {(() => {
+                            const fbDoc = feedbackByAwb[fbKey];
+                            const ratingValue = fbDoc?.starRatings || 0;
+
+                            return (
+                              <button
+                                onClick={() => openFeedbackModal(item)}
+                                className={getFeedbackButtonClasses(
+                                  hasFeedback,
+                                  ratingValue,
+                                )}
+                                title={
+                                  hasFeedback
+                                    ? `View Feedback — Rating: ${
+                                        ratingValue || "N/A"
+                                      }`
+                                    : "Add Feedback"
+                                }
+                              >
+                                {hasFeedback ? "View" : "Feedback"}
+                              </button>
+                            );
+                          })()}
+                        </td>
+                      ) : (
+                        ""
+                      )}
+                      {/* -------- End Feedback Column -------- */}
+                    </tr>
+                  );
+                })
+              ) : null}
             </tbody>
           </table>
 

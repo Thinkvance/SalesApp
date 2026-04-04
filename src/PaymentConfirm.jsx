@@ -299,7 +299,7 @@ Our Refund Policy:
 • No refunds for fragile/delicate shipments sent via duty free/Self mode.
 • Damage must be reported within 48 hours of delivery.
 • No refunds for delay/abandonment due to customs clearance.
-• In case of loss, refund includes logistics cost and max product value $100 or declared invoice value (whichever higher).
+• In case of loss, refund includes logistics cost and max product value $100 or declared invoice value (whichever is lower).
 • For important products, opt for insurance by declaring just 5% of the invoice value (available for Economy and Express services only) to receive full reimbursement.
 • For refund assessment within 3 business days submit damage pictures and packaging proof.
 • Maximum refund limited to declared damaged item value.
