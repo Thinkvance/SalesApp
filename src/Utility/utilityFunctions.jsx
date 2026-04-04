@@ -698,31 +698,32 @@ async function fetchLoginedUserName() {
 const sendNotification = async () => {
   await fetchAndStoreToken(await fetchLoginedUserEmail());
   const userData = await LoginCredentials();
-  const currentUserCre = await fetchLoginedUserEmail();
-
+  // const currentUserCre = await fetchLoginedUserEmail();
   const admin_token = await fetchNotificationToken(userData[0].email);
-  const currentUserToken = await fetchNotificationToken(currentUserCre);
+  // const currentUserToken = await fetchNotificationToken(currentUserCre);
 
-  const notificationPayload1 = {
-    to: currentUserToken,
-    title: "Pickup Request Confirmed",
-    body: "A pickup has been scheduled. Review the details to coordinate smoothly.",
-    image: "https://www.shiphit.in/images/logo.png",
-    link: "",
-  };
+  // const notificationPayload1 = {
+  //   to: currentUserToken,
+  //   title: "Pickup Request Confirmed",
+  //   body: "A pickup has been scheduled. Review the details to coordinate smoothly.",
+  //   image: "https://www.shiphit.in/images/logo.png",
+  //   link: "",
+  // };
 
   const notificationPayload2 = {
-    to: admin_token,
-    title: "Pickup Request Confirmed",
+    to: [admin_token],
+    title: "Pickup Scheduled",
     body: `${await fetchLoginedUserName()} booked a pickup request. Please review and proceed.`,
     image: "",
     link: "",
+    sound: "custom_sound.wav",
+    channelId: "shiphit_alerts",
   };
 
   try {
     await Promise.all([
       axios.post(
-        "https://shiphit-backend.onrender.com/sendNotification",
+        "http://localhost:3001/sendNotification",
         notificationPayload2,
       ),
     ]);
@@ -730,6 +731,7 @@ const sendNotification = async () => {
     // ErrorNotify("Error sending notification");
   }
 };
+
 function addWeekdays(dateString, daysToAdd) {
   const [day, month, year] = dateString.split("/").map(Number);
   let date = new Date(year, month - 1, day);
