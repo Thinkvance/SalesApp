@@ -713,7 +713,7 @@ const sendNotification = async () => {
   const notificationPayload2 = {
     to: [admin_token],
     title: "Pickup Scheduled",
-    body: `${await fetchLoginedUserName()} booked a pickup request. Please review and proceed.`,
+    body: `${await fetchLoginedUserName()} has scheduled a new pickup. Kindly review the details and coordinate the next steps.`,
     image: "",
     link: "",
     sound: "custom_sound.wav",
@@ -723,7 +723,7 @@ const sendNotification = async () => {
   try {
     await Promise.all([
       axios.post(
-        "http://localhost:3001/sendNotification",
+        "https://notification-opt-service-f5f3ec066fe8.herokuapp.com/sendNotification",
         notificationPayload2,
       ),
     ]);
