@@ -31,6 +31,8 @@ import {
   getWeightSlab,
   normaliseService,
 } from "./Utility/fetchLowestRate.js";
+import { updateAgentDiscount } from "./Utility/updateAgentDiscount.js";
+import DiscountSummaryCard from "./DiscountSummaryCard";
 function PaymentConfirmationForm() {
   const [costKg, setcostKg] = useState(0);
   const { awbnumber } = useParams();
@@ -45,6 +47,8 @@ function PaymentConfirmationForm() {
   const [showGetPaymentConfirm, setShowGetPaymentConfirm] = useState(false);
   const [pendingFormData, setPendingFormData] = useState(null);
   const [costKgAutoPopulated, setCostKgAutoPopulated] = useState(false);
+  const [rateCardAmount, setRateCardAmount] = useState(null);
+  const [rateCardCostPerKg, setRateCardCostPerKg] = useState(null);
   const barcodeRef = useRef(null); // Ref for barcode generation
   const [paymentMode, setPaymentMode] = useState("");
   const {
@@ -650,6 +654,16 @@ Our Refund Policy:
         receiptCounter: receiptNumber.receiptCounter,
       };
       updateDoc(docRef, updatedFields);
+
+      // Track discount/margin if rate card data is available
+      if (rateCardAmount != null) {
+        const agentName = JSON.parse(localStorage.getItem("LoginCredentials")).name;
+        const diff = rateCardAmount - logisticCost;
+        if (diff !== 0 && agentName) {
+          await updateAgentDiscount(agentName, diff);
+        }
+      }
+
       await makePaymentNotify(
         details.id,
         Payment_URL,
@@ -865,27 +879,25 @@ Our Refund Policy:
     }
   }, [details]);
 
-  // // Auto-populate Cost/KG from rate card (only when not already set)
-  // useEffect(() => {
-  //   if (!details || details.costKg != null) return;
-  //   if (!details.destination || !details.service) return;
+  // Fetch rate card amount for discount calculation
+  useEffect(() => {
+    if (!details?.destination || !details?.service || !details?.actualWeight) return;
 
-  //   const weightSlab = getWeightSlab(details.actualWeight);
-  //   if (!weightSlab) return;
-  //   const service = normaliseService(details.service);
+    const weightSlab = getWeightSlab(details.actualWeight);
+    if (!weightSlab) return;
+    const service = normaliseService(details.service);
 
-  //   fetchLowestRate(details.destination, service, weightSlab)
-  //     .then((result) => {
-  //       if (result && result.amount) {
-  //         setcostKg(result.amount);
-  //         setValue("costKg", result.amount);
-  //         setCostKgAutoPopulated(true);
-  //       }
-  //     })
-  //     .catch((err) => {
-  //       console.log("Rate fetch failed:", err);
-  //     });
-  // }, [details?.destination, details?.service, details?.costKg]);
+    fetchLowestRate(details.destination, service, weightSlab)
+      .then((result) => {
+        if (result && result.amount) {
+          setRateCardCostPerKg(result.amount);
+          setRateCardAmount(details.actualWeight * result.amount);
+        }
+      })
+      .catch((err) => {
+        console.log("Rate fetch failed:", err);
+      });
+  }, [details?.destination, details?.service, details?.actualWeight]);
 
   const handleGetPaymentPreview = (data) => {
     setPendingFormData(data);
@@ -1228,6 +1240,8 @@ Our Refund Policy:
             </div>
           )}
 
+          <DiscountSummaryCard />
+
           <div className="border-t border-gray-200 mt-4 mb-4 pt-4">
             <h3 className="text-sm font-semibold text-purple-700 uppercase tracking-wide mb-3">
               Pricing Details
@@ -1238,29 +1252,45 @@ Our Refund Policy:
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
               Logistics Cost
             </label>
-            <input
-              value={
-                details?.logisticCost
-                  ? details?.logisticCost
-                  : parseInt(details?.actualWeight) * costKg
-              }
-              type="text"
-              className="p-2.5 rounded-lg border border-transparent bg-gray-50 text-gray-700 text-sm cursor-default select-none outline-none"
-              placeholder="Logistics Cost"
-              readOnly
-              {...register("logisticsCost", {
-                required: "Logistics cost is required",
-                pattern: {
-                  value: /^[0-9]+$/,
-                  message:
-                    "Please enter a valid phone number consisting of digits only",
-                },
-                valueAsNumber: true,
-                validate: (value) =>
-                  Number.isInteger(value) ||
-                  "Please enter a valid integer number",
-              })}
-            />
+            <div className="flex items-center gap-3">
+              <input
+                value={
+                  details?.logisticCost
+                    ? details?.logisticCost
+                    : parseInt(details?.actualWeight) * costKg
+                }
+                type="text"
+                className="p-2.5 rounded-lg border border-transparent bg-gray-50 text-gray-700 text-sm cursor-default select-none outline-none flex-1"
+                placeholder="Logistics Cost"
+                readOnly
+                {...register("logisticsCost", {
+                  required: "Logistics cost is required",
+                  pattern: {
+                    value: /^[0-9]+$/,
+                    message:
+                      "Please enter a valid phone number consisting of digits only",
+                  },
+                  valueAsNumber: true,
+                  validate: (value) =>
+                    Number.isInteger(value) ||
+                    "Please enter a valid integer number",
+                })}
+              />
+              {rateCardAmount != null && costKg > 0 && (() => {
+                const salesLogistics = parseInt(details?.actualWeight) * costKg;
+                const diff = rateCardAmount - salesLogistics;
+                return (
+                  <div className="flex flex-col items-end text-sm text-gray-700 whitespace-nowrap">
+                    <span>Cost/KG (Rate Card): ₹{rateCardCostPerKg}</span>
+                    <span>Logistics (Rate Card): ₹{rateCardAmount}</span>
+                    <span>Logistics (Sales): ₹{salesLogistics}</span>
+                    <span className={`font-semibold ${diff > 0 ? "text-green-600" : diff < 0 ? "text-red-600" : "text-gray-700"}`}>
+                      Diff: {diff > 0 ? `Discount ₹${diff}` : diff < 0 ? `Extra Margin ₹${Math.abs(diff)}` : "No Difference"}
+                    </span>
+                  </div>
+                );
+              })()}
+            </div>
           </div>
           {errors.logisticsCost && (
             <p className="text-red-500 text-sm mb-3">

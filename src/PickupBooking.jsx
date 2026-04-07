@@ -525,7 +525,7 @@ function PickupBooking() {
       setFiles([]);
       setIsSourceFixed(false);
       setValue("source", "");
-      // reset();
+      reset();
       setUploadProgress({});
       setIsOnboarded(false);
       setShowModal(true);
