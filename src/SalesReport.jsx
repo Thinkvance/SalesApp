@@ -247,10 +247,11 @@ function SalesReport() {
     0,
   );
 
-  const totalDiscount = filteredPickups.reduce(
-    (sum, pickup) => sum + (pickup.discountCost || 0),
-    0,
-  );
+  const totalDiscount = filteredPickups.reduce((sum, pickup) => {
+    const discount = Math.max(0, Number(pickup.discountCost) || 0);
+    const recovered = Math.max(0, Number(pickup.recoverdCost) || 0);
+    return sum + discount - recovered;
+  }, 0);
 
   useEffect(() => {
     async function getData() {
@@ -422,14 +423,36 @@ function SalesReport() {
                   {totalLogisticsCost}
                 </p>
               </div>
-              <div className="bg-blue-50 border w-fit border-blue-200 rounded-xl px-6 py-3 shadow-md transition-shadow duration-200 hover:shadow-2xl">
-                <h2 className="text-lg font-semibold text-blue-800 mb-2">
-                  Profit / Loss
-                </h2>
-                <p className="text-2xl font-bold text-blue-900">
-                  {totalDiscount}
-                </p>
-              </div>
+              {(() => {
+                const isLoss = totalDiscount > 0;
+                const isProfit = totalDiscount < 0;
+                const bg = isLoss
+                  ? "bg-red-50 border-red-200"
+                  : isProfit
+                    ? "bg-green-50 border-green-200"
+                    : "bg-blue-50 border-blue-200";
+                const titleColor = isLoss
+                  ? "text-red-800"
+                  : isProfit
+                    ? "text-green-800"
+                    : "text-blue-800";
+                const valueColor = isLoss
+                  ? "text-red-700"
+                  : isProfit
+                    ? "text-green-700"
+                    : "text-blue-900";
+                const sign = isLoss ? "- " : isProfit ? "+ " : "";
+                return (
+                  <div className={`border w-fit rounded-xl px-6 py-3 shadow-md transition-shadow duration-200 hover:shadow-2xl ${bg}`}>
+                    <h2 className={`text-lg font-semibold mb-2 ${titleColor}`}>
+                      Profit / Loss
+                    </h2>
+                    <p className={`text-2xl font-bold ${valueColor}`}>
+                      {sign}₹{Math.abs(totalDiscount).toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* RIGHT COLUMN: full-height Growth card */}
@@ -552,6 +575,9 @@ function SalesReport() {
                   "Pickup Person",
                   "Status",
                   "Sales Close",
+                  "Cost Per Kg",
+                  "Discount Cost",
+                  "Recovered Cost",
                   "Payment Proof",
                   "Details",
                 ].map((head, i) => (
@@ -612,6 +638,15 @@ function SalesReport() {
                       </td>
                       <td className="py-3 px-4 border">
                         {pickup.logisticCost || "--"}
+                      </td>
+                      <td className="py-3 px-4 border">
+                        {pickup.costKg || "--"}
+                      </td>
+                      <td className="py-3 px-4 border">
+                        {pickup.discountCost || "--"}
+                      </td>
+                      <td className="py-3 px-4 border">
+                        {pickup.recoverdCost || "--"}
                       </td>
                       <td className="py-3 px-4 border">
                         {pickup.paymentProof ? (
