@@ -86,6 +86,32 @@ function PaymentConfirmationForm() {
     }
   }, [details?.additionalcharges, setValue]);
 
+  const furtherDiscountWatch = watch("furtherDiscount");
+
+  // Auto-fill Discount Amount and Recovered Cost based on rate card vs sales price
+  useEffect(() => {
+    if (rateCardAmount == null || !costKg) return;
+    const salesLogistics = parseInt(details?.actualWeight) * costKg;
+    const diff = rateCardAmount - salesLogistics;
+    const baseDiscount = diff > 0 ? diff : 0;
+    const autoRecovered = diff < 0 ? Math.abs(diff) : 0;
+    const further = parseInt(furtherDiscountWatch) || 0;
+    if (details?.discountCost == null) {
+      setValue("discountCost", baseDiscount + further);
+    }
+    if (details?.recoverdCost == null) {
+      setValue("recoverdCost", autoRecovered);
+    }
+  }, [
+    rateCardAmount,
+    costKg,
+    details?.actualWeight,
+    details?.discountCost,
+    details?.recoverdCost,
+    furtherDiscountWatch,
+    setValue,
+  ]);
+
   useEffect(() => {
     if (!awbnumber) return;
 
@@ -633,7 +659,7 @@ Our Refund Policy:
           parseInt(logisticCost + data.additionalcharges) -
           parseInt(data.discountCost),
         discountCost: data.discountCost,
-        // paymentProof: await uploadFileToFirebase(paymentProof, "PAYMENT PROOF"),
+        recoverdCost: data.recoverdCost || 0,
         KycImage:
           typeof details.KycImage === "string" &&
           details.KycImage.startsWith("http")
@@ -650,6 +676,7 @@ Our Refund Policy:
         costKg: costKg,
         payment_Receipt_URL: Payment_URL,
         additionalcharges: data.additionalcharges,
+        additionalChargeReason: data.additionalChargeReason || null,
         receiptNumber: receiptNumber.receiptNumber,
         receiptCounter: receiptNumber.receiptCounter,
       };
@@ -657,10 +684,13 @@ Our Refund Policy:
 
       // Track discount/margin if rate card data is available
       if (rateCardAmount != null) {
-        const agentName = JSON.parse(localStorage.getItem("LoginCredentials")).name;
-        const diff = rateCardAmount - logisticCost;
-        if (diff !== 0 && agentName) {
-          await updateAgentDiscount(agentName, diff);
+        const agentName = JSON.parse(
+          localStorage.getItem("LoginCredentials"),
+        ).name;
+        const discountGiven = parseInt(data.discountCost) || 0;
+        const recovered = parseInt(data.recoverdCost) || 0;
+        if ((discountGiven > 0 || recovered > 0) && agentName) {
+          await updateAgentDiscount(agentName, discountGiven, recovered);
         }
       }
 
@@ -881,7 +911,8 @@ Our Refund Policy:
 
   // Fetch rate card amount for discount calculation
   useEffect(() => {
-    if (!details?.destination || !details?.service || !details?.actualWeight) return;
+    if (!details?.destination || !details?.service || !details?.actualWeight)
+      return;
 
     const weightSlab = getWeightSlab(details.actualWeight);
     if (!weightSlab) return;
@@ -1248,50 +1279,116 @@ Our Refund Policy:
             </h3>
           </div>
 
-          <div className="flex flex-col mb-3">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-              Logistics Cost
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                value={
-                  details?.logisticCost
-                    ? details?.logisticCost
-                    : parseInt(details?.actualWeight) * costKg
-                }
-                type="text"
-                className="p-2.5 rounded-lg border border-transparent bg-gray-50 text-gray-700 text-sm cursor-default select-none outline-none flex-1"
-                placeholder="Logistics Cost"
-                readOnly
-                {...register("logisticsCost", {
-                  required: "Logistics cost is required",
-                  pattern: {
-                    value: /^[0-9]+$/,
-                    message:
-                      "Please enter a valid phone number consisting of digits only",
-                  },
-                  valueAsNumber: true,
-                  validate: (value) =>
-                    Number.isInteger(value) ||
-                    "Please enter a valid integer number",
-                })}
-              />
-              {rateCardAmount != null && costKg > 0 && (() => {
-                const salesLogistics = parseInt(details?.actualWeight) * costKg;
-                const diff = rateCardAmount - salesLogistics;
-                return (
-                  <div className="flex flex-col items-end text-sm text-gray-700 whitespace-nowrap">
-                    <span>Cost/KG (Rate Card): ₹{rateCardCostPerKg}</span>
-                    <span>Logistics (Rate Card): ₹{rateCardAmount}</span>
-                    <span>Logistics (Sales): ₹{salesLogistics}</span>
-                    <span className={`font-semibold ${diff > 0 ? "text-green-600" : diff < 0 ? "text-red-600" : "text-gray-700"}`}>
-                      Diff: {diff > 0 ? `Discount ₹${diff}` : diff < 0 ? `Extra Margin ₹${Math.abs(diff)}` : "No Difference"}
-                    </span>
+          {(() => {
+            const weight = parseInt(details?.actualWeight) || 0;
+            const liveCostKg = Number(costKg) || 0;
+            const liveDiscount = parseInt(watch("discountCost")) || 0;
+            const liveAdditional = parseInt(watch("additionalcharges")) || 0;
+            const salesLogistics = weight * liveCostKg;
+            const finalLogistics = details?.logisticCost
+              ? details.logisticCost
+              : salesLogistics + liveAdditional - liveDiscount;
+            const isNegative = finalLogistics < 0;
+
+            return (
+              <>
+                <div className="flex flex-col mb-3">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                    Logistics Cost
+                  </label>
+                  <input
+                    value={finalLogistics}
+                    type="text"
+                    className={`p-2.5 rounded-lg border text-sm cursor-default select-none outline-none ${
+                      isNegative
+                        ? "bg-red-50 border-red-300 text-red-700"
+                        : "border-transparent bg-gray-50 text-gray-700"
+                    }`}
+                    placeholder="Logistics Cost"
+                    readOnly
+                    {...register("logisticsCost", {
+                      required: "Logistics cost is required",
+                      valueAsNumber: true,
+                      validate: (value) =>
+                        (Number.isInteger(value) && value >= 0) ||
+                        "Logistics cost cannot be negative. Reduce the discount.",
+                    })}
+                  />
+                  {isNegative && (
+                    <p className="text-red-600 text-xs mt-1 font-medium">
+                      Discount exceeds logistics cost. Please reduce the discount before submitting.
+                    </p>
+                  )}
+                </div>
+
+                {rateCardAmount != null && costKg > 0 && (
+                  <div className="mb-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Sales Side */}
+                      <div className="rounded-lg border border-gray-200 bg-white p-3">
+                        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                          Sales Side
+                        </p>
+                        <div className="flex justify-between text-sm py-0.5">
+                          <span className="text-gray-500">Cost/KG</span>
+                          <span className="font-semibold text-gray-800">₹{liveCostKg}</span>
+                        </div>
+                        <div className="flex justify-between text-sm py-0.5">
+                          <span className="text-gray-500">Weight</span>
+                          <span className="font-semibold text-gray-800">{weight} kg</span>
+                        </div>
+                        <div className="flex justify-between text-sm py-0.5 border-t border-gray-100 mt-1 pt-1">
+                          <span className="text-gray-500">Logistics</span>
+                          <span className="font-semibold text-gray-800">₹{salesLogistics}</span>
+                        </div>
+                      </div>
+
+                      {/* Rate Card Side */}
+                      <div className="rounded-lg border border-purple-200 bg-purple-50 p-3">
+                        <p className="text-[11px] font-semibold text-purple-700 uppercase tracking-wide mb-2">
+                          Rate Card
+                        </p>
+                        <div className="flex justify-between text-sm py-0.5">
+                          <span className="text-gray-500">Cost/KG</span>
+                          <span className="font-semibold text-gray-800">₹{rateCardCostPerKg}</span>
+                        </div>
+                        <div className="flex justify-between text-sm py-0.5">
+                          <span className="text-gray-500">Weight</span>
+                          <span className="font-semibold text-gray-800">{weight} kg</span>
+                        </div>
+                        <div className="flex justify-between text-sm py-0.5 border-t border-purple-100 mt-1 pt-1">
+                          <span className="text-gray-500">Logistics</span>
+                          <span className="font-semibold text-gray-800">₹{rateCardAmount}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Diff banner */}
+                    {(() => {
+                      const diff = rateCardAmount - salesLogistics;
+                      const diffBg =
+                        diff > 0
+                          ? "bg-green-50 border-green-200 text-green-700"
+                          : diff < 0
+                            ? "bg-red-50 border-red-200 text-red-700"
+                            : "bg-gray-50 border-gray-200 text-gray-700";
+                      const diffLabel =
+                        diff > 0
+                          ? `Discount given to customer: ₹${diff}`
+                          : diff < 0
+                            ? `Extra margin earned: ₹${Math.abs(diff)}`
+                            : "No difference from rate card";
+                      return (
+                        <div className={`mt-2 rounded-lg border p-2.5 text-center text-sm font-semibold ${diffBg}`}>
+                          {diffLabel}
+                        </div>
+                      );
+                    })()}
                   </div>
-                );
-              })()}
-            </div>
-          </div>
+                )}
+              </>
+            );
+          })()}
           {errors.logisticsCost && (
             <p className="text-red-500 text-sm mb-3">
               {errors.logisticsCost.message}
@@ -1333,38 +1430,94 @@ Our Refund Policy:
           {errors.costKg && (
             <p className="text-red-500 text-sm mb-3">{errors.costKg.message}</p>
           )}
-          <div className="flex flex-col mb-3">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-              Discount Amount
-            </label>
-            <input
-              type="text"
-              inputMode="numeric"
-              onInput={(e) => {
-                e.target.value = e.target.value.replace(/[^0-9]/g, "");
-              }}
-              className={`p-2.5 rounded-lg border text-sm ${details.discountCost == undefined ? "bg-white border-gray-300 focus:outline-none focus:border-purple-400" : "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed"}`}
-              placeholder="Enter 0 or amount"
-              readOnly={details.discountCost == undefined ? false : true}
-              {...register("discountCost", {
-                required: "Please enter the discount amount.",
-                pattern: {
-                  value: /^[0-9]+$/,
-                  message:
-                    "Please enter a valid discount number consisting of digits only.",
-                },
-                valueAsNumber: true,
-                validate: (value) =>
-                  Number.isInteger(value) ||
-                  "Please enter a valid integer number",
-              })}
-            />
-          </div>
+          {(() => {
+            const isAlreadySaved = details.discountCost != undefined;
+            const hasRateCard = rateCardAmount != null && !!costKg;
+            const discountAmountReadOnly = isAlreadySaved || hasRateCard;
+            const showFurtherDiscount = hasRateCard || isAlreadySaved;
+            const furtherDiscountReadOnly = isAlreadySaved;
+            return (
+              <div className="flex gap-3 mb-3">
+                <div className="flex flex-col flex-1">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                    Discount Amount
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    onInput={(e) => {
+                      e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                    }}
+                    className={`p-2.5 rounded-lg border text-sm ${
+                      discountAmountReadOnly
+                        ? "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed"
+                        : "bg-white border-gray-300 focus:outline-none focus:border-purple-400"
+                    }`}
+                    placeholder="Enter 0 or amount"
+                    readOnly={discountAmountReadOnly}
+                    {...register("discountCost", {
+                      required: "Please enter the discount amount.",
+                      pattern: {
+                        value: /^[0-9]+$/,
+                        message:
+                          "Please enter a valid discount number consisting of digits only.",
+                      },
+                      valueAsNumber: true,
+                      validate: (value) =>
+                        Number.isInteger(value) ||
+                        "Please enter a valid integer number",
+                    })}
+                  />
+                </div>
+                {showFurtherDiscount && (
+                  <div className="flex flex-col flex-1">
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                      Further Discount
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      defaultValue={0}
+                      onInput={(e) => {
+                        e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                      }}
+                      className={`p-2.5 rounded-lg border text-sm ${
+                        furtherDiscountReadOnly
+                          ? "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed"
+                          : "bg-white border-gray-300 focus:outline-none focus:border-purple-400"
+                      }`}
+                      placeholder="0"
+                      readOnly={furtherDiscountReadOnly}
+                      {...register("furtherDiscount", {
+                        valueAsNumber: true,
+                      })}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           {errors.discountCost && (
             <p className="text-red-500 text-sm mb-3">
               {errors.discountCost.message}
             </p>
           )}
+          <div className="flex flex-col mb-3">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+              Recovered Cost (Extra Margin)
+            </label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={watch("recoverdCost") || 0}
+              className="p-2.5 rounded-lg border text-sm bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed"
+              placeholder="0"
+              readOnly
+              {...register("recoverdCost", {
+                valueAsNumber: true,
+              })}
+            />
+          </div>
           <div className="flex flex-col mb-3">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
               Additional Charges
@@ -1393,6 +1546,54 @@ Our Refund Policy:
               })}
             />
           </div>
+          {(() => {
+            const additionalChargeReasons = [
+              "Fumigation",
+              "Wooden Palletization",
+              "Special products charges",
+              "Over dimensions charges",
+              "Over weight charges",
+              "Pickup charges",
+              "Packing charges",
+              "Customise Special box charges",
+            ];
+            const hasCharge = (parseInt(watch("additionalcharges")) || 0) > 0;
+            const isReasonLocked = details.additionalChargeReason != undefined;
+            return (
+              <div className="flex flex-col mb-3">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                  Additional Charge Reason
+                </label>
+                <select
+                  className={`p-2.5 rounded-lg border text-sm ${
+                    isReasonLocked
+                      ? "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed"
+                      : "bg-white border-gray-300 focus:outline-none focus:border-purple-400"
+                  }`}
+                  disabled={isReasonLocked}
+                  defaultValue={details.additionalChargeReason || ""}
+                  {...register("additionalChargeReason", {
+                    validate: (value) =>
+                      !hasCharge ||
+                      !!value ||
+                      "Please select a reason for the additional charge.",
+                  })}
+                >
+                  <option value="">Select a reason</option>
+                  {additionalChargeReasons.map((reason) => (
+                    <option key={reason} value={reason}>
+                      {reason}
+                    </option>
+                  ))}
+                </select>
+                {errors.additionalChargeReason && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.additionalChargeReason.message}
+                  </p>
+                )}
+              </div>
+            );
+          })()}
           {errors.additionalcharges && (
             <p className="text-red-500 text-sm mb-3">
               {errors.additionalcharges.message}

@@ -408,7 +408,7 @@ function SalesReport() {
             <div className="flex flex-col gap-4 ">
               <div className="bg-purple-50 border w-fit border-purple-200 rounded-xl px-6 py-3  shadow-md transition-shadow duration-200 hover:shadow-2xl">
                 <h2 className="text-lg font-semibold text-purple-800 mb-2">
-                  Total Sales
+                  Sale
                 </h2>
                 <p className="text-2xl font-bold text-purple-900">
                   {totalSales}
@@ -416,7 +416,7 @@ function SalesReport() {
               </div>
               <div className="bg-green-50 border w-fit border-green-200 rounded-xl px-6 py-3 shadow-md transition-shadow duration-200 hover:shadow-2xl">
                 <h2 className="text-lg font-semibold text-green-800 mb-2">
-                  Total Logistic Cost
+                  Logistic Cost
                 </h2>
                 <p className="text-2xl font-bold text-green-900">
                   {totalLogisticsCost}
@@ -424,7 +424,7 @@ function SalesReport() {
               </div>
               <div className="bg-blue-50 border w-fit border-blue-200 rounded-xl px-6 py-3 shadow-md transition-shadow duration-200 hover:shadow-2xl">
                 <h2 className="text-lg font-semibold text-blue-800 mb-2">
-                  Discounts Applied
+                  Profit / Loss
                 </h2>
                 <p className="text-2xl font-bold text-blue-900">
                   {totalDiscount}
