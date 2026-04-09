@@ -142,8 +142,8 @@ Phone: 9159 688 688`;
 
     /* ---------------- Summary (Below Table) ---------------- */
 
-    const labelX = 330;
-    const valueX = 460;
+    const labelX = 300;
+    const valueX = 490;
 
     let y = doc.lastAutoTable.finalY + 30;
 
@@ -168,12 +168,14 @@ Phone: 9159 688 688`;
 
     y += 20;
 
-    doc.setFont("helvetica", "bold");
-    doc.text(additionalchargesreason || "Additional Charges", labelX, y);
-    doc.setFont("helvetica", "normal");
-    doc.text(`+ ${Number(additionalcharges).toFixed(2)} Rs`, valueX, y);
-
-    y += 20;
+    if (additionalcharges > 0) {
+      doc.setFont("helvetica", "bold");
+      const chargeLabel = additionalchargesreason || "Additional Charges";
+      doc.text(chargeLabel, labelX, y);
+      doc.setFont("helvetica", "normal");
+      doc.text(`+ ${Number(additionalcharges).toFixed(2)} Rs`, valueX, y);
+      y += 20;
+    }
 
     if (discountCost > 0) {
       doc.setFont("helvetica", "bold");

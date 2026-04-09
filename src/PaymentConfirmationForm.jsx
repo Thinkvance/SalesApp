@@ -383,8 +383,8 @@ function PaymentConfirmationForm() {
     // -------------------------
     // Totals Block (Right Side Styled)
     // -------------------------
-    const labelX = 330;
-    const valueX = 460;
+    const labelX = 300;
+    const valueX = 490;
     let currentY = doc.lastAutoTable.finalY + 40;
 
     // Subtotal
@@ -398,14 +398,17 @@ function PaymentConfirmationForm() {
     currentY += 20;
 
     // Additional Charges
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(0, 0, 0);
-    doc.text(additionalChargeReason || "Additional Charges", labelX, currentY);
+    if (additionalcharges > 0) {
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
+      const chargeLabel = additionalChargeReason || "Additional Charges";
+      doc.text(chargeLabel, labelX, currentY);
 
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(0, 128, 0);
-    doc.text(`+ ${additionalcharges}.00 Rs`, valueX, currentY);
-    currentY += 20;
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(0, 128, 0);
+      doc.text(`+ ${additionalcharges}.00 Rs`, valueX, currentY);
+      currentY += 20;
+    }
 
     // Discount
     if (discountCost > 0) {
