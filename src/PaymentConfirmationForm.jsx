@@ -13,6 +13,7 @@ import {
   onSnapshot,
   runTransaction,
   Timestamp,
+  writeBatch,
 } from "firebase/firestore";
 import collectionName_BaseAwb from "./functions/collectionName";
 import axios from "axios";
@@ -31,7 +32,7 @@ import {
   getWeightSlab,
   normaliseService,
 } from "./Utility/fetchLowestRate.js";
-import { updateAgentDiscount } from "./Utility/updateAgentDiscount.js";
+import { appendAgentDiscountToBatch } from "./Utility/updateAgentDiscount.js";
 import DiscountSummaryCard from "./DiscountSummaryCard";
 function PaymentConfirmationForm() {
   const [costKg, setcostKg] = useState(0);
@@ -680,9 +681,12 @@ Our Refund Policy:
         receiptNumber: receiptNumber.receiptNumber,
         receiptCounter: receiptNumber.receiptCounter,
       };
-      updateDoc(docRef, updatedFields);
+      // Atomic commit: pickup update + agent discount stats either both
+      // land or neither does. Prevents half-cooked state if the network
+      // drops between the two writes.
+      const batch = writeBatch(db);
+      batch.update(docRef, updatedFields);
 
-      // Track discount/margin if rate card data is available
       if (rateCardAmount != null) {
         const agentName = JSON.parse(
           localStorage.getItem("LoginCredentials"),
@@ -690,9 +694,16 @@ Our Refund Policy:
         const discountGiven = parseInt(data.discountCost) || 0;
         const recovered = parseInt(data.recoverdCost) || 0;
         if ((discountGiven > 0 || recovered > 0) && agentName) {
-          await updateAgentDiscount(agentName, discountGiven, recovered);
+          appendAgentDiscountToBatch(
+            batch,
+            agentName,
+            discountGiven,
+            recovered,
+          );
         }
       }
+
+      await batch.commit();
 
       await makePaymentNotify(
         details.id,
@@ -707,12 +718,12 @@ Our Refund Policy:
         details.companyName,
       );
       setShowPopup(true);
+      resetForm(); // Only reset on success — preserve input on failure so user can retry
     } catch (error) {
       console.log(error);
       handleError(error);
     } finally {
       setSubmitLoading(false);
-      resetForm(); // Reset form after submission
     }
   };
 
@@ -1726,13 +1737,18 @@ Our Refund Policy:
           {formError && <p className="text-red-500 text-sm">{formError}</p>}
           {details.makePaymentNotified &&
           details.status == "PAYMENT REQUESTED" ? (
-            <div
+            <button
+              type="button"
               onClick={() => paymentConfirm()}
-              className="w-full mt-4 p-2 text-center cursor-pointer bg-purple-600 text-white font-semibold rounded hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-600"
-              // disabled={submitLoading}
+              disabled={submitLoading}
+              className={`w-full mt-4 p-2 text-center bg-purple-600 text-white font-semibold rounded focus:outline-none focus:ring-2 focus:ring-purple-600 ${
+                submitLoading
+                  ? "opacity-60 cursor-not-allowed"
+                  : "cursor-pointer hover:bg-purple-700"
+              }`}
             >
               {submitLoading ? "Submitting..." : "Submit"}
-            </div>
+            </button>
           ) : (
             <button
               type="button"
