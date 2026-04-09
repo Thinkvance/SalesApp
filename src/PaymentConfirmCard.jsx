@@ -215,6 +215,7 @@ function PaymentConfirmCard({ item, index }) {
                     gst,
                     item.pickupDatetime,
                     setGst,
+                    // item.additionalChargeReason,
                   );
 
                   setisOpen(false);
@@ -322,12 +323,12 @@ function PaymentConfirmCard({ item, index }) {
           >
             Receipt
           </a>
-          <button
+          {/* <button
             onClick={() => setisOpen(true)}
             className="p-2 rounded-md bg-[#714DD9]  text-white"
           >
             GST Invoice
-          </button>
+          </button> */}
           {/* <button
             onClick={() => generate_AWBNUMBER_PDF()}
             className="p-2 rounded-md bg-[#714DD9]  text-white"

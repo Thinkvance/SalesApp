@@ -279,6 +279,7 @@ function PaymentConfirmationForm() {
     discountCost,
     additionalcharges,
     invoiceNumber,
+    additionalChargeReason,
   ) {
     const doc = new jsPDF("p", "pt");
     const subtotal = parseInt(costKg) * details.actualWeight;
@@ -399,7 +400,7 @@ function PaymentConfirmationForm() {
     // Additional Charges
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
-    doc.text("Additional Charges:", labelX, currentY);
+    doc.text(additionalChargeReason || "Additional Charges", labelX, currentY);
 
     doc.setFont("helvetica", "normal");
     doc.setTextColor(0, 128, 0);
@@ -629,6 +630,7 @@ Our Refund Policy:
         data.discountCost,
         data.additionalcharges,
         receiptNumber.receiptNumber,
+        data.additionalChargeReason,
       );
 
       const q = query(
@@ -768,6 +770,7 @@ Our Refund Policy:
           gstNumber,
           details.pickupDatetime,
           gstInvoiceNumber.invoiceNumber, // pass invoice number
+          details.additionalChargeReason,
         );
       }
 
@@ -1327,7 +1330,8 @@ Our Refund Policy:
                   />
                   {isNegative && (
                     <p className="text-red-600 text-xs mt-1 font-medium">
-                      Discount exceeds logistics cost. Please reduce the discount before submitting.
+                      Discount exceeds logistics cost. Please reduce the
+                      discount before submitting.
                     </p>
                   )}
                 </div>
@@ -1342,15 +1346,21 @@ Our Refund Policy:
                         </p>
                         <div className="flex justify-between text-sm py-0.5">
                           <span className="text-gray-500">Cost/KG</span>
-                          <span className="font-semibold text-gray-800">₹{liveCostKg}</span>
+                          <span className="font-semibold text-gray-800">
+                            ₹{liveCostKg}
+                          </span>
                         </div>
                         <div className="flex justify-between text-sm py-0.5">
                           <span className="text-gray-500">Weight</span>
-                          <span className="font-semibold text-gray-800">{weight} kg</span>
+                          <span className="font-semibold text-gray-800">
+                            {weight} kg
+                          </span>
                         </div>
                         <div className="flex justify-between text-sm py-0.5 border-t border-gray-100 mt-1 pt-1">
                           <span className="text-gray-500">Logistics</span>
-                          <span className="font-semibold text-gray-800">₹{salesLogistics}</span>
+                          <span className="font-semibold text-gray-800">
+                            ₹{salesLogistics}
+                          </span>
                         </div>
                       </div>
 
@@ -1361,15 +1371,21 @@ Our Refund Policy:
                         </p>
                         <div className="flex justify-between text-sm py-0.5">
                           <span className="text-gray-500">Cost/KG</span>
-                          <span className="font-semibold text-gray-800">₹{rateCardCostPerKg}</span>
+                          <span className="font-semibold text-gray-800">
+                            ₹{rateCardCostPerKg}
+                          </span>
                         </div>
                         <div className="flex justify-between text-sm py-0.5">
                           <span className="text-gray-500">Weight</span>
-                          <span className="font-semibold text-gray-800">{weight} kg</span>
+                          <span className="font-semibold text-gray-800">
+                            {weight} kg
+                          </span>
                         </div>
                         <div className="flex justify-between text-sm py-0.5 border-t border-purple-100 mt-1 pt-1">
                           <span className="text-gray-500">Logistics</span>
-                          <span className="font-semibold text-gray-800">₹{rateCardAmount}</span>
+                          <span className="font-semibold text-gray-800">
+                            ₹{rateCardAmount}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -1390,7 +1406,9 @@ Our Refund Policy:
                             ? `Extra margin earned: ₹${Math.abs(diff)}`
                             : "No difference from rate card";
                       return (
-                        <div className={`mt-2 rounded-lg border p-2.5 text-center text-sm font-semibold ${diffBg}`}>
+                        <div
+                          className={`mt-2 rounded-lg border p-2.5 text-center text-sm font-semibold ${diffBg}`}
+                        >
                           {diffLabel}
                         </div>
                       );

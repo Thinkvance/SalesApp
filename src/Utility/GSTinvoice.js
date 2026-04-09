@@ -12,6 +12,7 @@ async function generate_GST_Invoice_PDF(
   gst,
   pickupDatetime,
   gstInvoiceNumber,
+  additionalchargesreason,
 ) {
   try {
     const actualWeight = item.actualWeight;
@@ -168,7 +169,7 @@ Phone: 9159 688 688`;
     y += 20;
 
     doc.setFont("helvetica", "bold");
-    doc.text("Additional Charges:", labelX, y);
+    doc.text(additionalchargesreason || "Additional Charges", labelX, y);
     doc.setFont("helvetica", "normal");
     doc.text(`+ ${Number(additionalcharges).toFixed(2)} Rs`, valueX, y);
 
