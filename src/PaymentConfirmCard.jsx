@@ -316,13 +316,25 @@ function PaymentConfirmCard({ item, index }) {
       )}
       {allowedStatuses.includes(item.status) ? (
         <div className="text-sm flex gap-10">
-          <a
-            target="_blank"
-            href={item.payment_Receipt_URL}
-            className="p-2 rounded-md bg-[#714DD9]  text-white"
-          >
-            Receipt
-          </a>
+          {item.payment_Receipt_URL && item.payment_Receipt_URL !== "" && (
+            <a
+              target="_blank"
+              href={item.payment_Receipt_URL}
+              className="p-2 rounded-md bg-[#714DD9] text-white"
+            >
+              Receipt
+            </a>
+          )}
+
+          {item.payment_Invoice_URL && item.payment_Invoice_URL !== "" && (
+            <a
+              target="_blank"
+              href={item.payment_Invoice_URL}
+              className="p-2 rounded-md bg-[#714DD9] text-white"
+            >
+              Invoice
+            </a>
+          )}
           {/* <button
             onClick={() => setisOpen(true)}
             className="p-2 rounded-md bg-[#714DD9]  text-white"

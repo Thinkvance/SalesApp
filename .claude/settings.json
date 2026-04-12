@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(npx vite-bundle-visualizer:*)",
-      "Bash(open /private/var/folders/vr/fl0bmt_d0795fqsvdz0vwx800000gn/T/tmp-73414-qOymp6nu3w52/stats.html)"
+      "Bash(open /private/var/folders/vr/fl0bmt_d0795fqsvdz0vwx800000gn/T/tmp-73414-qOymp6nu3w52/stats.html)",
+      "Bash(npx react-scripts:*)",
+      "Bash(npx vite:*)"
     ]
   }
 }

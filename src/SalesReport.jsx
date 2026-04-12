@@ -11,6 +11,7 @@ import customParseFormat from "dayjs/plugin/customParseFormat";
 import SalesReportBarChartCity from "./Charts/SalesReportBarChartCity";
 import DB from "./DB/DB";
 import ShipmentDetails from "./ShipmentDetails";
+
 import SalesReportBarChart from "./Charts/SalesReportBarChart";
 import Lottie from "lottie-react";
 import salesreport from "./Utility/salesreport";
@@ -27,7 +28,7 @@ function SalesReport() {
   const [pickups, setPickups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [ImageUrl, setImageUrl] = useState("");
+  const [ImageUrl, setImageUrl] = useState([]);
   const [awbSearchTerm, setAwbSearchTerm] = useState("");
   const [consignorPhoneSearchTerm, setConsignorPhoneSearchTerm] = useState("");
   const [pickupPersonName, setPickupPersonName] = useState("");
@@ -443,7 +444,9 @@ function SalesReport() {
                     : "text-blue-900";
                 const sign = isLoss ? "- " : isProfit ? "+ " : "";
                 return (
-                  <div className={`border w-fit rounded-xl px-6 py-3 shadow-md transition-shadow duration-200 hover:shadow-2xl ${bg}`}>
+                  <div
+                    className={`border w-fit rounded-xl px-6 py-3 shadow-md transition-shadow duration-200 hover:shadow-2xl ${bg}`}
+                  >
                     <h2 className={`text-lg font-semibold mb-2 ${titleColor}`}>
                       Profit / Loss
                     </h2>
@@ -653,7 +656,8 @@ function SalesReport() {
                           <img
                             onClick={() => {
                               setShowModal(true);
-                              setImageUrl(pickup.paymentProof);
+                              const proof = pickup.paymentProof;
+                              setImageUrl(Array.isArray(proof) ? proof : [proof]);
                             }}
                             src="Vector.svg"
                             className="cursor-pointer w-5 ml-auto mr-auto"
@@ -716,12 +720,15 @@ function SalesReport() {
               Payment Proof
             </h2>
 
-            <div className="flex justify-center">
-              <img
-                src={ImageUrl}
-                alt="Payment Proof"
-                className="rounded-xl max-h-[400px] object-contain border border-gray-200 shadow-sm"
-              />
+            <div className="flex flex-col gap-3 items-center max-h-[70vh] overflow-y-auto">
+              {ImageUrl.map((url, idx) => (
+                <img
+                  key={idx}
+                  src={url}
+                  alt={`Payment Proof ${idx + 1}`}
+                  className="rounded-xl max-h-[400px] object-contain border border-gray-200 shadow-sm"
+                />
+              ))}
             </div>
           </div>
         </div>
