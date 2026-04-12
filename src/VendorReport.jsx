@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import Nav from "./Nav";
+import Nav from "./Nav.jsx";
 import {
   collection,
   query,
@@ -9,22 +9,22 @@ import {
   updateDoc,
   doc,
 } from "firebase/firestore";
-import { db } from "./firebase";
-import collectionName_BaseAwb from "./functions/collectionName";
-import utilityFunctions from "./Utility/utilityFunctions";
+import { db } from "./firebase.jsx";
+import collectionName_BaseAwb from "./functions/collectionName.js";
+import utilityFunctions from "./Utility/utilityFunctions.jsx";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import customParseFormat from "dayjs/plugin/customParseFormat";
-import BarChartCom from "./salesReportCharts/BarChartCom";
-import DB from "./DB/DB";
-import ShipmentDetails from "./ShipmentDetails";
+import BarChartCom from "./salesReportCharts/BarChartCom.jsx";
+import DB from "./DB/DB.js";
+import ShipmentDetails from "./ShipmentDetails.jsx";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
-import SalesReportBarChartSVendor from "./Charts/SalesReportBarChartSVendor";
-import EditShipmentModal from "./EditShipmentModal";
+import SalesReportBarChartSVendor from "./Charts/SalesReportBarChartSVendor.jsx";
+import EditShipmentModal from "./EditShipmentModal.jsx";
 import { FiCheck, FiClipboard } from "react-icons/fi";
-import formatFirestoreTimestamp from "./Utility/formatFirestoreTimestamp";
-import BarChartCityWise from "./Charts/BarChartCityWise";
+import formatFirestoreTimestamp from "./Utility/formatFirestoreTimestamp.js";
+import BarChartCityWise from "./Charts/BarChartCityWise.jsx";
 import vendorList from "./DB/vendorList.js";
 dayjs.extend(customParseFormat);
 dayjs.extend(isBetween);
@@ -374,17 +374,31 @@ function Accounts() {
           }
 
           octoberData.push({
-            PaymentComfirmedDate: rawDate,
-            status: item.status,
-            consignorname: item.consignorname || "",
             awbNumber: item.awbNumber || "",
-            vendorName: item.vendorName || "",
-            actualWeight: item.internalWeight || "",
-            pickuparea: item.pickuparea || "",
+            consignorname: item.consignorname || "",
+            consignorphonenumber: item.consignorphonenumber || "",
+            Source: item.Source || "",
             destination: item.destination || "",
-            logisticCost: item.logisticCost || "",
-            paymentMode: item.paymentMode || "",
+            pickuparea: item.pickuparea || "",
+            pickUpPersonNameStatus: item.pickUpPersonNameStatus || "NOT COMPLETED",
+            pickupDatetime: formatFirestoreTimestamp(item.pickupDatetime) || "",
+            pickupCompletedDatetime: formatFirestoreTimestamp(item.pickupCompletedDatetime) || "--",
+            pickupBookedBy: item.pickupBookedBy || "",
+            pickUpPersonName: item.pickUpPersonName || "",
+            gstInvoiceNumber: item.gstInvoiceNumber || "No Invoice",
+            PaymentComfirmedDate: rawDate,
+            payment_Invoice_URL: item.payment_Invoice_URL || "",
+            receiptNumber: item.receiptNumber || "",
             payment_Receipt_URL: item.payment_Receipt_URL || "",
+            actualWeight: item.actualWeight || "",
+            internalWeight: item.internalWeight || "",
+            vendorName: item.vendorName || "",
+            vendorAwbnumber: item.vendorAwbnumber || "",
+            vendorpayment: item.vendorpayment || "",
+            paymentMode: item.paymentMode || "",
+            logisticCost: item.logisticCost || "",
+            margin: item.margin || "",
+            status: item.status || "",
           });
         });
 
@@ -397,21 +411,31 @@ function Accounts() {
       const ws = workbook.addWorksheet("October Data");
 
       ws.columns = [
-        {
-          header: "Date",
-          key: "PaymentComfirmedDate",
-          width: 30,
-        },
-        { header: "status", key: "status", width: 25 },
-        { header: "Customer", key: "consignorname", width: 25 },
-        { header: "Receipt No", key: "awbNumber", width: 20 },
-        { header: "Vendor", key: "vendorName", width: 20 },
-        { header: "Weight", key: "actualWeight", width: 15 },
+        { header: "AWB Number", key: "awbNumber", width: 20 },
+        { header: "Consignor Name", key: "consignorname", width: 25 },
+        { header: "Phone Number", key: "consignorphonenumber", width: 20 },
+        { header: "Source", key: "Source", width: 15 },
+        { header: "Destination", key: "destination", width: 20 },
         { header: "Pickup Area", key: "pickuparea", width: 20 },
-        { header: "Country", key: "destination", width: 20 },
-        { header: "Sale price", key: "logisticCost", width: 15 },
+        { header: "Pickup Status", key: "pickUpPersonNameStatus", width: 20 },
+        { header: "Pickup Booked Date", key: "pickupDatetime", width: 25 },
+        { header: "Pickup Completed Date", key: "pickupCompletedDatetime", width: 25 },
+        { header: "Booked By", key: "pickupBookedBy", width: 20 },
+        { header: "Pickup Person", key: "pickUpPersonName", width: 20 },
+        { header: "Invoice Number", key: "gstInvoiceNumber", width: 20 },
+        { header: "Invoice Date", key: "PaymentComfirmedDate", width: 30 },
+        { header: "Invoice URL", key: "payment_Invoice_URL", width: 30 },
+        { header: "Receipt Number", key: "receiptNumber", width: 20 },
+        { header: "Receipt URL", key: "payment_Receipt_URL", width: 30 },
+        { header: "Final Weight", key: "actualWeight", width: 15 },
+        { header: "Internal Weight", key: "internalWeight", width: 15 },
+        { header: "Vendor", key: "vendorName", width: 20 },
+        { header: "Vendor AWB Number", key: "vendorAwbnumber", width: 20 },
+        { header: "Vendor Payment", key: "vendorpayment", width: 15 },
         { header: "Payment Mode", key: "paymentMode", width: 15 },
-        { header: "Invoice", key: "payment_Receipt_URL", width: 15 },
+        { header: "Sales Close", key: "logisticCost", width: 15 },
+        { header: "Margin", key: "margin", width: 15 },
+        { header: "Status", key: "status", width: 20 },
       ];
 
       octoberData.forEach((row) => ws.addRow(row));
@@ -657,23 +681,37 @@ function Accounts() {
           <div className="flex flex-col gap-3 w-full lg:w-[280px] shrink-0">
             {/* Row 1: Total Sales */}
             <div className="bg-gradient-to-br from-purple-100 to-purple-200 border border-purple-300 rounded-2xl p-4 shadow-md">
-              <h2 className="text-sm font-semibold text-purple-700 mb-1">Total Sales</h2>
+              <h2 className="text-sm font-semibold text-purple-700 mb-1">
+                Total Sales
+              </h2>
               <p className="text-2xl font-bold text-purple-900">{totalSales}</p>
             </div>
             {/* Row 2: Total Weight */}
             <div className="bg-gradient-to-br from-orange-100 to-orange-200 border border-orange-300 rounded-2xl p-4 shadow-md">
-              <h2 className="text-sm font-semibold text-orange-700 mb-1">Total Weight</h2>
-              <p className="text-2xl font-bold text-orange-900">{totalInternalWeight.toLocaleString("en-IN")} KG</p>
+              <h2 className="text-sm font-semibold text-orange-700 mb-1">
+                Total Weight
+              </h2>
+              <p className="text-2xl font-bold text-orange-900">
+                {totalInternalWeight.toLocaleString("en-IN")} KG
+              </p>
             </div>
             {/* Row 2: Logistic Cost */}
             <div className="bg-gradient-to-br from-green-100 to-green-200 border border-green-300 rounded-2xl p-4 shadow-md">
-              <h2 className="text-sm font-semibold text-green-700 mb-1">Total Logistic Cost</h2>
-              <p className="text-2xl font-bold text-green-900">₹ {totalLogisticsCost.toLocaleString("en-IN")}</p>
+              <h2 className="text-sm font-semibold text-green-700 mb-1">
+                Total Logistic Cost
+              </h2>
+              <p className="text-2xl font-bold text-green-900">
+                ₹ {totalLogisticsCost.toLocaleString("en-IN")}
+              </p>
             </div>
             {/* Row 3: Total Margin */}
             <div className="bg-gradient-to-br from-yellow-100 to-yellow-200 border border-yellow-300 rounded-2xl p-4 shadow-md">
-              <h2 className="text-sm font-semibold text-yellow-700 mb-1">Total Margin</h2>
-              <p className="text-2xl font-bold text-yellow-900">₹ {totalMargin.toLocaleString("en-IN")}</p>
+              <h2 className="text-sm font-semibold text-yellow-700 mb-1">
+                Total Margin
+              </h2>
+              <p className="text-2xl font-bold text-yellow-900">
+                ₹ {totalMargin.toLocaleString("en-IN")}
+              </p>
             </div>
           </div>
 
@@ -929,7 +967,9 @@ function Accounts() {
                             onClick={() => {
                               setShowModal(true);
                               const proof = pickup.paymentProof;
-                              setImageUrl(Array.isArray(proof) ? proof : [proof]);
+                              setImageUrl(
+                                Array.isArray(proof) ? proof : [proof],
+                              );
                             }}
                             src="Vector.svg"
                             className="cursor-pointer w-5 ml-auto mr-auto"

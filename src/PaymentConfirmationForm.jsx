@@ -191,20 +191,28 @@ function PaymentConfirmationForm() {
     return url;
   };
   const handleFileChange = (event) => {
-    const files = Array.from(event.target.files);
-    if (files.length > 2) {
+    const newFiles = Array.from(event.target.files);
+    const combined = [...paymentProof, ...newFiles];
+    if (combined.length > 2) {
       utilityFunctions.ErrorNotify("You can upload a maximum of 2 images.");
       event.target.value = "";
-      setPaymentProof([]);
       return;
     }
-    setPaymentProof(files);
+    setPaymentProof(combined);
+    event.target.value = "";
+  };
+  const removePaymentProof = (index) => {
+    setPaymentProof((prev) => prev.filter((_, i) => i !== index));
   };
   const handleKYCFileChange = (event) => {
     const file = event.target.files[0];
     if (file) {
       setKycImage(file);
     }
+    event.target.value = "";
+  };
+  const removeKycImage = () => {
+    setKycImage("");
   };
 
   const getTodayDate = async () => {
@@ -1758,24 +1766,42 @@ Our Refund Policy:
             <>
               <div className="flex flex-col mb-4">
                 <label className="text-gray-700 font-medium mb-1">
-                  Payment Proof
-                  <span className="text-xs font-normal text-gray-400 ml-1">
-                    (upload 1 or 2 images)
-                  </span>
+                  Payment Proof <span className="font-normal text-gray-500">(upload 1 or 2 images)</span>
                 </label>
+                <div
+                  className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-gray-400 transition-colors"
+                  onClick={() => document.getElementById('payment-proof-input').click()}
+                >
+                  <p className="text-gray-700 font-medium">Click to upload Payment Proof</p>
+                  <p className="text-gray-400 text-sm mt-1">Only image files are allowed</p>
+                </div>
                 <input
+                  id="payment-proof-input"
                   type="file"
                   accept="image/*"
                   multiple
                   onChange={handleFileChange}
-                  className="p-2 border rounded"
+                  className="hidden"
                   required
                 />
                 {paymentProof.length > 0 && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    {paymentProof.length} image
-                    {paymentProof.length > 1 ? "s" : ""} selected
-                  </p>
+                  <div className="mt-2 space-y-1">
+                    {paymentProof.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                        <span className="text-gray-700 text-sm truncate">{file.name}</span>
+                        <div className="flex items-center gap-2 ml-2">
+                          <span className="text-purple-600 font-medium text-sm">IMG</span>
+                          <button
+                            type="button"
+                            onClick={() => removePaymentProof(index)}
+                            className="text-red-400 hover:text-red-600 text-sm font-medium"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
               {errors.Paymentproof && (
@@ -1791,15 +1817,38 @@ Our Refund Policy:
             <>
               <div className="flex flex-col mb-4">
                 <label className="text-gray-700 font-medium mb-1">
-                  Upload KYC
+                  Upload KYC Document <span className="font-normal text-gray-500">(PDF only)</span>
                 </label>
+                <div
+                  className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-gray-400 transition-colors"
+                  onClick={() => document.getElementById('kyc-file-input').click()}
+                >
+                  <p className="text-gray-700 font-medium">Click to upload KYC PDF</p>
+                  <p className="text-gray-400 text-sm mt-1">Only PDF files are allowed</p>
+                </div>
                 <input
+                  id="kyc-file-input"
                   type="file"
                   accept="application/pdf"
                   onChange={handleKYCFileChange}
-                  className="p-2 border rounded"
+                  className="hidden"
                   required
                 />
+                {KycImage && (
+                  <div className="flex items-center justify-between mt-2 p-3 bg-purple-50 rounded-lg">
+                    <span className="text-gray-700 text-sm truncate">{KycImage.name}</span>
+                    <div className="flex items-center gap-2 ml-2">
+                      <span className="text-purple-600 font-medium text-sm">PDF</span>
+                      <button
+                        type="button"
+                        onClick={removeKycImage}
+                        className="text-red-400 hover:text-red-600 text-sm font-medium"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
               {errors.KYCimage && (
                 <p className="text-red-500 text-sm mt-1">

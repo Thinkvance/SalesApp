@@ -34,7 +34,7 @@ import PickupPersonIncentive from "./PickupPersonIncentive";
 import SalesIncentive from "./SalesIncentive";
 import SalesReport from "./SalesReport";
 import Myshipments from "./Myshipments";
-import Accounts from "./Accounts";
+import VendorReport from "./VendorReport";
 import ReviewManagement from "./ReviewManagement";
 import VersionUpdateModal from "./VersionUpdateModal"; // Version modal
 import appVersion from "./functions/appVersion";
@@ -282,7 +282,7 @@ function App() {
                     }
                     allowed={["Manager", "Accountant"]}
                   >
-                    <Accounts />
+                    <VendorReport />
                   </RequireRole>
                 </RequireAuth>
               }
