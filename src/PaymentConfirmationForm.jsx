@@ -1447,10 +1447,10 @@ Our Refund Policy:
                       const diff = rateCardAmount - salesLogistics;
                       const diffBg =
                         diff > 0
-                          ? "bg-green-50 border-green-200 text-green-700"
+                          ? "bg-red-50 border-red-200 text-red-700"
                           : diff < 0
-                            ? "bg-red-50 border-red-200 text-red-700"
-                            : "bg-gray-50 border-gray-200 text-gray-700";
+                            ? "bg-green-50 border-gray-200 text-green-700"
+                            : "bg-gray-50 border-red-200 text-gray-700";
                       const diffLabel =
                         diff > 0
                           ? `Discount given to customer: ₹${diff}`
@@ -1522,7 +1522,7 @@ Our Refund Policy:
               <div className="flex gap-3 mb-3">
                 <div className="flex flex-col flex-1">
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                    Discount Amount
+                    Total Discount Amount
                   </label>
                   <input
                     type="text"
@@ -1766,14 +1766,23 @@ Our Refund Policy:
             <>
               <div className="flex flex-col mb-4">
                 <label className="text-gray-700 font-medium mb-1">
-                  Payment Proof <span className="font-normal text-gray-500">(upload 1 or 2 images)</span>
+                  Payment Proof{" "}
+                  <span className="font-normal text-gray-500">
+                    (upload 1 or 2 images)
+                  </span>
                 </label>
                 <div
                   className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-gray-400 transition-colors"
-                  onClick={() => document.getElementById('payment-proof-input').click()}
+                  onClick={() =>
+                    document.getElementById("payment-proof-input").click()
+                  }
                 >
-                  <p className="text-gray-700 font-medium">Click to upload Payment Proof</p>
-                  <p className="text-gray-400 text-sm mt-1">Only image files are allowed</p>
+                  <p className="text-gray-700 font-medium">
+                    Click to upload Payment Proof
+                  </p>
+                  <p className="text-gray-400 text-sm mt-1">
+                    Only image files are allowed
+                  </p>
                 </div>
                 <input
                   id="payment-proof-input"
@@ -1787,10 +1796,17 @@ Our Refund Policy:
                 {paymentProof.length > 0 && (
                   <div className="mt-2 space-y-1">
                     {paymentProof.map((file, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                        <span className="text-gray-700 text-sm truncate">{file.name}</span>
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-purple-50 rounded-lg"
+                      >
+                        <span className="text-gray-700 text-sm truncate">
+                          {file.name}
+                        </span>
                         <div className="flex items-center gap-2 ml-2">
-                          <span className="text-purple-600 font-medium text-sm">IMG</span>
+                          <span className="text-purple-600 font-medium text-sm">
+                            IMG
+                          </span>
                           <button
                             type="button"
                             onClick={() => removePaymentProof(index)}
@@ -1817,14 +1833,21 @@ Our Refund Policy:
             <>
               <div className="flex flex-col mb-4">
                 <label className="text-gray-700 font-medium mb-1">
-                  Upload KYC Document <span className="font-normal text-gray-500">(PDF only)</span>
+                  Upload KYC Document{" "}
+                  <span className="font-normal text-gray-500">(PDF only)</span>
                 </label>
                 <div
                   className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-gray-400 transition-colors"
-                  onClick={() => document.getElementById('kyc-file-input').click()}
+                  onClick={() =>
+                    document.getElementById("kyc-file-input").click()
+                  }
                 >
-                  <p className="text-gray-700 font-medium">Click to upload KYC PDF</p>
-                  <p className="text-gray-400 text-sm mt-1">Only PDF files are allowed</p>
+                  <p className="text-gray-700 font-medium">
+                    Click to upload KYC PDF
+                  </p>
+                  <p className="text-gray-400 text-sm mt-1">
+                    Only PDF files are allowed
+                  </p>
                 </div>
                 <input
                   id="kyc-file-input"
@@ -1836,9 +1859,13 @@ Our Refund Policy:
                 />
                 {KycImage && (
                   <div className="flex items-center justify-between mt-2 p-3 bg-purple-50 rounded-lg">
-                    <span className="text-gray-700 text-sm truncate">{KycImage.name}</span>
+                    <span className="text-gray-700 text-sm truncate">
+                      {KycImage.name}
+                    </span>
                     <div className="flex items-center gap-2 ml-2">
-                      <span className="text-purple-600 font-medium text-sm">PDF</span>
+                      <span className="text-purple-600 font-medium text-sm">
+                        PDF
+                      </span>
                       <button
                         type="button"
                         onClick={removeKycImage}
