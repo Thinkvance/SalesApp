@@ -1348,45 +1348,21 @@ Our Refund Policy:
           {(() => {
             const weight = parseInt(details?.actualWeight) || 0;
             const liveCostKg = Number(costKg) || 0;
-            const liveDiscount = parseInt(watch("discountCost")) || 0;
-            const liveAdditional = parseInt(watch("additionalcharges")) || 0;
             const salesLogistics = weight * liveCostKg;
             const finalLogistics = details?.logisticCost
               ? details.logisticCost
-              : salesLogistics + liveAdditional - liveDiscount;
-            const isNegative = finalLogistics < 0;
+              : salesLogistics;
 
             return (
               <>
-                <div className="flex flex-col mb-3">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                    Logistics Cost
-                  </label>
-                  <input
-                    value={finalLogistics}
-                    type="text"
-                    className={`p-2.5 rounded-lg border text-sm cursor-default select-none outline-none ${
-                      isNegative
-                        ? "bg-red-50 border-red-300 text-red-700"
-                        : "border-transparent bg-gray-50 text-gray-700"
-                    }`}
-                    placeholder="Logistics Cost"
-                    readOnly
-                    {...register("logisticsCost", {
-                      required: "Logistics cost is required",
-                      valueAsNumber: true,
-                      validate: (value) =>
-                        (Number.isInteger(value) && value >= 0) ||
-                        "Logistics cost cannot be negative. Reduce the discount.",
-                    })}
-                  />
-                  {isNegative && (
-                    <p className="text-red-600 text-xs mt-1 font-medium">
-                      Discount exceeds logistics cost. Please reduce the
-                      discount before submitting.
-                    </p>
-                  )}
-                </div>
+                <input
+                  type="hidden"
+                  value={finalLogistics}
+                  {...register("logisticsCost", {
+                    required: "Logistics cost is required",
+                    valueAsNumber: true,
+                  })}
+                />
 
                 {rateCardAmount != null && costKg > 0 && (
                   <div className="mb-4">
@@ -1442,29 +1418,7 @@ Our Refund Policy:
                       </div>
                     </div>
 
-                    {/* Diff banner */}
-                    {(() => {
-                      const diff = rateCardAmount - salesLogistics;
-                      const diffBg =
-                        diff > 0
-                          ? "bg-red-50 border-red-200 text-red-700"
-                          : diff < 0
-                            ? "bg-green-50 border-gray-200 text-green-700"
-                            : "bg-gray-50 border-red-200 text-gray-700";
-                      const diffLabel =
-                        diff > 0
-                          ? `Discount given to customer: ₹${diff}`
-                          : diff < 0
-                            ? `Extra margin earned: ₹${Math.abs(diff)}`
-                            : "No difference from rate card";
-                      return (
-                        <div
-                          className={`mt-2 rounded-lg border p-2.5 text-center text-sm font-semibold ${diffBg}`}
-                        >
-                          {diffLabel}
-                        </div>
-                      );
-                    })()}
+                    {/* Diff banner removed — now rendered above Recovered Cost */}
                   </div>
                 )}
               </>
@@ -1475,80 +1429,45 @@ Our Refund Policy:
               {errors.logisticsCost.message}
             </p>
           )}
-          <div className="flex flex-col mb-3">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-              Cost / KG
-              {costKgAutoPopulated && (
-                <span className="ml-2 text-purple-600 normal-case font-normal">
-                  (auto-filled from rate card)
-                </span>
-              )}
-            </label>
-            <input
-              type="text"
-              value={details.costKg == null ? costKg : details.costKg}
-              className={`p-2.5 rounded-lg border text-sm ${details.costKg != null || costKgAutoPopulated ? "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed" : "bg-white border-gray-300 focus:outline-none focus:border-purple-400"}`}
-              placeholder="Enter Cost/KG"
-              readOnly={details.costKg != null || costKgAutoPopulated}
-              {...register("costKg", {
-                required: "Cost/KG is required",
-                pattern: {
-                  value: /^[0-9]+$/,
-                  message: "Please enter a Cost/KG consisting of digits only",
-                },
-                validate: (value) =>
-                  Number.isInteger(Number(value)) ||
-                  "Please enter a valid integer",
-              })}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (/^\d*\.?\d*$/.test(value)) {
-                  setcostKg(Number(value));
-                  setValue("costKg", value);
-                }
-              }}
-            />
-          </div>
-          {errors.costKg && (
-            <p className="text-red-500 text-sm mb-3">{errors.costKg.message}</p>
-          )}
           {(() => {
             const isAlreadySaved = details.discountCost != undefined;
             const hasRateCard = rateCardAmount != null && !!costKg;
-            const discountAmountReadOnly = isAlreadySaved || hasRateCard;
             const showFurtherDiscount = hasRateCard || isAlreadySaved;
             const furtherDiscountReadOnly = isAlreadySaved;
             return (
               <div className="flex gap-3 mb-3">
                 <div className="flex flex-col flex-1">
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                    Total Discount Amount
+                    Cost / KG
+                    {costKgAutoPopulated && (
+                      <span className="ml-2 text-purple-600 normal-case font-normal">
+                        (auto-filled from rate card)
+                      </span>
+                    )}
                   </label>
                   <input
                     type="text"
-                    inputMode="numeric"
-                    onInput={(e) => {
-                      e.target.value = e.target.value.replace(/[^0-9]/g, "");
-                    }}
-                    className={`p-2.5 rounded-lg border text-sm ${
-                      discountAmountReadOnly
-                        ? "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed"
-                        : "bg-white border-gray-300 focus:outline-none focus:border-purple-400"
-                    }`}
-                    placeholder="Enter 0 or amount"
-                    readOnly={discountAmountReadOnly}
-                    {...register("discountCost", {
-                      required: "Please enter the discount amount.",
+                    value={details.costKg == null ? costKg : details.costKg}
+                    className={`p-2.5 rounded-lg border text-sm ${details.costKg != null || costKgAutoPopulated ? "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed" : "bg-white border-gray-300 focus:outline-none focus:border-purple-400"}`}
+                    placeholder="Enter Cost/KG"
+                    readOnly={details.costKg != null || costKgAutoPopulated}
+                    {...register("costKg", {
+                      required: "Cost/KG is required",
                       pattern: {
                         value: /^[0-9]+$/,
-                        message:
-                          "Please enter a valid discount number consisting of digits only.",
+                        message: "Please enter a Cost/KG consisting of digits only",
                       },
-                      valueAsNumber: true,
                       validate: (value) =>
-                        Number.isInteger(value) ||
-                        "Please enter a valid integer number",
+                        Number.isInteger(Number(value)) ||
+                        "Please enter a valid integer",
                     })}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (/^\d*\.?\d*$/.test(value)) {
+                        setcostKg(Number(value));
+                        setValue("costKg", value);
+                      }
+                    }}
                   />
                 </div>
                 {showFurtherDiscount && (
@@ -1579,27 +1498,80 @@ Our Refund Policy:
               </div>
             );
           })()}
+          {errors.costKg && (
+            <p className="text-red-500 text-sm mb-3">{errors.costKg.message}</p>
+          )}
+          {(() => {
+            const isAlreadySaved = details.discountCost != undefined;
+            const hasRateCard = rateCardAmount != null && !!costKg;
+            const discountAmountReadOnly = isAlreadySaved || hasRateCard;
+            return (
+              <div className="flex flex-col mb-3">
+                <label className={`text-xs font-semibold uppercase tracking-wide mb-1 ${(parseInt(watch("discountCost")) || 0) > 0 ? "text-red-600" : "text-gray-500"}`}>
+                  Total Discount Amount
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  onInput={(e) => {
+                    e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                  }}
+                  className={`p-2.5 rounded-lg border text-sm ${
+                    (parseInt(watch("discountCost")) || 0) > 0
+                      ? "bg-red-50 border-red-300 text-red-700 cursor-not-allowed"
+                      : discountAmountReadOnly
+                      ? "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed"
+                      : "bg-white border-gray-300 focus:outline-none focus:border-purple-400"
+                  }`}
+                  placeholder="Enter 0 or amount"
+                  readOnly={discountAmountReadOnly}
+                  {...register("discountCost", {
+                    required: "Please enter the discount amount.",
+                    pattern: {
+                      value: /^[0-9]+$/,
+                      message:
+                        "Please enter a valid discount number consisting of digits only.",
+                    },
+                    valueAsNumber: true,
+                    validate: (value) =>
+                      Number.isInteger(value) ||
+                      "Please enter a valid integer number",
+                  })}
+                />
+              </div>
+            );
+          })()}
           {errors.discountCost && (
             <p className="text-red-500 text-sm mb-3">
               {errors.discountCost.message}
             </p>
           )}
+          {/* Diff banner — moved here, above Recovered Cost */}
+          {(() => {
+            const displayedRecovered = Math.max((watch("recoverdCost") || 0) - (parseInt(watch("furtherDiscount")) || 0), 0);
+            const hasMargin = displayedRecovered > 0;
+            return (
           <div className="flex flex-col mb-3">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+            <label className={`text-xs font-semibold uppercase tracking-wide mb-1 ${hasMargin ? "text-green-700" : "text-gray-500"}`}>
               Recovered Cost (Extra Margin)
             </label>
             <input
               type="text"
               inputMode="numeric"
-              value={watch("recoverdCost") || 0}
-              className="p-2.5 rounded-lg border text-sm bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed"
+              value={displayedRecovered}
+              className={`p-2.5 rounded-lg border text-sm cursor-not-allowed ${hasMargin ? "bg-green-50 border-green-300 text-green-700" : "bg-gray-50 border-gray-200 text-gray-500"}`}
               placeholder="0"
               readOnly
+            />
+            <input
+              type="hidden"
               {...register("recoverdCost", {
                 valueAsNumber: true,
               })}
             />
           </div>
+            );
+          })()}
           <div className="flex flex-col mb-3">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
               Additional Charges
