@@ -727,6 +727,8 @@ function Accounts() {
                   "Pickup Status",
                   "Invoice Date",
                   "Pickup Booked Date",
+                  "Receipt Number",
+                  "Receipt",
                   "Invoice Number",
                   "Invoice",
                   "Booked By",
@@ -801,9 +803,30 @@ function Accounts() {
                           rel="noreferrer"
                           className="inline-flex items-center gap-2 px-4 py-2 bg-[#714DD9] text-white text-sm font-medium rounded-lg shadow-sm hover:bg-[#886dda] active:scale-95 transition-all duration-200"
                         >
-                          📄 View Invoice
+                          📄 View Receipt
                         </a>
                       </td>
+
+                      <td className="py-3 px-4 border text-nowrap">
+                        {pickup.gstInvoiceNumber
+                          ? pickup.gstInvoiceNumber
+                          : "No Invoice"}
+                      </td>
+                      <td className="py-3 px-4 border text-nowrap">
+                        {pickup.payment_Invoice_URL ? (
+                          <a
+                            href={pickup.payment_Invoice_URL}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg shadow-sm hover:bg-green-700 active:scale-95 transition-all duration-200"
+                          >
+                            📄 View Invoice
+                          </a>
+                        ) : (
+                          "No Invoice"
+                        )}
+                      </td>
+
                       <td className="py-3 px-4 border">
                         {pickup.pickupBookedBy}
                       </td>
