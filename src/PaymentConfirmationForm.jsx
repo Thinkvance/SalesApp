@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "./firebase"; // Import storage from your Firebase config
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
 import {
   collection,
   query,
@@ -59,7 +59,21 @@ function PaymentConfirmationForm() {
     setError,
     watch,
     formState: { errors },
-  } = useForm();
+  } = useForm({
+    defaultValues: {
+      additionalChargesList: [{ amount: "", reason: "" }],
+    },
+  });
+  const {
+    fields: chargeFields,
+    append: appendCharge,
+    remove: removeCharge,
+  } = useFieldArray({ control, name: "additionalChargesList" });
+  const watchChargesList = watch("additionalChargesList") || [];
+  const totalAdditionalCharges = watchChargesList.reduce(
+    (sum, row) => sum + (parseInt(row?.amount) || 0),
+    0,
+  );
   const navigate = useNavigate();
   const [animationData, setAnimationData] = useState(null);
 
@@ -81,10 +95,17 @@ function PaymentConfirmationForm() {
   }, [details?.discountCost, setValue]);
 
   useEffect(() => {
-    if (details?.additionalcharges != null) {
-      setValue("additionalcharges", details?.additionalcharges);
+    if (details?.additionalChargesList && Array.isArray(details.additionalChargesList) && details.additionalChargesList.length) {
+      setValue("additionalChargesList", details.additionalChargesList);
+    } else if (details?.additionalcharges != null && details.additionalcharges > 0) {
+      setValue("additionalChargesList", [
+        {
+          amount: String(details.additionalcharges),
+          reason: details.additionalChargeReason || "",
+        },
+      ]);
     }
-  }, [details?.additionalcharges, setValue]);
+  }, [details?.additionalcharges, details?.additionalChargeReason, details?.additionalChargesList, setValue]);
 
   useEffect(() => {
     if (details?.costKg != null) {
@@ -95,7 +116,7 @@ function PaymentConfirmationForm() {
 
   const furtherDiscountWatch = watch("furtherDiscount");
   const watchDiscount = watch("discountCost");
-  const watchAdditional = watch("additionalcharges");
+  const watchAdditional = totalAdditionalCharges;
 
   // Keep logisticsCost form value in sync with the computed value
   useEffect(() => {
@@ -325,11 +346,16 @@ function PaymentConfirmationForm() {
     discountCost,
     additionalcharges,
     invoiceNumber,
-    additionalChargeReason,
+    chargesList,
   ) {
     const doc = new jsPDF("p", "pt");
     const subtotal = parseInt(costKg) * details.actualWeight;
     const nettotal = subtotal - parseInt(discountCost) + additionalcharges;
+    const normalisedCharges = Array.isArray(chargesList) && chargesList.length
+      ? chargesList
+      : additionalcharges > 0
+        ? [{ amount: additionalcharges, reason: "Additional Charges" }]
+        : [];
     const year = new Date().getFullYear();
     function formatFirebaseTimestamp(timestamp) {
       if (!timestamp) return "";
@@ -443,18 +469,23 @@ function PaymentConfirmationForm() {
     doc.text(`${subtotal}.00 Rs`, valueX, currentY);
     currentY += 20;
 
-    // Additional Charges
-    if (additionalcharges > 0) {
+    // Additional Charges (one line per entry)
+    normalisedCharges.forEach((row) => {
+      if (!row || !(row.amount > 0)) return;
+      if (currentY > doc.internal.pageSize.height - 80) {
+        doc.addPage();
+        currentY = 60;
+      }
       doc.setFont("helvetica", "bold");
       doc.setTextColor(0, 0, 0);
-      const chargeLabel = additionalChargeReason || "Additional Charges";
+      const chargeLabel = row.reason || "Additional Charges";
       doc.text(chargeLabel, labelX, currentY);
 
       doc.setFont("helvetica", "normal");
       doc.setTextColor(0, 128, 0);
-      doc.text(`+ ${additionalcharges}.00 Rs`, valueX, currentY);
+      doc.text(`+ ${Number(row.amount).toFixed(2)} Rs`, valueX, currentY);
       currentY += 20;
-    }
+    });
 
     // Discount
     if (discountCost > 0) {
@@ -674,12 +705,23 @@ Our Refund Policy:
       }
       const receiptNumber = await getNextReceiptNumber();
 
+      const chargesList = (data.additionalChargesList || [])
+        .map((row) => ({
+          amount: parseInt(row?.amount) || 0,
+          reason: row?.reason || "",
+        }))
+        .filter((row) => row.amount > 0);
+      const additionalChargesSum = chargesList.reduce(
+        (s, r) => s + r.amount,
+        0,
+      );
+
       const Payment_URL = await generate_Invoice_PDF(
         data.costKg,
         data.discountCost,
-        data.additionalcharges,
+        additionalChargesSum,
         receiptNumber.receiptNumber,
-        data.additionalChargeReason,
+        chargesList,
       );
 
       const q = query(
@@ -708,7 +750,7 @@ Our Refund Policy:
       const updatedFields = {
         status: "PAYMENT REQUESTED",
         logisticCost:
-          parseInt(logisticCost + data.additionalcharges) -
+          parseInt(logisticCost + additionalChargesSum) -
           parseInt(data.discountCost),
         discountCost: data.discountCost,
         recoverdCost: data.recoverdCost || 0,
@@ -727,8 +769,9 @@ Our Refund Policy:
           : data.consigneelocation1,
         costKg: costKg,
         payment_Receipt_URL: Payment_URL,
-        additionalcharges: data.additionalcharges,
-        additionalChargeReason: data.additionalChargeReason || null,
+        additionalcharges: additionalChargesSum,
+        additionalChargeReason: chargesList[0]?.reason || null,
+        additionalChargesList: chargesList,
         receiptNumber: receiptNumber.receiptNumber,
         receiptCounter: receiptNumber.receiptCounter,
       };
@@ -747,7 +790,7 @@ Our Refund Policy:
         details.consignorphonenumber,
         details.consignorname,
         logisticCost,
-        data.additionalcharges,
+        additionalChargesSum,
         details.awbNumber,
         details.Source,
         details.companyName,
@@ -803,7 +846,16 @@ Our Refund Policy:
           gstNumber,
           details.pickupDatetime,
           gstInvoiceNumber.invoiceNumber, // pass invoice number
-          details.additionalChargeReason,
+          details.additionalChargesList && details.additionalChargesList.length
+            ? details.additionalChargesList
+            : details.additionalcharges > 0
+              ? [
+                  {
+                    amount: details.additionalcharges,
+                    reason: details.additionalChargeReason || "Additional Charges",
+                  },
+                ]
+              : [],
         );
       }
 
@@ -966,9 +1018,16 @@ Our Refund Policy:
       return;
     if (details?.Source === "B To C") return;
 
-    const weightSlab = getWeightSlab(details.actualWeight);
+    const weightSlab = getWeightSlab(details.actualWeight, details.service);
     if (!weightSlab) return;
     const service = normaliseService(details.service);
+    console.log("[RateCard lookup]", {
+      destination: details.destination,
+      rawService: details.service,
+      normalisedService: service,
+      actualWeight: details.actualWeight,
+      resolvedSlab: weightSlab,
+    });
 
     fetchLowestRate(details.destination, service, weightSlab)
       .then((result) => {
@@ -1359,7 +1418,6 @@ Our Refund Policy:
                   type="hidden"
                   value={finalLogistics}
                   {...register("logisticsCost", {
-                    required: "Logistics cost is required",
                     valueAsNumber: true,
                   })}
                 />
@@ -1405,9 +1463,17 @@ Our Refund Policy:
                         </div>
                         <div className="flex justify-between text-sm py-0.5">
                           <span className="text-gray-500">Weight</span>
-                          <span className="font-semibold text-gray-800">
-                            {weight} kg
-                          </span>
+                          {normaliseService(details?.service) === "EcoDutyFree" &&
+                          weight >= 1 &&
+                          weight <= 5 ? (
+                            <span className="text-[10px] font-semibold text-amber-700 bg-amber-100 border border-amber-200 rounded px-1.5 py-0.5 uppercase tracking-wide">
+                              Upsell → 6–8 kg rate
+                            </span>
+                          ) : (
+                            <span className="font-semibold text-gray-800">
+                              {weight} kg
+                            </span>
+                          )}
                         </div>
                         <div className="flex justify-between text-sm py-0.5 border-t border-purple-100 mt-1 pt-1">
                           <span className="text-gray-500">Logistics</span>
@@ -1572,36 +1638,8 @@ Our Refund Policy:
           </div>
             );
           })()}
-          <div className="flex flex-col mb-3">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-              Additional Charges
-            </label>
-            <input
-              type="text"
-              inputMode="numeric"
-              onInput={(e) => {
-                e.target.value = e.target.value.replace(/[^0-9]/g, "");
-              }}
-              className={`p-2.5 rounded-lg border text-sm ${details.additionalcharges == undefined ? "bg-white border-gray-300 focus:outline-none focus:border-purple-400" : "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed"}`}
-              placeholder="Enter 0 or amount"
-              readOnly={details.additionalcharges == undefined ? false : true}
-              {...register("additionalcharges", {
-                required:
-                  "Please enter any additional charges, or enter 0 if none.",
-                pattern: {
-                  value: /^[0-9]+$/,
-                  message:
-                    "Please enter a valid additional charges number consisting of digits only.",
-                },
-                valueAsNumber: true,
-                validate: (value) =>
-                  Number.isInteger(value) ||
-                  "Please enter a valid integer number",
-              })}
-            />
-          </div>
           {(() => {
-            const additionalChargeReasons = [
+            const ALL_REASONS = [
               "Fumigation",
               "Wooden Palletization",
               "Special products charges",
@@ -1611,56 +1649,110 @@ Our Refund Policy:
               "Packing charges",
               "Customise Special box charges",
             ];
-            const hasCharge = (parseInt(watch("additionalcharges")) || 0) > 0;
-            const isReasonLocked = details.additionalChargeReason != undefined;
-            if (!hasCharge && !isReasonLocked) return null;
+            const isLocked = details.additionalcharges != undefined || details.additionalChargesList != undefined;
+            const usedReasons = watchChargesList.map((r) => r?.reason).filter(Boolean);
             return (
               <div className="flex flex-col mb-3">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                  Additional Charge Reason
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  Additional Charges
                 </label>
-                <select
-                  className={`p-2.5 rounded-lg border text-sm ${
-                    isReasonLocked
-                      ? "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed"
-                      : "bg-white border-gray-300 focus:outline-none focus:border-purple-400"
-                  }`}
-                  disabled={isReasonLocked}
-                  defaultValue={details.additionalChargeReason || ""}
-                  {...register("additionalChargeReason", {
-                    validate: (value) =>
-                      !hasCharge ||
-                      !!value ||
-                      "Please select a reason for the additional charge.",
-                  })}
-                >
-                  <option value="">Select a reason</option>
-                  {additionalChargeReasons.map((reason) => (
-                    <option key={reason} value={reason}>
-                      {reason}
-                    </option>
-                  ))}
-                </select>
-                {errors.additionalChargeReason && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.additionalChargeReason.message}
-                  </p>
+                {chargeFields.map((field, index) => {
+                  const currentReason = watchChargesList[index]?.reason || "";
+                  const availableReasons = ALL_REASONS.filter(
+                    (r) => r === currentReason || !usedReasons.includes(r),
+                  );
+                  return (
+                    <div key={field.id} className="flex gap-2 mb-2 items-start">
+                      <div className="flex flex-col flex-1">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          onInput={(e) => {
+                            e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                          }}
+                          className={`p-2.5 rounded-lg border text-sm ${isLocked ? "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed" : "bg-white border-gray-300 focus:outline-none focus:border-purple-400"}`}
+                          placeholder="Enter amount"
+                          readOnly={isLocked}
+                          {...register(`additionalChargesList.${index}.amount`, {
+                            pattern: {
+                              value: /^[0-9]*$/,
+                              message: "Digits only",
+                            },
+                            validate: (value) => {
+                              const reason = watchChargesList[index]?.reason;
+                              const amt = parseInt(value) || 0;
+                              if (reason && amt <= 0) return "Enter amount";
+                              return true;
+                            },
+                          })}
+                        />
+                        {errors?.additionalChargesList?.[index]?.amount && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {errors.additionalChargesList[index].amount.message}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-col flex-1">
+                        <select
+                          className={`p-2.5 rounded-lg border text-sm ${isLocked ? "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed" : "bg-white border-gray-300 focus:outline-none focus:border-purple-400"}`}
+                          disabled={isLocked}
+                          {...register(`additionalChargesList.${index}.reason`, {
+                            validate: (value) => {
+                              const amt = parseInt(watchChargesList[index]?.amount) || 0;
+                              if (amt > 0 && !value) return "Select a reason";
+                              return true;
+                            },
+                          })}
+                        >
+                          <option value="">Select a reason</option>
+                          {availableReasons.map((reason) => (
+                            <option key={reason} value={reason}>
+                              {reason}
+                            </option>
+                          ))}
+                        </select>
+                        {errors?.additionalChargesList?.[index]?.reason && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {errors.additionalChargesList[index].reason.message}
+                          </p>
+                        )}
+                      </div>
+                      {!isLocked && chargeFields.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeCharge(index)}
+                          className="p-2.5 text-red-600 hover:bg-red-50 rounded-lg border border-red-200 text-sm"
+                          title="Remove"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+                {!isLocked && chargeFields.length < ALL_REASONS.length && (
+                  <button
+                    type="button"
+                    onClick={() => appendCharge({ amount: "", reason: "" })}
+                    className="mt-1 self-start px-3 py-1.5 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100"
+                  >
+                    + Add
+                  </button>
                 )}
               </div>
             );
           })()}
-          {errors.additionalcharges && (
-            <p className="text-red-500 text-sm mb-3">
-              {errors.additionalcharges.message}
-            </p>
-          )}
 
           {/* Live total summary */}
           {(() => {
             const liveDiscount = parseInt(watch("discountCost")) || 0;
-            const liveAdditional = parseInt(watch("additionalcharges")) || 0;
-            const liveChargeReason =
-              watch("additionalChargeReason") || "Additional Charges";
+            const liveCharges = watchChargesList.filter(
+              (r) => (parseInt(r?.amount) || 0) > 0,
+            );
+            const liveAdditional = liveCharges.reduce(
+              (s, r) => s + (parseInt(r?.amount) || 0),
+              0,
+            );
             const liveCostKg =
               details.costKg != null ? parseInt(details.costKg) : costKg;
             const liveLogistics = parseInt(details?.actualWeight) * liveCostKg;
@@ -1673,14 +1765,16 @@ Our Refund Policy:
                     ₹ {liveLogistics}
                   </span>
                 </div>
-                {liveAdditional > 0 && (
-                  <div className="flex justify-between py-1">
-                    <span className="text-gray-500">{liveChargeReason}</span>
+                {liveCharges.map((row, i) => (
+                  <div key={i} className="flex justify-between py-1">
+                    <span className="text-gray-500">
+                      {row.reason || "Additional Charges"}
+                    </span>
                     <span className="font-medium text-orange-500">
-                      + ₹ {liveAdditional}
+                      + ₹ {parseInt(row.amount) || 0}
                     </span>
                   </div>
-                )}
+                ))}
                 {liveDiscount > 0 && (
                   <div className="flex justify-between py-1">
                     <span className="text-gray-500">Discount</span>
@@ -1955,10 +2049,13 @@ Our Refund Policy:
                 parseInt(details.actualWeight) *
                 parseInt(pendingFormData.costKg);
               const popupDiscount = parseInt(pendingFormData.discountCost) || 0;
-              const popupAdditional =
-                parseInt(pendingFormData.additionalcharges) || 0;
-              const popupChargeReason =
-                pendingFormData.additionalChargeReason || "Additional Charges";
+              const popupCharges = (pendingFormData.additionalChargesList || []).filter(
+                (r) => (parseInt(r?.amount) || 0) > 0,
+              );
+              const popupAdditional = popupCharges.reduce(
+                (s, r) => s + (parseInt(r?.amount) || 0),
+                0,
+              );
               const popupTotal =
                 popupLogistics + popupAdditional - popupDiscount;
               return (
@@ -1969,14 +2066,14 @@ Our Refund Policy:
                       ₹ {popupLogistics}
                     </span>
                   </div>
-                  {popupAdditional > 0 && (
-                    <div className="flex justify-between py-2.5 border-b border-gray-100">
-                      <span className="text-gray-500">{popupChargeReason}</span>
+                  {popupCharges.map((row, i) => (
+                    <div key={i} className="flex justify-between py-2.5 border-b border-gray-100">
+                      <span className="text-gray-500">{row.reason || "Additional Charges"}</span>
                       <span className="font-medium text-orange-500">
-                        + ₹ {popupAdditional}
+                        + ₹ {parseInt(row.amount) || 0}
                       </span>
                     </div>
-                  )}
+                  ))}
                   {popupDiscount > 0 && (
                     <div className="flex justify-between py-2.5 border-b border-gray-100">
                       <span className="text-gray-500">Discount</span>

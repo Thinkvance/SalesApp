@@ -8,12 +8,16 @@ async function generate_GST_Invoice_PDF(
   awbNumber,
   costKg,
   discountCost,
-  additionalcharges,
   gst,
   pickupDatetime,
   gstInvoiceNumber,
-  additionalchargesreason,
+  chargesList,
 ) {
+  const normalisedCharges = Array.isArray(chargesList) ? chargesList : [];
+  const additionalChargesTotal = normalisedCharges.reduce(
+    (sum, row) => sum + (Number(row?.amount) || 0),
+    0,
+  );
   try {
     const actualWeight = item.actualWeight;
     const consignorname = item.consignorname;
@@ -28,7 +32,7 @@ async function generate_GST_Invoice_PDF(
       Number(GST_COST) * Number(actualWeight);
 
     const nettotal =
-      subtotal + GST_COST_value + additionalcharges - discountCost;
+      subtotal + GST_COST_value + additionalChargesTotal - discountCost;
 
     const doc = new jsPDF("p", "pt");
 
@@ -168,14 +172,19 @@ Phone: 9159 688 688`;
 
     y += 20;
 
-    if (additionalcharges > 0) {
+    normalisedCharges.forEach((row) => {
+      if (!row || !(Number(row.amount) > 0)) return;
+      if (y > doc.internal.pageSize.height - 80) {
+        doc.addPage();
+        y = 60;
+      }
       doc.setFont("helvetica", "bold");
-      const chargeLabel = additionalchargesreason || "Additional Charges";
+      const chargeLabel = row.reason || "Additional Charges";
       doc.text(chargeLabel, labelX, y);
       doc.setFont("helvetica", "normal");
-      doc.text(`+ ${Number(additionalcharges).toFixed(2)} Rs`, valueX, y);
+      doc.text(`+ ${Number(row.amount).toFixed(2)} Rs`, valueX, y);
       y += 20;
-    }
+    });
 
     if (discountCost > 0) {
       doc.setFont("helvetica", "bold");

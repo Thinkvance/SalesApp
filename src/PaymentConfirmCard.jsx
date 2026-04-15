@@ -211,11 +211,12 @@ function PaymentConfirmCard({ item, index }) {
                     item.awbNumber,
                     item.costKg,
                     item.discountCost,
-                    item.additionalcharges,
                     gst,
                     item.pickupDatetime,
                     setGst,
-                    // item.additionalChargeReason,
+                    Array.isArray(item.additionalChargesList)
+                      ? item.additionalChargesList
+                      : [],
                   );
 
                   setisOpen(false);
