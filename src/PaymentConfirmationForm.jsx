@@ -499,6 +499,11 @@ function PaymentConfirmationForm() {
       currentY += 20;
     }
 
+    // Separator line above Total
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.5);
+    doc.line(labelX, currentY - 14, valueX + 60, currentY - 14);
+
     // Total
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
@@ -511,86 +516,70 @@ function PaymentConfirmationForm() {
     doc.setTextColor(0, 0, 0);
 
     // -------------------------
-    // Terms & Conditions
+    // Terms & Conditions + Policy (paginated)
     // -------------------------
-    let sectionStartY = currentY + 40;
+    const pageHeight = doc.internal.pageSize.height;
+    const footerReserve = 70;
+    const bodyLineHeight = 14;
+    const headingLineHeight = 20;
 
-    if (sectionStartY > doc.internal.pageSize.height - 120) {
-      doc.addPage();
-      sectionStartY = 40;
-    }
+    let sectionY = currentY + 30;
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    doc.text("Terms & Conditions", 40, sectionStartY);
+    const ensureSpace = (needed) => {
+      if (sectionY + needed > pageHeight - footerReserve) {
+        doc.addPage();
+        sectionY = 50;
+      }
+    };
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
+    const drawHeading = (text) => {
+      ensureSpace(headingLineHeight);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.setTextColor(0, 0, 0);
+      doc.text(text, 40, sectionY);
+      sectionY += headingLineHeight;
+    };
 
-    const termsText = `
-• This invoice is only valid for ${details.actualWeight} Kg.
-• The estimated delivery date is subject to customs clearance at the destination.
-`;
+    const drawParagraph = (text) => {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      doc.setTextColor(0, 0, 0);
+      const lines = doc.splitTextToSize(text, 520);
+      lines.forEach((line) => {
+        ensureSpace(bodyLineHeight);
+        doc.text(line, 40, sectionY);
+        sectionY += bodyLineHeight;
+      });
+    };
 
-    const splitTerms = doc.splitTextToSize(termsText, 520);
-    doc.text(splitTerms, 40, sectionStartY + 10);
-
-    // -------------------------
-    // Cancellation & Refund Policy
-    // -------------------------
-    // ✅ Capture actual ending Y
-    let afterTermsY = sectionStartY + 20 + splitTerms.length * 13;
-    let policyStartY = afterTermsY + -10; // 👈 Reduced spacing here
-
-    if (policyStartY > doc.internal.pageSize.height - 120) {
-      doc.addPage();
-      policyStartY = 40;
-    }
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    doc.text("Cancellation & Refund Policy", 40, policyStartY);
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-
-    const policyText = `
-We strive to meet our commitments in terms of service and in case of failure to do so, we will work with customers on a case-to-case basis to sort the issue.
-
-Our Cancellation Policy:
-• Customers can cancel the order before shipment is handed over (typically before 8 PM same day after confirmation/payment).
-• Once handed over by end of day, cancellations cannot be entertained.
-
-Our Refund Policy:
-• Refunds are entertained only for damage or delays within our control.
-• Refunds apply only if packing was done by ShipHit without customer weight reduction request.
-• No refunds for fragile/delicate shipments sent via duty free/Self mode.
-• Damage must be reported within 48 hours of delivery.
-• No refunds for delay/abandonment due to customs clearance.
-• In case of loss, refund includes logistics cost and max product value $100 or declared invoice value (whichever is lower).
-• For important products, opt for insurance by declaring just 5% of the invoice value (available for Economy and Express services only) to receive full reimbursement.
-• For refund assessment within 3 business days submit damage pictures and packaging proof.
-• Maximum refund limited to declared damaged item value.
-• Refund processed via wallet credit note or bank transfer within 7 working days.
-`;
-
-    const splitPolicy = doc.splitTextToSize(policyText, 520);
-    doc.text(splitPolicy, 40, policyStartY + 10);
-
-    // -------------------------
-    // Footer
-    // -------------------------
-    doc.setFontSize(10);
-    doc.text(
-      "Thank you for your business!",
-      40,
-      doc.internal.pageSize.height - 40,
+    drawHeading("Terms & Conditions");
+    drawParagraph(
+      `• This invoice is only valid for ${details.actualWeight} Kg.\n• The estimated delivery date is subject to customs clearance at the destination.`,
     );
-    doc.text(
-      "Company Contact Info: info@shiphit.com | +91 - 9159 688 688",
-      40,
-      doc.internal.pageSize.height - 25,
+
+    sectionY += 8;
+    drawHeading("Cancellation & Refund Policy");
+    drawParagraph(
+      `We strive to meet our commitments in terms of service and in case of failure to do so, we will work with customers on a case-to-case basis to sort the issue.\n\nOur Cancellation Policy:\n• Customers can cancel the order before shipment is handed over (typically before 8 PM same day after confirmation/payment).\n• Once handed over by end of day, cancellations cannot be entertained.\n\nOur Refund Policy:\n• Refunds are entertained only for damage or delays within our control.\n• Refunds apply only if packing was done by ShipHit without customer weight reduction request.\n• No refunds for fragile/delicate shipments sent via duty free/Self mode.\n• Damage must be reported within 48 hours of delivery.\n• No refunds for delay/abandonment due to customs clearance.\n• In case of loss, refund includes logistics cost and max product value $100 or declared invoice value (whichever is lower).\n• For important products, opt for insurance by declaring just 5% of the invoice value (available for Economy and Express services only) to receive full reimbursement.\n• For refund assessment within 3 business days submit damage pictures and packaging proof.\n• Maximum refund limited to declared damaged item value.\n• Refund processed via wallet credit note or bank transfer within 7 working days.`,
     );
+
+    // -------------------------
+    // Footer on every page
+    // -------------------------
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let p = 1; p <= totalPages; p++) {
+      doc.setPage(p);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      doc.text("Thank you for your business!", 40, pageHeight - 40);
+      doc.text(
+        "Company Contact Info: info@shiphit.com | +91 - 9159 688 688",
+        40,
+        pageHeight - 25,
+      );
+    }
 
     // Save the PDF as a Blob
     const pdfBlob = doc.output("blob");
@@ -842,20 +831,12 @@ Our Refund Policy:
           details.awbNumber,
           details.costKg,
           details.discountCost,
-          details.additionalcharges,
           gstNumber,
           details.pickupDatetime,
-          gstInvoiceNumber.invoiceNumber, // pass invoice number
-          details.additionalChargesList && details.additionalChargesList.length
+          gstInvoiceNumber.invoiceNumber,
+          Array.isArray(details.additionalChargesList)
             ? details.additionalChargesList
-            : details.additionalcharges > 0
-              ? [
-                  {
-                    amount: details.additionalcharges,
-                    reason: details.additionalChargeReason || "Additional Charges",
-                  },
-                ]
-              : [],
+            : [],
         );
       }
 
