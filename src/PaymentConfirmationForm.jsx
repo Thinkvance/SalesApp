@@ -30,6 +30,7 @@ import getClientGSTNumber from "./Utility/getClientGSTNumber.js";
 import {
   fetchLowestRate,
   getWeightSlab,
+  getActualWeightSlab,
   normaliseService,
 } from "./Utility/fetchLowestRate.js";
 
@@ -49,6 +50,7 @@ function PaymentConfirmationForm() {
   const [costKgAutoPopulated, setCostKgAutoPopulated] = useState(false);
   const [rateCardAmount, setRateCardAmount] = useState(null);
   const [rateCardCostPerKg, setRateCardCostPerKg] = useState(null);
+  const [dutyFreeUpsold, setDutyFreeUpsold] = useState(false);
   const barcodeRef = useRef(null); // Ref for barcode generation
   const [paymentMode, setPaymentMode] = useState("");
   const {
@@ -95,9 +97,16 @@ function PaymentConfirmationForm() {
   }, [details?.discountCost, setValue]);
 
   useEffect(() => {
-    if (details?.additionalChargesList && Array.isArray(details.additionalChargesList) && details.additionalChargesList.length) {
+    if (
+      details?.additionalChargesList &&
+      Array.isArray(details.additionalChargesList) &&
+      details.additionalChargesList.length
+    ) {
       setValue("additionalChargesList", details.additionalChargesList);
-    } else if (details?.additionalcharges != null && details.additionalcharges > 0) {
+    } else if (
+      details?.additionalcharges != null &&
+      details.additionalcharges > 0
+    ) {
       setValue("additionalChargesList", [
         {
           amount: String(details.additionalcharges),
@@ -105,7 +114,12 @@ function PaymentConfirmationForm() {
         },
       ]);
     }
-  }, [details?.additionalcharges, details?.additionalChargeReason, details?.additionalChargesList, setValue]);
+  }, [
+    details?.additionalcharges,
+    details?.additionalChargeReason,
+    details?.additionalChargesList,
+    setValue,
+  ]);
 
   useEffect(() => {
     if (details?.costKg != null) {
@@ -351,11 +365,12 @@ function PaymentConfirmationForm() {
     const doc = new jsPDF("p", "pt");
     const subtotal = parseInt(costKg) * details.actualWeight;
     const nettotal = subtotal - parseInt(discountCost) + additionalcharges;
-    const normalisedCharges = Array.isArray(chargesList) && chargesList.length
-      ? chargesList
-      : additionalcharges > 0
-        ? [{ amount: additionalcharges, reason: "Additional Charges" }]
-        : [];
+    const normalisedCharges =
+      Array.isArray(chargesList) && chargesList.length
+        ? chargesList
+        : additionalcharges > 0
+          ? [{ amount: additionalcharges, reason: "Additional Charges" }]
+          : [];
     const year = new Date().getFullYear();
     function formatFirebaseTimestamp(timestamp) {
       if (!timestamp) return "";
@@ -465,7 +480,7 @@ function PaymentConfirmationForm() {
     doc.text("Subtotal:", labelX, currentY);
 
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(0, 128, 0);
+    doc.setTextColor(0, 0, 0);
     doc.text(`${subtotal}.00 Rs`, valueX, currentY);
     currentY += 20;
 
@@ -482,7 +497,7 @@ function PaymentConfirmationForm() {
       doc.text(chargeLabel, labelX, currentY);
 
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(0, 128, 0);
+      doc.setTextColor(0, 0, 0);
       doc.text(`+ ${Number(row.amount).toFixed(2)} Rs`, valueX, currentY);
       currentY += 20;
     });
@@ -494,7 +509,7 @@ function PaymentConfirmationForm() {
       doc.text("Discount:", labelX, currentY);
 
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(220, 20, 60);
+      doc.setTextColor(0, 128, 0);
       doc.text(`- ${discountCost}.00 Rs`, valueX, currentY);
       currentY += 20;
     }
@@ -510,7 +525,7 @@ function PaymentConfirmationForm() {
     doc.text("Total:", labelX, currentY);
 
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(0, 100, 0);
+    doc.setTextColor(0, 0, 0);
     doc.text(`${nettotal}.00 Rs`, valueX, currentY);
 
     doc.setTextColor(0, 0, 0);
@@ -999,27 +1014,56 @@ function PaymentConfirmationForm() {
       return;
     if (details?.Source === "B To C") return;
 
-    const weightSlab = getWeightSlab(details.actualWeight, details.service);
-    if (!weightSlab) return;
     const service = normaliseService(details.service);
+    const weight = parseFloat(details.actualWeight);
+    const isDutyFree1to5 =
+      service === "EcoDutyFree" && weight >= 1 && weight <= 5;
+
+    const actualSlab = getActualWeightSlab(details.actualWeight);
+    const upsellSlab = getWeightSlab(details.actualWeight, details.service);
+    if (!upsellSlab) return;
+
     console.log("[RateCard lookup]", {
       destination: details.destination,
       rawService: details.service,
       normalisedService: service,
       actualWeight: details.actualWeight,
-      resolvedSlab: weightSlab,
+      actualSlab,
+      upsellSlab,
+      isDutyFree1to5,
     });
 
-    fetchLowestRate(details.destination, service, weightSlab)
-      .then((result) => {
+    (async () => {
+      try {
+        // For Duty Free 1-5 KG: try actual slab first, upsell only if no rate
+        if (isDutyFree1to5) {
+          const actualResult = await fetchLowestRate(
+            details.destination,
+            service,
+            actualSlab,
+          );
+          if (actualResult && actualResult.amount) {
+            setRateCardCostPerKg(actualResult.amount);
+            setRateCardAmount(details.actualWeight * actualResult.amount);
+            setDutyFreeUpsold(false);
+            return;
+          }
+        }
+        // Fallback: use the (possibly upsold) slab
+        const result = await fetchLowestRate(
+          details.destination,
+          service,
+          upsellSlab,
+        );
         if (result && result.amount) {
           setRateCardCostPerKg(result.amount);
           setRateCardAmount(details.actualWeight * result.amount);
+          setDutyFreeUpsold(isDutyFree1to5);
         }
-      })
-      .catch((err) => {
+      } catch (err) {
         console.log("Rate fetch failed:", err);
-      });
+      }
+    })();
   }, [details?.destination, details?.service, details?.actualWeight]);
 
   const handleGetPaymentPreview = (data) => {
@@ -1444,9 +1488,7 @@ function PaymentConfirmationForm() {
                         </div>
                         <div className="flex justify-between text-sm py-0.5">
                           <span className="text-gray-500">Weight</span>
-                          {normaliseService(details?.service) === "EcoDutyFree" &&
-                          weight >= 1 &&
-                          weight <= 5 ? (
+                          {dutyFreeUpsold ? (
                             <span className="text-[10px] font-semibold text-amber-700 bg-amber-100 border border-amber-200 rounded px-1.5 py-0.5 uppercase tracking-wide">
                               Upsell → 6–8 kg rate
                             </span>
@@ -1502,7 +1544,8 @@ function PaymentConfirmationForm() {
                       required: "Cost/KG is required",
                       pattern: {
                         value: /^[0-9]+$/,
-                        message: "Please enter a Cost/KG consisting of digits only",
+                        message:
+                          "Please enter a Cost/KG consisting of digits only",
                       },
                       validate: (value) =>
                         Number.isInteger(Number(value)) ||
@@ -1554,7 +1597,9 @@ function PaymentConfirmationForm() {
             const discountAmountReadOnly = isAlreadySaved || hasRateCard;
             return (
               <div className="flex flex-col mb-3">
-                <label className={`text-xs font-semibold uppercase tracking-wide mb-1 ${(parseInt(watch("discountCost")) || 0) > 0 ? "text-red-600" : "text-gray-500"}`}>
+                <label
+                  className={`text-xs font-semibold uppercase tracking-wide mb-1 ${(parseInt(watch("discountCost")) || 0) > 0 ? "text-red-600" : "text-gray-500"}`}
+                >
                   Total Discount Amount
                 </label>
                 <input
@@ -1567,8 +1612,8 @@ function PaymentConfirmationForm() {
                     (parseInt(watch("discountCost")) || 0) > 0
                       ? "bg-red-50 border-red-300 text-red-700 cursor-not-allowed"
                       : discountAmountReadOnly
-                      ? "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed"
-                      : "bg-white border-gray-300 focus:outline-none focus:border-purple-400"
+                        ? "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed"
+                        : "bg-white border-gray-300 focus:outline-none focus:border-purple-400"
                   }`}
                   placeholder="Enter 0 or amount"
                   readOnly={discountAmountReadOnly}
@@ -1595,28 +1640,34 @@ function PaymentConfirmationForm() {
           )}
           {/* Diff banner — moved here, above Recovered Cost */}
           {(() => {
-            const displayedRecovered = Math.max((watch("recoverdCost") || 0) - (parseInt(watch("furtherDiscount")) || 0), 0);
+            const displayedRecovered = Math.max(
+              (watch("recoverdCost") || 0) -
+                (parseInt(watch("furtherDiscount")) || 0),
+              0,
+            );
             const hasMargin = displayedRecovered > 0;
             return (
-          <div className="flex flex-col mb-3">
-            <label className={`text-xs font-semibold uppercase tracking-wide mb-1 ${hasMargin ? "text-green-700" : "text-gray-500"}`}>
-              Recovered Cost (Extra Margin)
-            </label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={displayedRecovered}
-              className={`p-2.5 rounded-lg border text-sm cursor-not-allowed ${hasMargin ? "bg-green-50 border-green-300 text-green-700" : "bg-gray-50 border-gray-200 text-gray-500"}`}
-              placeholder="0"
-              readOnly
-            />
-            <input
-              type="hidden"
-              {...register("recoverdCost", {
-                valueAsNumber: true,
-              })}
-            />
-          </div>
+              <div className="flex flex-col mb-3">
+                <label
+                  className={`text-xs font-semibold uppercase tracking-wide mb-1 ${hasMargin ? "text-green-700" : "text-gray-500"}`}
+                >
+                  Recovered Cost (Extra Margin)
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={displayedRecovered}
+                  className={`p-2.5 rounded-lg border text-sm cursor-not-allowed ${hasMargin ? "bg-green-50 border-green-300 text-green-700" : "bg-gray-50 border-gray-200 text-gray-500"}`}
+                  placeholder="0"
+                  readOnly
+                />
+                <input
+                  type="hidden"
+                  {...register("recoverdCost", {
+                    valueAsNumber: true,
+                  })}
+                />
+              </div>
             );
           })()}
           {(() => {
@@ -1630,8 +1681,12 @@ function PaymentConfirmationForm() {
               "Packing charges",
               "Customise Special box charges",
             ];
-            const isLocked = details.additionalcharges != undefined || details.additionalChargesList != undefined;
-            const usedReasons = watchChargesList.map((r) => r?.reason).filter(Boolean);
+            const isLocked =
+              details.additionalcharges != undefined ||
+              details.additionalChargesList != undefined;
+            const usedReasons = watchChargesList
+              .map((r) => r?.reason)
+              .filter(Boolean);
             return (
               <div className="flex flex-col mb-3">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
@@ -1649,23 +1704,29 @@ function PaymentConfirmationForm() {
                           type="text"
                           inputMode="numeric"
                           onInput={(e) => {
-                            e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                            e.target.value = e.target.value.replace(
+                              /[^0-9]/g,
+                              "",
+                            );
                           }}
                           className={`p-2.5 rounded-lg border text-sm ${isLocked ? "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed" : "bg-white border-gray-300 focus:outline-none focus:border-purple-400"}`}
                           placeholder="Enter amount"
                           readOnly={isLocked}
-                          {...register(`additionalChargesList.${index}.amount`, {
-                            pattern: {
-                              value: /^[0-9]*$/,
-                              message: "Digits only",
+                          {...register(
+                            `additionalChargesList.${index}.amount`,
+                            {
+                              pattern: {
+                                value: /^[0-9]*$/,
+                                message: "Digits only",
+                              },
+                              validate: (value) => {
+                                const reason = watchChargesList[index]?.reason;
+                                const amt = parseInt(value) || 0;
+                                if (reason && amt <= 0) return "Enter amount";
+                                return true;
+                              },
                             },
-                            validate: (value) => {
-                              const reason = watchChargesList[index]?.reason;
-                              const amt = parseInt(value) || 0;
-                              if (reason && amt <= 0) return "Enter amount";
-                              return true;
-                            },
-                          })}
+                          )}
                         />
                         {errors?.additionalChargesList?.[index]?.amount && (
                           <p className="text-red-500 text-xs mt-1">
@@ -1677,13 +1738,18 @@ function PaymentConfirmationForm() {
                         <select
                           className={`p-2.5 rounded-lg border text-sm ${isLocked ? "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed" : "bg-white border-gray-300 focus:outline-none focus:border-purple-400"}`}
                           disabled={isLocked}
-                          {...register(`additionalChargesList.${index}.reason`, {
-                            validate: (value) => {
-                              const amt = parseInt(watchChargesList[index]?.amount) || 0;
-                              if (amt > 0 && !value) return "Select a reason";
-                              return true;
+                          {...register(
+                            `additionalChargesList.${index}.reason`,
+                            {
+                              validate: (value) => {
+                                const amt =
+                                  parseInt(watchChargesList[index]?.amount) ||
+                                  0;
+                                if (amt > 0 && !value) return "Select a reason";
+                                return true;
+                              },
                             },
-                          })}
+                          )}
                         >
                           <option value="">Select a reason</option>
                           {availableReasons.map((reason) => (
@@ -1751,7 +1817,7 @@ function PaymentConfirmationForm() {
                     <span className="text-gray-500">
                       {row.reason || "Additional Charges"}
                     </span>
-                    <span className="font-medium text-orange-500">
+                    <span className="font-medium text-green-500">
                       + ₹ {parseInt(row.amount) || 0}
                     </span>
                   </div>
@@ -1759,7 +1825,7 @@ function PaymentConfirmationForm() {
                 {liveDiscount > 0 && (
                   <div className="flex justify-between py-1">
                     <span className="text-gray-500">Discount</span>
-                    <span className="font-medium text-green-600">
+                    <span className="font-medium text-red-600">
                       − ₹ {liveDiscount}
                     </span>
                   </div>
@@ -2030,9 +2096,9 @@ function PaymentConfirmationForm() {
                 parseInt(details.actualWeight) *
                 parseInt(pendingFormData.costKg);
               const popupDiscount = parseInt(pendingFormData.discountCost) || 0;
-              const popupCharges = (pendingFormData.additionalChargesList || []).filter(
-                (r) => (parseInt(r?.amount) || 0) > 0,
-              );
+              const popupCharges = (
+                pendingFormData.additionalChargesList || []
+              ).filter((r) => (parseInt(r?.amount) || 0) > 0);
               const popupAdditional = popupCharges.reduce(
                 (s, r) => s + (parseInt(r?.amount) || 0),
                 0,
@@ -2048,9 +2114,14 @@ function PaymentConfirmationForm() {
                     </span>
                   </div>
                   {popupCharges.map((row, i) => (
-                    <div key={i} className="flex justify-between py-2.5 border-b border-gray-100">
-                      <span className="text-gray-500">{row.reason || "Additional Charges"}</span>
-                      <span className="font-medium text-orange-500">
+                    <div
+                      key={i}
+                      className="flex justify-between py-2.5 border-b border-gray-100"
+                    >
+                      <span className="text-gray-500">
+                        {row.reason || "Additional Charges"}
+                      </span>
+                      <span className="font-medium text-green-500">
                         + ₹ {parseInt(row.amount) || 0}
                       </span>
                     </div>
@@ -2058,7 +2129,7 @@ function PaymentConfirmationForm() {
                   {popupDiscount > 0 && (
                     <div className="flex justify-between py-2.5 border-b border-gray-100">
                       <span className="text-gray-500">Discount</span>
-                      <span className="font-medium text-green-600">
+                      <span className="font-medium text-red-600">
                         − ₹ {popupDiscount}
                       </span>
                     </div>

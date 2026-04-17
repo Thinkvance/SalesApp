@@ -122,7 +122,7 @@ Phone: 9159 688 688`;
           "Mode",
           "Weight (KG)",
           "Cost/KG",
-          "GST (18%)",
+          // "GST (18%)",
           "Amount",
         ],
       ],
@@ -132,7 +132,7 @@ Phone: 9159 688 688`;
           item.service + " Service",
           actualWeight + " KG",
           `${parseInt(costKg - costKg * 0.18)} Rs`,
-          `${GST_COST_value.toFixed(2)} Rs`,
+          // `${GST_COST_value.toFixed(2)} Rs`,
           `${subtotal.toFixed(2)} Rs`,
         ],
       ],
@@ -190,7 +190,9 @@ Phone: 9159 688 688`;
       doc.setFont("helvetica", "bold");
       doc.text("Discount:", labelX, y);
       doc.setFont("helvetica", "normal");
+      doc.setTextColor(0, 128, 0);
       doc.text(`- ${Number(discountCost).toFixed(2)} Rs`, valueX, y);
+      doc.setTextColor(0, 0, 0);
       y += 20;
     }
 

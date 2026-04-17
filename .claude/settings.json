@@ -6,7 +6,8 @@
       "Bash(npx react-scripts:*)",
       "Bash(npx vite:*)",
       "Bash(node --check src/Utility/GSTinvoice.js)",
-      "Bash(npx --no-install eslint src/Utility/GSTinvoice.js src/PaymentConfirmationForm.jsx)"
+      "Bash(npx --no-install eslint src/Utility/GSTinvoice.js src/PaymentConfirmationForm.jsx)",
+      "Bash(npx eslint:*)"
     ]
   }
 }

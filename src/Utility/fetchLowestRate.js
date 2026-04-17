@@ -72,6 +72,22 @@ export function getWeightSlab(kg, service) {
   return "30+ Kg";
 }
 
+/** Returns the actual weight slab WITHOUT duty-free upsell */
+export function getActualWeightSlab(kg) {
+  const w = parseFloat(kg);
+  if (isNaN(w)) return null;
+  if (w <= 1)  return "1 Kg FLAT";
+  if (w <= 2)  return "2 Kg FLAT";
+  if (w <= 3)  return "3 Kg FLAT";
+  if (w <= 4)  return "4 Kg FLAT";
+  if (w <= 5)  return "5 Kg FLAT";
+  if (w <= 8)  return "5.1 to 8 Kg";
+  if (w <= 10) return "8.1 to 10 Kg";
+  if (w <= 20) return "10.1 to 20 Kg";
+  if (w <= 30) return "20.1 to 30 Kg";
+  return "30+ Kg";
+}
+
 /* ------------------------------------------------------------------ */
 /* 🔥 SAFE LAZY FIRESTORE LOADER                                      */
 /* ------------------------------------------------------------------ */
