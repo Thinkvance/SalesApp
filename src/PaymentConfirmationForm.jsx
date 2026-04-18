@@ -361,6 +361,8 @@ function PaymentConfirmationForm() {
     additionalcharges,
     invoiceNumber,
     chargesList,
+    paymentRequestedDate,
+    isPaymentDone = false,
   ) {
     const doc = new jsPDF("p", "pt");
     const subtotal = parseInt(costKg) * details.actualWeight;
@@ -420,21 +422,38 @@ function PaymentConfirmationForm() {
     const pageWidth = doc.internal.pageSize.getWidth();
     const rightMargin = pageWidth - 40;
 
-    doc.text(`Receipt Number: ${invoiceNumber}`, rightMargin, 40, {
+    doc.setFont("helvetica", "bold");
+    doc.text("Receipt Number: ", rightMargin - doc.getTextWidth(invoiceNumber), 40, {
+      align: "right",
+    });
+    doc.setFont("helvetica", "normal");
+    doc.text(invoiceNumber, rightMargin, 40, {
       align: "right",
     });
 
-    doc.text(
-      `Pickup Booking Date: ${formatFirebaseTimestamp(details.pickupDatetime)}`,
-      rightMargin,
-      60,
-      {
-        align: "right",
-      },
-    );
+    doc.setFont("helvetica", "bold");
+    const dateStr = formatFirebaseTimestamp(paymentRequestedDate);
+    doc.text("Date: ", rightMargin - doc.getTextWidth(dateStr), 60, {
+      align: "right",
+    });
+    doc.setFont("helvetica", "normal");
+    doc.text(dateStr, rightMargin, 60, {
+      align: "right",
+    });
 
     doc.setFont("helvetica", "bold");
-    doc.text(`Total: ${nettotal}.00 Rs`, rightMargin, 80, {
+    const awbStr = String(details.awbNumber || awbnumber);
+    doc.text("AWB Number: ", rightMargin - doc.getTextWidth(awbStr), 80, {
+      align: "right",
+    });
+    doc.setFont("helvetica", "normal");
+    doc.text(awbStr, rightMargin, 80, {
+      align: "right",
+    });
+
+    doc.setFont("helvetica", "bold");
+    const totalLabel = isPaymentDone ? "Total" : "Total To Pay";
+    doc.text(`${totalLabel}: ${nettotal}.00 Rs`, rightMargin, 100, {
       align: "right",
     });
 
@@ -720,12 +739,15 @@ function PaymentConfirmationForm() {
         0,
       );
 
+      const paymentRequestedDate = Timestamp.now();
+
       const Payment_URL = await generate_Invoice_PDF(
         data.costKg,
         data.discountCost,
         additionalChargesSum,
         receiptNumber.receiptNumber,
         chargesList,
+        paymentRequestedDate,
       );
 
       const q = query(
@@ -753,6 +775,7 @@ function PaymentConfirmationForm() {
 
       const updatedFields = {
         status: "PAYMENT REQUESTED",
+        paymentRequestedDate: paymentRequestedDate,
         logisticCost:
           parseInt(logisticCost + additionalChargesSum) -
           parseInt(data.discountCost),
@@ -831,6 +854,7 @@ function PaymentConfirmationForm() {
       setSubmitLoading(true);
 
       const isInvoice = shouldSendInvoice(paymentMode);
+      const now = Timestamp.now();
 
       let Payment_gst_URL = null;
       let gstInvoiceNumber = null;
@@ -847,7 +871,7 @@ function PaymentConfirmationForm() {
           details.costKg,
           details.discountCost,
           gstNumber,
-          details.pickupDatetime,
+          now,
           gstInvoiceNumber.invoiceNumber,
           Array.isArray(details.additionalChargesList)
             ? details.additionalChargesList
@@ -855,9 +879,23 @@ function PaymentConfirmationForm() {
         );
       }
 
+      const Payment_Receipt_Regenerated = isInvoice
+        ? null
+        : await generate_Invoice_PDF(
+            details.costKg,
+            details.discountCost,
+            details.additionalcharges || 0,
+            details.receiptNumber,
+            Array.isArray(details.additionalChargesList)
+              ? details.additionalChargesList
+              : [],
+            now,
+            true,
+          );
+
       const Payment_URL = isInvoice
         ? Payment_gst_URL
-        : details.payment_Receipt_URL;
+        : Payment_Receipt_Regenerated;
 
       const template = isInvoice
         ? "payment_completed_final_gst_invoice"
@@ -884,8 +922,6 @@ function PaymentConfirmationForm() {
         ),
         final_result[0].id,
       );
-
-      const now = Timestamp.now();
 
       const updatedInternalTracking = (details.internalTracking || []).map(
         (step) => {
@@ -919,7 +955,7 @@ function PaymentConfirmationForm() {
             uploadFileToFirebase(file, "PAYMENT PROOF"),
           ),
         ),
-        PaymentComfirmedDate: await getTodayDate(),
+        PaymentComfirmedDate: now,
       };
 
       await updateDoc(docRef, {

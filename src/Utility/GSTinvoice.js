@@ -101,7 +101,7 @@ Phone: 9159 688 688`;
     });
 
     doc.text(
-      `Pickup Booking Date: ${formatFirebaseTimestamp(pickupDatetime)}`,
+      `Date: ${formatFirebaseTimestamp(pickupDatetime)}`,
       rightX,
       60,
       { align: "right" },
@@ -152,7 +152,7 @@ Phone: 9159 688 688`;
     let y = doc.lastAutoTable.finalY + 30;
 
     doc.setFont("helvetica", "bold");
-    doc.text("Subtotal:", labelX, y);
+    doc.text("Logistics Cost:", labelX, y);
     doc.setFont("helvetica", "normal");
     doc.text(`${subtotal.toFixed(2)} Rs`, valueX, y);
 
@@ -161,14 +161,14 @@ Phone: 9159 688 688`;
     doc.setFont("helvetica", "bold");
     doc.text("SGST (9%):", labelX, y);
     doc.setFont("helvetica", "normal");
-    doc.text(`${(GST_COST * actualWeight).toFixed(2) / 2} Rs`, valueX, y);
+    doc.text(`+ ${((GST_COST * actualWeight) / 2).toFixed(2)} Rs`, valueX, y);
 
     y += 20;
 
     doc.setFont("helvetica", "bold");
     doc.text("CGST (9%):", labelX, y);
     doc.setFont("helvetica", "normal");
-    doc.text(`${(GST_COST * actualWeight).toFixed(2) / 2} Rs`, valueX, y);
+    doc.text(`+ ${((GST_COST * actualWeight) / 2).toFixed(2)} Rs`, valueX, y);
 
     y += 20;
 
