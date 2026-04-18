@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "./firebase"; // Import storage from your Firebase config
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
 import {
   collection,
   query,
@@ -13,6 +13,7 @@ import {
   onSnapshot,
   runTransaction,
   Timestamp,
+  writeBatch,
 } from "firebase/firestore";
 import collectionName_BaseAwb from "./functions/collectionName";
 import axios from "axios";
@@ -29,13 +30,15 @@ import getClientGSTNumber from "./Utility/getClientGSTNumber.js";
 import {
   fetchLowestRate,
   getWeightSlab,
+  getActualWeightSlab,
   normaliseService,
 } from "./Utility/fetchLowestRate.js";
+
 function PaymentConfirmationForm() {
   const [costKg, setcostKg] = useState(0);
   const { awbnumber } = useParams();
   const [details, setDetails] = useState(null);
-  const [paymentProof, setPaymentProof] = useState(null);
+  const [paymentProof, setPaymentProof] = useState([]);
   const [KycImage, setKycImage] = useState("");
   const [loading, setLoading] = useState(true);
   const [formError, setFormError] = useState("");
@@ -45,6 +48,9 @@ function PaymentConfirmationForm() {
   const [showGetPaymentConfirm, setShowGetPaymentConfirm] = useState(false);
   const [pendingFormData, setPendingFormData] = useState(null);
   const [costKgAutoPopulated, setCostKgAutoPopulated] = useState(false);
+  const [rateCardAmount, setRateCardAmount] = useState(null);
+  const [rateCardCostPerKg, setRateCardCostPerKg] = useState(null);
+  const [dutyFreeUpsold, setDutyFreeUpsold] = useState(false);
   const barcodeRef = useRef(null); // Ref for barcode generation
   const [paymentMode, setPaymentMode] = useState("");
   const {
@@ -55,7 +61,21 @@ function PaymentConfirmationForm() {
     setError,
     watch,
     formState: { errors },
-  } = useForm();
+  } = useForm({
+    defaultValues: {
+      additionalChargesList: [{ amount: "", reason: "" }],
+    },
+  });
+  const {
+    fields: chargeFields,
+    append: appendCharge,
+    remove: removeCharge,
+  } = useFieldArray({ control, name: "additionalChargesList" });
+  const watchChargesList = watch("additionalChargesList") || [];
+  const totalAdditionalCharges = watchChargesList.reduce(
+    (sum, row) => sum + (parseInt(row?.amount) || 0),
+    0,
+  );
   const navigate = useNavigate();
   const [animationData, setAnimationData] = useState(null);
 
@@ -77,10 +97,90 @@ function PaymentConfirmationForm() {
   }, [details?.discountCost, setValue]);
 
   useEffect(() => {
-    if (details?.additionalcharges != null) {
-      setValue("additionalcharges", details?.additionalcharges); // Set value in React Hook Form
+    if (
+      details?.additionalChargesList &&
+      Array.isArray(details.additionalChargesList) &&
+      details.additionalChargesList.length
+    ) {
+      setValue("additionalChargesList", details.additionalChargesList);
+    } else if (
+      details?.additionalcharges != null &&
+      details.additionalcharges > 0
+    ) {
+      setValue("additionalChargesList", [
+        {
+          amount: String(details.additionalcharges),
+          reason: details.additionalChargeReason || "",
+        },
+      ]);
     }
-  }, [details?.additionalcharges, setValue]);
+  }, [
+    details?.additionalcharges,
+    details?.additionalChargeReason,
+    details?.additionalChargesList,
+    setValue,
+  ]);
+
+  useEffect(() => {
+    if (details?.costKg != null) {
+      setValue("costKg", details.costKg);
+      setcostKg(Number(details.costKg));
+    }
+  }, [details?.costKg, setValue]);
+
+  const furtherDiscountWatch = watch("furtherDiscount");
+  const watchDiscount = watch("discountCost");
+  const watchAdditional = totalAdditionalCharges;
+
+  // Keep logisticsCost form value in sync with the computed value
+  useEffect(() => {
+    if (!details) return;
+    const weight = parseInt(details?.actualWeight) || 0;
+    const liveCostKg = Number(costKg) || 0;
+    const liveDiscount = parseInt(watchDiscount) || 0;
+    const liveAdditional = parseInt(watchAdditional) || 0;
+    const salesLogistics = weight * liveCostKg;
+    const finalLogistics = details?.logisticCost
+      ? details.logisticCost
+      : salesLogistics + liveAdditional - liveDiscount;
+    setValue("logisticsCost", finalLogistics);
+  }, [details, costKg, watchDiscount, watchAdditional, setValue]);
+
+  // For B To C, set default discount/recovered to 0 (no auto-fill from rate card)
+  useEffect(() => {
+    if (details?.Source !== "B To C") return;
+    if (details?.discountCost == null) {
+      setValue("discountCost", 0);
+    }
+    if (details?.recoverdCost == null) {
+      setValue("recoverdCost", 0);
+    }
+  }, [details?.Source, details?.discountCost, details?.recoverdCost, setValue]);
+
+  // Auto-fill Discount Amount and Recovered Cost based on rate card vs sales price
+  useEffect(() => {
+    if (rateCardAmount == null || !costKg) return;
+    if (details?.Source === "B To C") return;
+    const salesLogistics = parseInt(details?.actualWeight) * costKg;
+    const diff = rateCardAmount - salesLogistics;
+    const baseDiscount = diff > 0 ? diff : 0;
+    const autoRecovered = diff < 0 ? Math.abs(diff) : 0;
+    const further = parseInt(furtherDiscountWatch) || 0;
+    if (details?.discountCost == null) {
+      setValue("discountCost", baseDiscount + further);
+    }
+    if (details?.recoverdCost == null) {
+      setValue("recoverdCost", autoRecovered);
+    }
+  }, [
+    rateCardAmount,
+    costKg,
+    details?.actualWeight,
+    details?.discountCost,
+    details?.recoverdCost,
+    furtherDiscountWatch,
+    setValue,
+  ]);
 
   useEffect(() => {
     if (!awbnumber) return;
@@ -126,16 +226,28 @@ function PaymentConfirmationForm() {
     return url;
   };
   const handleFileChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setPaymentProof(file);
+    const newFiles = Array.from(event.target.files);
+    const combined = [...paymentProof, ...newFiles];
+    if (combined.length > 2) {
+      utilityFunctions.ErrorNotify("You can upload a maximum of 2 images.");
+      event.target.value = "";
+      return;
     }
+    setPaymentProof(combined);
+    event.target.value = "";
+  };
+  const removePaymentProof = (index) => {
+    setPaymentProof((prev) => prev.filter((_, i) => i !== index));
   };
   const handleKYCFileChange = (event) => {
     const file = event.target.files[0];
     if (file) {
       setKycImage(file);
     }
+    event.target.value = "";
+  };
+  const removeKycImage = () => {
+    setKycImage("");
   };
 
   const getTodayDate = async () => {
@@ -248,10 +360,19 @@ function PaymentConfirmationForm() {
     discountCost,
     additionalcharges,
     invoiceNumber,
+    chargesList,
+    paymentRequestedDate,
+    isPaymentDone = false,
   ) {
     const doc = new jsPDF("p", "pt");
     const subtotal = parseInt(costKg) * details.actualWeight;
     const nettotal = subtotal - parseInt(discountCost) + additionalcharges;
+    const normalisedCharges =
+      Array.isArray(chargesList) && chargesList.length
+        ? chargesList
+        : additionalcharges > 0
+          ? [{ amount: additionalcharges, reason: "Additional Charges" }]
+          : [];
     const year = new Date().getFullYear();
     function formatFirebaseTimestamp(timestamp) {
       if (!timestamp) return "";
@@ -301,21 +422,38 @@ function PaymentConfirmationForm() {
     const pageWidth = doc.internal.pageSize.getWidth();
     const rightMargin = pageWidth - 40;
 
-    doc.text(`Receipt Number: ${invoiceNumber}`, rightMargin, 40, {
+    doc.setFont("helvetica", "bold");
+    doc.text("Receipt Number: ", rightMargin - doc.getTextWidth(invoiceNumber), 40, {
+      align: "right",
+    });
+    doc.setFont("helvetica", "normal");
+    doc.text(invoiceNumber, rightMargin, 40, {
       align: "right",
     });
 
-    doc.text(
-      `Pickup Booking Date: ${formatFirebaseTimestamp(details.pickupDatetime)}`,
-      rightMargin,
-      60,
-      {
-        align: "right",
-      },
-    );
+    doc.setFont("helvetica", "bold");
+    const dateStr = formatFirebaseTimestamp(paymentRequestedDate);
+    doc.text("Date: ", rightMargin - doc.getTextWidth(dateStr), 60, {
+      align: "right",
+    });
+    doc.setFont("helvetica", "normal");
+    doc.text(dateStr, rightMargin, 60, {
+      align: "right",
+    });
 
     doc.setFont("helvetica", "bold");
-    doc.text(`Total: ${nettotal}.00 Rs`, rightMargin, 80, {
+    const awbStr = String(details.awbNumber || awbnumber);
+    doc.text("AWB Number: ", rightMargin - doc.getTextWidth(awbStr), 80, {
+      align: "right",
+    });
+    doc.setFont("helvetica", "normal");
+    doc.text(awbStr, rightMargin, 80, {
+      align: "right",
+    });
+
+    doc.setFont("helvetica", "bold");
+    const totalLabel = isPaymentDone ? "Total" : "Total To Pay";
+    doc.text(`${totalLabel}: ${nettotal}.00 Rs`, rightMargin, 100, {
       align: "right",
     });
 
@@ -351,8 +489,8 @@ function PaymentConfirmationForm() {
     // -------------------------
     // Totals Block (Right Side Styled)
     // -------------------------
-    const labelX = 330;
-    const valueX = 460;
+    const labelX = 300;
+    const valueX = 490;
     let currentY = doc.lastAutoTable.finalY + 40;
 
     // Subtotal
@@ -361,19 +499,27 @@ function PaymentConfirmationForm() {
     doc.text("Subtotal:", labelX, currentY);
 
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(0, 128, 0);
+    doc.setTextColor(0, 0, 0);
     doc.text(`${subtotal}.00 Rs`, valueX, currentY);
     currentY += 20;
 
-    // Additional Charges
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(0, 0, 0);
-    doc.text("Additional Charges:", labelX, currentY);
+    // Additional Charges (one line per entry)
+    normalisedCharges.forEach((row) => {
+      if (!row || !(row.amount > 0)) return;
+      if (currentY > doc.internal.pageSize.height - 80) {
+        doc.addPage();
+        currentY = 60;
+      }
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
+      const chargeLabel = row.reason || "Additional Charges";
+      doc.text(chargeLabel, labelX, currentY);
 
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(0, 128, 0);
-    doc.text(`+ ${additionalcharges}.00 Rs`, valueX, currentY);
-    currentY += 20;
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(0, 0, 0);
+      doc.text(`+ ${Number(row.amount).toFixed(2)} Rs`, valueX, currentY);
+      currentY += 20;
+    });
 
     // Discount
     if (discountCost > 0) {
@@ -382,10 +528,15 @@ function PaymentConfirmationForm() {
       doc.text("Discount:", labelX, currentY);
 
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(220, 20, 60);
+      doc.setTextColor(0, 128, 0);
       doc.text(`- ${discountCost}.00 Rs`, valueX, currentY);
       currentY += 20;
     }
+
+    // Separator line above Total
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.5);
+    doc.line(labelX, currentY - 14, valueX + 60, currentY - 14);
 
     // Total
     doc.setFont("helvetica", "bold");
@@ -393,92 +544,76 @@ function PaymentConfirmationForm() {
     doc.text("Total:", labelX, currentY);
 
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(0, 100, 0);
+    doc.setTextColor(0, 0, 0);
     doc.text(`${nettotal}.00 Rs`, valueX, currentY);
 
     doc.setTextColor(0, 0, 0);
 
     // -------------------------
-    // Terms & Conditions
+    // Terms & Conditions + Policy (paginated)
     // -------------------------
-    let sectionStartY = currentY + 40;
+    const pageHeight = doc.internal.pageSize.height;
+    const footerReserve = 70;
+    const bodyLineHeight = 14;
+    const headingLineHeight = 20;
 
-    if (sectionStartY > doc.internal.pageSize.height - 120) {
-      doc.addPage();
-      sectionStartY = 40;
-    }
+    let sectionY = currentY + 30;
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    doc.text("Terms & Conditions", 40, sectionStartY);
+    const ensureSpace = (needed) => {
+      if (sectionY + needed > pageHeight - footerReserve) {
+        doc.addPage();
+        sectionY = 50;
+      }
+    };
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
+    const drawHeading = (text) => {
+      ensureSpace(headingLineHeight);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.setTextColor(0, 0, 0);
+      doc.text(text, 40, sectionY);
+      sectionY += headingLineHeight;
+    };
 
-    const termsText = `
-• This invoice is only valid for ${details.actualWeight} Kg.
-• The estimated delivery date is subject to customs clearance at the destination.
-`;
+    const drawParagraph = (text) => {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      doc.setTextColor(0, 0, 0);
+      const lines = doc.splitTextToSize(text, 520);
+      lines.forEach((line) => {
+        ensureSpace(bodyLineHeight);
+        doc.text(line, 40, sectionY);
+        sectionY += bodyLineHeight;
+      });
+    };
 
-    const splitTerms = doc.splitTextToSize(termsText, 520);
-    doc.text(splitTerms, 40, sectionStartY + 10);
-
-    // -------------------------
-    // Cancellation & Refund Policy
-    // -------------------------
-    // ✅ Capture actual ending Y
-    let afterTermsY = sectionStartY + 20 + splitTerms.length * 13;
-    let policyStartY = afterTermsY + -10; // 👈 Reduced spacing here
-
-    if (policyStartY > doc.internal.pageSize.height - 120) {
-      doc.addPage();
-      policyStartY = 40;
-    }
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    doc.text("Cancellation & Refund Policy", 40, policyStartY);
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-
-    const policyText = `
-We strive to meet our commitments in terms of service and in case of failure to do so, we will work with customers on a case-to-case basis to sort the issue.
-
-Our Cancellation Policy:
-• Customers can cancel the order before shipment is handed over (typically before 8 PM same day after confirmation/payment).
-• Once handed over by end of day, cancellations cannot be entertained.
-
-Our Refund Policy:
-• Refunds are entertained only for damage or delays within our control.
-• Refunds apply only if packing was done by ShipHit without customer weight reduction request.
-• No refunds for fragile/delicate shipments sent via duty free/Self mode.
-• Damage must be reported within 48 hours of delivery.
-• No refunds for delay/abandonment due to customs clearance.
-• In case of loss, refund includes logistics cost and max product value $100 or declared invoice value (whichever is lower).
-• For important products, opt for insurance by declaring just 5% of the invoice value (available for Economy and Express services only) to receive full reimbursement.
-• For refund assessment within 3 business days submit damage pictures and packaging proof.
-• Maximum refund limited to declared damaged item value.
-• Refund processed via wallet credit note or bank transfer within 7 working days.
-`;
-
-    const splitPolicy = doc.splitTextToSize(policyText, 520);
-    doc.text(splitPolicy, 40, policyStartY + 10);
-
-    // -------------------------
-    // Footer
-    // -------------------------
-    doc.setFontSize(10);
-    doc.text(
-      "Thank you for your business!",
-      40,
-      doc.internal.pageSize.height - 40,
+    drawHeading("Terms & Conditions");
+    drawParagraph(
+      `• This invoice is only valid for ${details.actualWeight} Kg.\n• The estimated delivery date is subject to customs clearance at the destination.`,
     );
-    doc.text(
-      "Company Contact Info: info@shiphit.com | +91 - 9159 688 688",
-      40,
-      doc.internal.pageSize.height - 25,
+
+    sectionY += 8;
+    drawHeading("Cancellation & Refund Policy");
+    drawParagraph(
+      `We strive to meet our commitments in terms of service and in case of failure to do so, we will work with customers on a case-to-case basis to sort the issue.\n\nOur Cancellation Policy:\n• Customers can cancel the order before shipment is handed over (typically before 8 PM same day after confirmation/payment).\n• Once handed over by end of day, cancellations cannot be entertained.\n\nOur Refund Policy:\n• Refunds are entertained only for damage or delays within our control.\n• Refunds apply only if packing was done by ShipHit without customer weight reduction request.\n• No refunds for fragile/delicate shipments sent via duty free/Self mode.\n• Damage must be reported within 48 hours of delivery.\n• No refunds for delay/abandonment due to customs clearance.\n• In case of loss, refund includes logistics cost and max product value $100 or declared invoice value (whichever is lower).\n• For important products, opt for insurance by declaring just 5% of the invoice value (available for Economy and Express services only) to receive full reimbursement.\n• For refund assessment within 3 business days submit damage pictures and packaging proof.\n• Maximum refund limited to declared damaged item value.\n• Refund processed via wallet credit note or bank transfer within 7 working days.`,
     );
+
+    // -------------------------
+    // Footer on every page
+    // -------------------------
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let p = 1; p <= totalPages; p++) {
+      doc.setPage(p);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      doc.text("Thank you for your business!", 40, pageHeight - 40);
+      doc.text(
+        "Company Contact Info: info@shiphit.com | +91 - 9159 688 688",
+        40,
+        pageHeight - 25,
+      );
+    }
 
     // Save the PDF as a Blob
     const pdfBlob = doc.output("blob");
@@ -593,11 +728,26 @@ Our Refund Policy:
       }
       const receiptNumber = await getNextReceiptNumber();
 
+      const chargesList = (data.additionalChargesList || [])
+        .map((row) => ({
+          amount: parseInt(row?.amount) || 0,
+          reason: row?.reason || "",
+        }))
+        .filter((row) => row.amount > 0);
+      const additionalChargesSum = chargesList.reduce(
+        (s, r) => s + r.amount,
+        0,
+      );
+
+      const paymentRequestedDate = Timestamp.now();
+
       const Payment_URL = await generate_Invoice_PDF(
         data.costKg,
         data.discountCost,
-        data.additionalcharges,
+        additionalChargesSum,
         receiptNumber.receiptNumber,
+        chargesList,
+        paymentRequestedDate,
       );
 
       const q = query(
@@ -625,11 +775,12 @@ Our Refund Policy:
 
       const updatedFields = {
         status: "PAYMENT REQUESTED",
+        paymentRequestedDate: paymentRequestedDate,
         logisticCost:
-          parseInt(logisticCost + data.additionalcharges) -
+          parseInt(logisticCost + additionalChargesSum) -
           parseInt(data.discountCost),
         discountCost: data.discountCost,
-        // paymentProof: await uploadFileToFirebase(paymentProof, "PAYMENT PROOF"),
+        recoverdCost: data.recoverdCost || 0,
         KycImage:
           typeof details.KycImage === "string" &&
           details.KycImage.startsWith("http")
@@ -645,11 +796,20 @@ Our Refund Policy:
           : data.consigneelocation1,
         costKg: costKg,
         payment_Receipt_URL: Payment_URL,
-        additionalcharges: data.additionalcharges,
+        additionalcharges: additionalChargesSum,
+        additionalChargeReason: chargesList[0]?.reason || null,
+        additionalChargesList: chargesList,
         receiptNumber: receiptNumber.receiptNumber,
         receiptCounter: receiptNumber.receiptCounter,
       };
-      updateDoc(docRef, updatedFields);
+      // Atomic commit: pickup update + agent discount stats either both
+      // land or neither does. Prevents half-cooked state if the network
+      // drops between the two writes.
+      const batch = writeBatch(db);
+      batch.update(docRef, updatedFields);
+
+      await batch.commit();
+
       await makePaymentNotify(
         details.id,
         Payment_URL,
@@ -657,18 +817,18 @@ Our Refund Policy:
         details.consignorphonenumber,
         details.consignorname,
         logisticCost,
-        data.additionalcharges,
+        additionalChargesSum,
         details.awbNumber,
         details.Source,
         details.companyName,
       );
       setShowPopup(true);
+      resetForm(); // Only reset on success — preserve input on failure so user can retry
     } catch (error) {
       console.log(error);
       handleError(error);
     } finally {
       setSubmitLoading(false);
-      resetForm(); // Reset form after submission
     }
   };
 
@@ -678,7 +838,7 @@ Our Refund Policy:
         setFormError("paymentMode");
         return;
       }
-      if (!paymentProof) {
+      if (!paymentProof || paymentProof.length === 0) {
         setFormError("Payment proof Image is required.");
         return false;
       }
@@ -694,6 +854,7 @@ Our Refund Policy:
       setSubmitLoading(true);
 
       const isInvoice = shouldSendInvoice(paymentMode);
+      const now = Timestamp.now();
 
       let Payment_gst_URL = null;
       let gstInvoiceNumber = null;
@@ -709,16 +870,32 @@ Our Refund Policy:
           details.awbNumber,
           details.costKg,
           details.discountCost,
-          details.additionalcharges,
           gstNumber,
-          details.pickupDatetime,
-          gstInvoiceNumber.invoiceNumber, // pass invoice number
+          now,
+          gstInvoiceNumber.invoiceNumber,
+          Array.isArray(details.additionalChargesList)
+            ? details.additionalChargesList
+            : [],
         );
       }
 
+      const Payment_Receipt_Regenerated = isInvoice
+        ? null
+        : await generate_Invoice_PDF(
+            details.costKg,
+            details.discountCost,
+            details.additionalcharges || 0,
+            details.receiptNumber,
+            Array.isArray(details.additionalChargesList)
+              ? details.additionalChargesList
+              : [],
+            now,
+            true,
+          );
+
       const Payment_URL = isInvoice
         ? Payment_gst_URL
-        : details.payment_Receipt_URL;
+        : Payment_Receipt_Regenerated;
 
       const template = isInvoice
         ? "payment_completed_final_gst_invoice"
@@ -745,8 +922,6 @@ Our Refund Policy:
         ),
         final_result[0].id,
       );
-
-      const now = Timestamp.now();
 
       const updatedInternalTracking = (details.internalTracking || []).map(
         (step) => {
@@ -775,8 +950,12 @@ Our Refund Policy:
         paymentMode: paymentMode,
         payment_Invoice_URL: Payment_gst_URL,
         status: "PAYMENT DONE",
-        paymentProof: await uploadFileToFirebase(paymentProof, "PAYMENT PROOF"),
-        PaymentComfirmedDate: await getTodayDate(),
+        paymentProof: await Promise.all(
+          paymentProof.map((file) =>
+            uploadFileToFirebase(file, "PAYMENT PROOF"),
+          ),
+        ),
+        PaymentComfirmedDate: now,
       };
 
       await updateDoc(docRef, {
@@ -865,27 +1044,63 @@ Our Refund Policy:
     }
   }, [details]);
 
-  // // Auto-populate Cost/KG from rate card (only when not already set)
-  // useEffect(() => {
-  //   if (!details || details.costKg != null) return;
-  //   if (!details.destination || !details.service) return;
+  // Fetch rate card amount for discount calculation
+  useEffect(() => {
+    if (!details?.destination || !details?.service || !details?.actualWeight)
+      return;
+    if (details?.Source === "B To C") return;
 
-  //   const weightSlab = getWeightSlab(details.actualWeight);
-  //   if (!weightSlab) return;
-  //   const service = normaliseService(details.service);
+    const service = normaliseService(details.service);
+    const weight = parseFloat(details.actualWeight);
+    const isDutyFree1to5 =
+      service === "EcoDutyFree" && weight >= 1 && weight <= 5;
 
-  //   fetchLowestRate(details.destination, service, weightSlab)
-  //     .then((result) => {
-  //       if (result && result.amount) {
-  //         setcostKg(result.amount);
-  //         setValue("costKg", result.amount);
-  //         setCostKgAutoPopulated(true);
-  //       }
-  //     })
-  //     .catch((err) => {
-  //       console.log("Rate fetch failed:", err);
-  //     });
-  // }, [details?.destination, details?.service, details?.costKg]);
+    const actualSlab = getActualWeightSlab(details.actualWeight);
+    const upsellSlab = getWeightSlab(details.actualWeight, details.service);
+    if (!upsellSlab) return;
+
+    console.log("[RateCard lookup]", {
+      destination: details.destination,
+      rawService: details.service,
+      normalisedService: service,
+      actualWeight: details.actualWeight,
+      actualSlab,
+      upsellSlab,
+      isDutyFree1to5,
+    });
+
+    (async () => {
+      try {
+        // For Duty Free 1-5 KG: try actual slab first, upsell only if no rate
+        if (isDutyFree1to5) {
+          const actualResult = await fetchLowestRate(
+            details.destination,
+            service,
+            actualSlab,
+          );
+          if (actualResult && actualResult.amount) {
+            setRateCardCostPerKg(actualResult.amount);
+            setRateCardAmount(details.actualWeight * actualResult.amount);
+            setDutyFreeUpsold(false);
+            return;
+          }
+        }
+        // Fallback: use the (possibly upsold) slab
+        const result = await fetchLowestRate(
+          details.destination,
+          service,
+          upsellSlab,
+        );
+        if (result && result.amount) {
+          setRateCardCostPerKg(result.amount);
+          setRateCardAmount(details.actualWeight * result.amount);
+          setDutyFreeUpsold(isDutyFree1to5);
+        }
+      } catch (err) {
+        console.log("Rate fetch failed:", err);
+      }
+    })();
+  }, [details?.destination, details?.service, details?.actualWeight]);
 
   const handleGetPaymentPreview = (data) => {
     setPendingFormData(data);
@@ -893,7 +1108,7 @@ Our Refund Policy:
   };
 
   const resetForm = () => {
-    setPaymentProof(null);
+    setPaymentProof([]);
   };
 
   if (loading) {
@@ -1050,6 +1265,22 @@ Our Refund Policy:
                   </p>
                   <p className="text-gray-800 font-medium text-sm">
                     {details.destination}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">
+                    service
+                  </p>
+                  <p className="text-gray-800 font-medium text-sm">
+                    {details.service}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">
+                    source
+                  </p>
+                  <p className="text-gray-800 font-medium text-sm">
+                    {details.Source}
                   </p>
                 </div>
                 <div>
@@ -1234,145 +1465,377 @@ Our Refund Policy:
             </h3>
           </div>
 
-          <div className="flex flex-col mb-3">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-              Logistics Cost
-            </label>
-            <input
-              value={
-                details?.logisticCost
-                  ? details?.logisticCost
-                  : parseInt(details?.actualWeight) * costKg
-              }
-              type="text"
-              className="p-2.5 rounded-lg border border-transparent bg-gray-50 text-gray-700 text-sm cursor-default select-none outline-none"
-              placeholder="Logistics Cost"
-              readOnly
-              {...register("logisticsCost", {
-                required: "Logistics cost is required",
-                pattern: {
-                  value: /^[0-9]+$/,
-                  message:
-                    "Please enter a valid phone number consisting of digits only",
-                },
-                valueAsNumber: true,
-                validate: (value) =>
-                  Number.isInteger(value) ||
-                  "Please enter a valid integer number",
-              })}
-            />
-          </div>
+          {(() => {
+            const weight = parseInt(details?.actualWeight) || 0;
+            const liveCostKg = Number(costKg) || 0;
+            const salesLogistics = weight * liveCostKg;
+            const finalLogistics = details?.logisticCost
+              ? details.logisticCost
+              : salesLogistics;
+
+            return (
+              <>
+                <input
+                  type="hidden"
+                  value={finalLogistics}
+                  {...register("logisticsCost", {
+                    valueAsNumber: true,
+                  })}
+                />
+
+                {rateCardAmount != null && costKg > 0 && (
+                  <div className="mb-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Sales Side */}
+                      <div className="rounded-lg border border-gray-200 bg-white p-3">
+                        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                          Sales Side
+                        </p>
+                        <div className="flex justify-between text-sm py-0.5">
+                          <span className="text-gray-500">Cost/KG</span>
+                          <span className="font-semibold text-gray-800">
+                            ₹{liveCostKg}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm py-0.5">
+                          <span className="text-gray-500">Weight</span>
+                          <span className="font-semibold text-gray-800">
+                            {weight} kg
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm py-0.5 border-t border-gray-100 mt-1 pt-1">
+                          <span className="text-gray-500">Logistics</span>
+                          <span className="font-semibold text-gray-800">
+                            ₹{salesLogistics}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Rate Card Side */}
+                      <div className="rounded-lg border border-purple-200 bg-purple-50 p-3">
+                        <p className="text-[11px] font-semibold text-purple-700 uppercase tracking-wide mb-2">
+                          Rate Card
+                        </p>
+                        <div className="flex justify-between text-sm py-0.5">
+                          <span className="text-gray-500">Cost/KG</span>
+                          <span className="font-semibold text-gray-800">
+                            ₹{rateCardCostPerKg}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm py-0.5">
+                          <span className="text-gray-500">Weight</span>
+                          {dutyFreeUpsold ? (
+                            <span className="text-[10px] font-semibold text-amber-700 bg-amber-100 border border-amber-200 rounded px-1.5 py-0.5 uppercase tracking-wide">
+                              Upsell → 6–8 kg rate
+                            </span>
+                          ) : (
+                            <span className="font-semibold text-gray-800">
+                              {weight} kg
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex justify-between text-sm py-0.5 border-t border-purple-100 mt-1 pt-1">
+                          <span className="text-gray-500">Logistics</span>
+                          <span className="font-semibold text-gray-800">
+                            ₹{rateCardAmount}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Diff banner removed — now rendered above Recovered Cost */}
+                  </div>
+                )}
+              </>
+            );
+          })()}
           {errors.logisticsCost && (
             <p className="text-red-500 text-sm mb-3">
               {errors.logisticsCost.message}
             </p>
           )}
-          <div className="flex flex-col mb-3">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-              Cost / KG
-              {costKgAutoPopulated && (
-                <span className="ml-2 text-purple-600 normal-case font-normal">
-                  (auto-filled from rate card)
-                </span>
-              )}
-            </label>
-            <input
-              type="text"
-              value={details.costKg == null ? costKg : details.costKg}
-              className={`p-2.5 rounded-lg border text-sm ${details.costKg != null || costKgAutoPopulated ? "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed" : "bg-white border-gray-300 focus:outline-none focus:border-purple-400"}`}
-              placeholder="Enter Cost/KG"
-              readOnly={details.costKg != null || costKgAutoPopulated}
-              {...register("costKg", {
-                required: "Cost/KG is required",
-                pattern: {
-                  value: /^[0-9]+$/,
-                  message: "Please enter a Cost/KG consisting of digits only",
-                },
-                validate: (value) =>
-                  Number.isInteger(Number(value)) ||
-                  "Please enter a valid integer",
-              })}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (/^\d*\.?\d*$/.test(value)) {
-                  setcostKg(Number(value));
-                }
-              }}
-            />
-          </div>
+          {(() => {
+            const isAlreadySaved = details.discountCost != undefined;
+            const hasRateCard = rateCardAmount != null && !!costKg;
+            const showFurtherDiscount = hasRateCard || isAlreadySaved;
+            const furtherDiscountReadOnly = isAlreadySaved;
+            return (
+              <div className="flex gap-3 mb-3">
+                <div className="flex flex-col flex-1">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                    Cost / KG
+                    {costKgAutoPopulated && (
+                      <span className="ml-2 text-purple-600 normal-case font-normal">
+                        (auto-filled from rate card)
+                      </span>
+                    )}
+                  </label>
+                  <input
+                    type="text"
+                    value={details.costKg == null ? costKg : details.costKg}
+                    className={`p-2.5 rounded-lg border text-sm ${details.costKg != null || costKgAutoPopulated ? "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed" : "bg-white border-gray-300 focus:outline-none focus:border-purple-400"}`}
+                    placeholder="Enter Cost/KG"
+                    readOnly={details.costKg != null || costKgAutoPopulated}
+                    {...register("costKg", {
+                      required: "Cost/KG is required",
+                      pattern: {
+                        value: /^[0-9]+$/,
+                        message:
+                          "Please enter a Cost/KG consisting of digits only",
+                      },
+                      validate: (value) =>
+                        Number.isInteger(Number(value)) ||
+                        "Please enter a valid integer",
+                    })}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (/^\d*\.?\d*$/.test(value)) {
+                        setcostKg(Number(value));
+                        setValue("costKg", value);
+                      }
+                    }}
+                  />
+                </div>
+                {showFurtherDiscount && (
+                  <div className="flex flex-col flex-1">
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                      Further Discount
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      defaultValue={0}
+                      onInput={(e) => {
+                        e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                      }}
+                      className={`p-2.5 rounded-lg border text-sm ${
+                        furtherDiscountReadOnly
+                          ? "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed"
+                          : "bg-white border-gray-300 focus:outline-none focus:border-purple-400"
+                      }`}
+                      placeholder="0"
+                      readOnly={furtherDiscountReadOnly}
+                      {...register("furtherDiscount", {
+                        valueAsNumber: true,
+                      })}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           {errors.costKg && (
             <p className="text-red-500 text-sm mb-3">{errors.costKg.message}</p>
           )}
-          <div className="flex flex-col mb-3">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-              Discount Amount
-            </label>
-            <input
-              type="text"
-              inputMode="numeric"
-              onInput={(e) => {
-                e.target.value = e.target.value.replace(/[^0-9]/g, "");
-              }}
-              className={`p-2.5 rounded-lg border text-sm ${details.discountCost == undefined ? "bg-white border-gray-300 focus:outline-none focus:border-purple-400" : "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed"}`}
-              placeholder="Enter 0 or amount"
-              readOnly={details.discountCost == undefined ? false : true}
-              {...register("discountCost", {
-                required: "Please enter the discount amount.",
-                pattern: {
-                  value: /^[0-9]+$/,
-                  message:
-                    "Please enter a valid discount number consisting of digits only.",
-                },
-                valueAsNumber: true,
-                validate: (value) =>
-                  Number.isInteger(value) ||
-                  "Please enter a valid integer number",
-              })}
-            />
-          </div>
+          {(() => {
+            const isAlreadySaved = details.discountCost != undefined;
+            const hasRateCard = rateCardAmount != null && !!costKg;
+            const discountAmountReadOnly = isAlreadySaved || hasRateCard;
+            return (
+              <div className="flex flex-col mb-3">
+                <label
+                  className={`text-xs font-semibold uppercase tracking-wide mb-1 ${(parseInt(watch("discountCost")) || 0) > 0 ? "text-red-600" : "text-gray-500"}`}
+                >
+                  Total Discount Amount
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  onInput={(e) => {
+                    e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                  }}
+                  className={`p-2.5 rounded-lg border text-sm ${
+                    (parseInt(watch("discountCost")) || 0) > 0
+                      ? "bg-red-50 border-red-300 text-red-700 cursor-not-allowed"
+                      : discountAmountReadOnly
+                        ? "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed"
+                        : "bg-white border-gray-300 focus:outline-none focus:border-purple-400"
+                  }`}
+                  placeholder="Enter 0 or amount"
+                  readOnly={discountAmountReadOnly}
+                  {...register("discountCost", {
+                    required: "Please enter the discount amount.",
+                    pattern: {
+                      value: /^[0-9]+$/,
+                      message:
+                        "Please enter a valid discount number consisting of digits only.",
+                    },
+                    valueAsNumber: true,
+                    validate: (value) =>
+                      Number.isInteger(value) ||
+                      "Please enter a valid integer number",
+                  })}
+                />
+              </div>
+            );
+          })()}
           {errors.discountCost && (
             <p className="text-red-500 text-sm mb-3">
               {errors.discountCost.message}
             </p>
           )}
-          <div className="flex flex-col mb-3">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-              Additional Charges
-            </label>
-            <input
-              type="text"
-              inputMode="numeric"
-              onInput={(e) => {
-                e.target.value = e.target.value.replace(/[^0-9]/g, "");
-              }}
-              className={`p-2.5 rounded-lg border text-sm ${details.additionalcharges == undefined ? "bg-white border-gray-300 focus:outline-none focus:border-purple-400" : "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed"}`}
-              placeholder="Enter 0 or amount"
-              readOnly={details.additionalcharges == undefined ? false : true}
-              {...register("additionalcharges", {
-                required:
-                  "Please enter any additional charges, or enter 0 if none.",
-                pattern: {
-                  value: /^[0-9]+$/,
-                  message:
-                    "Please enter a valid additional charges number consisting of digits only.",
-                },
-                valueAsNumber: true,
-                validate: (value) =>
-                  Number.isInteger(value) ||
-                  "Please enter a valid integer number",
-              })}
-            />
-          </div>
-          {errors.additionalcharges && (
-            <p className="text-red-500 text-sm mb-3">
-              {errors.additionalcharges.message}
-            </p>
-          )}
+          {/* Diff banner — moved here, above Recovered Cost */}
+          {(() => {
+            const displayedRecovered = Math.max(
+              (watch("recoverdCost") || 0) -
+                (parseInt(watch("furtherDiscount")) || 0),
+              0,
+            );
+            const hasMargin = displayedRecovered > 0;
+            return (
+              <div className="flex flex-col mb-3">
+                <label
+                  className={`text-xs font-semibold uppercase tracking-wide mb-1 ${hasMargin ? "text-green-700" : "text-gray-500"}`}
+                >
+                  Recovered Cost (Extra Margin)
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={displayedRecovered}
+                  className={`p-2.5 rounded-lg border text-sm cursor-not-allowed ${hasMargin ? "bg-green-50 border-green-300 text-green-700" : "bg-gray-50 border-gray-200 text-gray-500"}`}
+                  placeholder="0"
+                  readOnly
+                />
+                <input
+                  type="hidden"
+                  {...register("recoverdCost", {
+                    valueAsNumber: true,
+                  })}
+                />
+              </div>
+            );
+          })()}
+          {(() => {
+            const ALL_REASONS = [
+              "Fumigation",
+              "Wooden Palletization",
+              "Special products charges",
+              "Over dimensions charges",
+              "Over weight charges",
+              "Pickup charges",
+              "Packing charges",
+              "Customise Special box charges",
+            ];
+            const isLocked =
+              details.additionalcharges != undefined ||
+              details.additionalChargesList != undefined;
+            const usedReasons = watchChargesList
+              .map((r) => r?.reason)
+              .filter(Boolean);
+            return (
+              <div className="flex flex-col mb-3">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  Additional Charges
+                </label>
+                {chargeFields.map((field, index) => {
+                  const currentReason = watchChargesList[index]?.reason || "";
+                  const availableReasons = ALL_REASONS.filter(
+                    (r) => r === currentReason || !usedReasons.includes(r),
+                  );
+                  return (
+                    <div key={field.id} className="flex gap-2 mb-2 items-start">
+                      <div className="flex flex-col flex-1">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          onInput={(e) => {
+                            e.target.value = e.target.value.replace(
+                              /[^0-9]/g,
+                              "",
+                            );
+                          }}
+                          className={`p-2.5 rounded-lg border text-sm ${isLocked ? "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed" : "bg-white border-gray-300 focus:outline-none focus:border-purple-400"}`}
+                          placeholder="Enter amount"
+                          readOnly={isLocked}
+                          {...register(
+                            `additionalChargesList.${index}.amount`,
+                            {
+                              pattern: {
+                                value: /^[0-9]*$/,
+                                message: "Digits only",
+                              },
+                              validate: (value) => {
+                                const reason = watchChargesList[index]?.reason;
+                                const amt = parseInt(value) || 0;
+                                if (reason && amt <= 0) return "Enter amount";
+                                return true;
+                              },
+                            },
+                          )}
+                        />
+                        {errors?.additionalChargesList?.[index]?.amount && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {errors.additionalChargesList[index].amount.message}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-col flex-1">
+                        <select
+                          className={`p-2.5 rounded-lg border text-sm ${isLocked ? "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed" : "bg-white border-gray-300 focus:outline-none focus:border-purple-400"}`}
+                          disabled={isLocked}
+                          {...register(
+                            `additionalChargesList.${index}.reason`,
+                            {
+                              validate: (value) => {
+                                const amt =
+                                  parseInt(watchChargesList[index]?.amount) ||
+                                  0;
+                                if (amt > 0 && !value) return "Select a reason";
+                                return true;
+                              },
+                            },
+                          )}
+                        >
+                          <option value="">Select a reason</option>
+                          {availableReasons.map((reason) => (
+                            <option key={reason} value={reason}>
+                              {reason}
+                            </option>
+                          ))}
+                        </select>
+                        {errors?.additionalChargesList?.[index]?.reason && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {errors.additionalChargesList[index].reason.message}
+                          </p>
+                        )}
+                      </div>
+                      {!isLocked && chargeFields.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeCharge(index)}
+                          className="p-2.5 text-red-600 hover:bg-red-50 rounded-lg border border-red-200 text-sm"
+                          title="Remove"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+                {!isLocked && chargeFields.length < ALL_REASONS.length && (
+                  <button
+                    type="button"
+                    onClick={() => appendCharge({ amount: "", reason: "" })}
+                    className="mt-1 self-start px-3 py-1.5 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100"
+                  >
+                    + Add
+                  </button>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Live total summary */}
           {(() => {
             const liveDiscount = parseInt(watch("discountCost")) || 0;
-            const liveAdditional = parseInt(watch("additionalcharges")) || 0;
+            const liveCharges = watchChargesList.filter(
+              (r) => (parseInt(r?.amount) || 0) > 0,
+            );
+            const liveAdditional = liveCharges.reduce(
+              (s, r) => s + (parseInt(r?.amount) || 0),
+              0,
+            );
             const liveCostKg =
               details.costKg != null ? parseInt(details.costKg) : costKg;
             const liveLogistics = parseInt(details?.actualWeight) * liveCostKg;
@@ -1385,18 +1848,20 @@ Our Refund Policy:
                     ₹ {liveLogistics}
                   </span>
                 </div>
-                {liveAdditional > 0 && (
-                  <div className="flex justify-between py-1">
-                    <span className="text-gray-500">Additional Charges</span>
-                    <span className="font-medium text-orange-500">
-                      + ₹ {liveAdditional}
+                {liveCharges.map((row, i) => (
+                  <div key={i} className="flex justify-between py-1">
+                    <span className="text-gray-500">
+                      {row.reason || "Additional Charges"}
+                    </span>
+                    <span className="font-medium text-green-500">
+                      + ₹ {parseInt(row.amount) || 0}
                     </span>
                   </div>
-                )}
+                ))}
                 {liveDiscount > 0 && (
                   <div className="flex justify-between py-1">
                     <span className="text-gray-500">Discount</span>
-                    <span className="font-medium text-green-600">
+                    <span className="font-medium text-red-600">
                       − ₹ {liveDiscount}
                     </span>
                   </div>
@@ -1450,15 +1915,59 @@ Our Refund Policy:
             <>
               <div className="flex flex-col mb-4">
                 <label className="text-gray-700 font-medium mb-1">
-                  Payment Proof:
+                  Payment Proof{" "}
+                  <span className="font-normal text-gray-500">
+                    (upload 1 or 2 images)
+                  </span>
                 </label>
+                <div
+                  className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-gray-400 transition-colors"
+                  onClick={() =>
+                    document.getElementById("payment-proof-input").click()
+                  }
+                >
+                  <p className="text-gray-700 font-medium">
+                    Click to upload Payment Proof
+                  </p>
+                  <p className="text-gray-400 text-sm mt-1">
+                    Only image files are allowed
+                  </p>
+                </div>
                 <input
+                  id="payment-proof-input"
                   type="file"
                   accept="image/*"
+                  multiple
                   onChange={handleFileChange}
-                  className="p-2 border rounded"
+                  className="hidden"
                   required
                 />
+                {paymentProof.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {paymentProof.map((file, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-purple-50 rounded-lg"
+                      >
+                        <span className="text-gray-700 text-sm truncate">
+                          {file.name}
+                        </span>
+                        <div className="flex items-center gap-2 ml-2">
+                          <span className="text-purple-600 font-medium text-sm">
+                            IMG
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removePaymentProof(index)}
+                            className="text-red-400 hover:text-red-600 text-sm font-medium"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               {errors.Paymentproof && (
                 <p className="text-red-500 text-sm mt-1">
@@ -1473,15 +1982,49 @@ Our Refund Policy:
             <>
               <div className="flex flex-col mb-4">
                 <label className="text-gray-700 font-medium mb-1">
-                  Upload KYC
+                  Upload KYC Document{" "}
+                  <span className="font-normal text-gray-500">(PDF only)</span>
                 </label>
+                <div
+                  className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-gray-400 transition-colors"
+                  onClick={() =>
+                    document.getElementById("kyc-file-input").click()
+                  }
+                >
+                  <p className="text-gray-700 font-medium">
+                    Click to upload KYC PDF
+                  </p>
+                  <p className="text-gray-400 text-sm mt-1">
+                    Only PDF files are allowed
+                  </p>
+                </div>
                 <input
+                  id="kyc-file-input"
                   type="file"
                   accept="application/pdf"
                   onChange={handleKYCFileChange}
-                  className="p-2 border rounded"
+                  className="hidden"
                   required
                 />
+                {KycImage && (
+                  <div className="flex items-center justify-between mt-2 p-3 bg-purple-50 rounded-lg">
+                    <span className="text-gray-700 text-sm truncate">
+                      {KycImage.name}
+                    </span>
+                    <div className="flex items-center gap-2 ml-2">
+                      <span className="text-purple-600 font-medium text-sm">
+                        PDF
+                      </span>
+                      <button
+                        type="button"
+                        onClick={removeKycImage}
+                        className="text-red-400 hover:text-red-600 text-sm font-medium"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
               {errors.KYCimage && (
                 <p className="text-red-500 text-sm mt-1">
@@ -1495,18 +2038,23 @@ Our Refund Policy:
           {formError && <p className="text-red-500 text-sm">{formError}</p>}
           {details.makePaymentNotified &&
           details.status == "PAYMENT REQUESTED" ? (
-            <div
+            <button
+              type="button"
               onClick={() => paymentConfirm()}
-              className="w-full mt-4 p-2 text-center cursor-pointer bg-purple-600 text-white font-semibold rounded hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-600"
-              // disabled={submitLoading}
+              disabled={submitLoading}
+              className={`w-full mt-4 p-2 text-center bg-[#714DD9] text-white font-semibold rounded focus:outline-none focus:ring-2 focus:ring-purple-600 ${
+                submitLoading
+                  ? "opacity-60 cursor-not-allowed"
+                  : "cursor-pointer hover:bg-purple-700"
+              }`}
             >
               {submitLoading ? "Submitting..." : "Submit"}
-            </div>
+            </button>
           ) : (
             <button
               type="button"
               onClick={handleSubmit(handleGetPaymentPreview)}
-              className="w-full mt-4 p-2 flex items-center justify-center bg-purple-600 text-white font-semibold rounded hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-600"
+              className="w-full mt-4 p-2 flex items-center justify-center bg-[#714DD9] text-white font-semibold rounded hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-600"
               disabled={submitLoading}
             >
               {submitLoading ? (
@@ -1584,8 +2132,13 @@ Our Refund Policy:
                 parseInt(details.actualWeight) *
                 parseInt(pendingFormData.costKg);
               const popupDiscount = parseInt(pendingFormData.discountCost) || 0;
-              const popupAdditional =
-                parseInt(pendingFormData.additionalcharges) || 0;
+              const popupCharges = (
+                pendingFormData.additionalChargesList || []
+              ).filter((r) => (parseInt(r?.amount) || 0) > 0);
+              const popupAdditional = popupCharges.reduce(
+                (s, r) => s + (parseInt(r?.amount) || 0),
+                0,
+              );
               const popupTotal =
                 popupLogistics + popupAdditional - popupDiscount;
               return (
@@ -1596,18 +2149,23 @@ Our Refund Policy:
                       ₹ {popupLogistics}
                     </span>
                   </div>
-                  {popupAdditional > 0 && (
-                    <div className="flex justify-between py-2.5 border-b border-gray-100">
-                      <span className="text-gray-500">Additional Charges</span>
-                      <span className="font-medium text-orange-500">
-                        + ₹ {popupAdditional}
+                  {popupCharges.map((row, i) => (
+                    <div
+                      key={i}
+                      className="flex justify-between py-2.5 border-b border-gray-100"
+                    >
+                      <span className="text-gray-500">
+                        {row.reason || "Additional Charges"}
+                      </span>
+                      <span className="font-medium text-green-500">
+                        + ₹ {parseInt(row.amount) || 0}
                       </span>
                     </div>
-                  )}
+                  ))}
                   {popupDiscount > 0 && (
                     <div className="flex justify-between py-2.5 border-b border-gray-100">
                       <span className="text-gray-500">Discount</span>
-                      <span className="font-medium text-green-600">
+                      <span className="font-medium text-red-600">
                         − ₹ {popupDiscount}
                       </span>
                     </div>

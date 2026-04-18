@@ -8,11 +8,16 @@ async function generate_GST_Invoice_PDF(
   awbNumber,
   costKg,
   discountCost,
-  additionalcharges,
   gst,
   pickupDatetime,
   gstInvoiceNumber,
+  chargesList,
 ) {
+  const normalisedCharges = Array.isArray(chargesList) ? chargesList : [];
+  const additionalChargesTotal = normalisedCharges.reduce(
+    (sum, row) => sum + (Number(row?.amount) || 0),
+    0,
+  );
   try {
     const actualWeight = item.actualWeight;
     const consignorname = item.consignorname;
@@ -27,7 +32,7 @@ async function generate_GST_Invoice_PDF(
       Number(GST_COST) * Number(actualWeight);
 
     const nettotal =
-      subtotal + GST_COST_value + additionalcharges - discountCost;
+      subtotal + GST_COST_value + additionalChargesTotal - discountCost;
 
     const doc = new jsPDF("p", "pt");
 
@@ -96,7 +101,7 @@ Phone: 9159 688 688`;
     });
 
     doc.text(
-      `Pickup Booking Date: ${formatFirebaseTimestamp(pickupDatetime)}`,
+      `Date: ${formatFirebaseTimestamp(pickupDatetime)}`,
       rightX,
       60,
       { align: "right" },
@@ -117,7 +122,7 @@ Phone: 9159 688 688`;
           "Mode",
           "Weight (KG)",
           "Cost/KG",
-          "GST (18%)",
+          // "GST (18%)",
           "Amount",
         ],
       ],
@@ -127,7 +132,7 @@ Phone: 9159 688 688`;
           item.service + " Service",
           actualWeight + " KG",
           `${parseInt(costKg - costKg * 0.18)} Rs`,
-          `${GST_COST_value.toFixed(2)} Rs`,
+          // `${GST_COST_value.toFixed(2)} Rs`,
           `${subtotal.toFixed(2)} Rs`,
         ],
       ],
@@ -141,13 +146,13 @@ Phone: 9159 688 688`;
 
     /* ---------------- Summary (Below Table) ---------------- */
 
-    const labelX = 330;
-    const valueX = 460;
+    const labelX = 300;
+    const valueX = 490;
 
     let y = doc.lastAutoTable.finalY + 30;
 
     doc.setFont("helvetica", "bold");
-    doc.text("Subtotal:", labelX, y);
+    doc.text("Logistics Cost:", labelX, y);
     doc.setFont("helvetica", "normal");
     doc.text(`${subtotal.toFixed(2)} Rs`, valueX, y);
 
@@ -156,30 +161,44 @@ Phone: 9159 688 688`;
     doc.setFont("helvetica", "bold");
     doc.text("SGST (9%):", labelX, y);
     doc.setFont("helvetica", "normal");
-    doc.text(`${(GST_COST * actualWeight).toFixed(2) / 2} Rs`, valueX, y);
+    doc.text(`+ ${((GST_COST * actualWeight) / 2).toFixed(2)} Rs`, valueX, y);
 
     y += 20;
 
     doc.setFont("helvetica", "bold");
     doc.text("CGST (9%):", labelX, y);
     doc.setFont("helvetica", "normal");
-    doc.text(`${(GST_COST * actualWeight).toFixed(2) / 2} Rs`, valueX, y);
+    doc.text(`+ ${((GST_COST * actualWeight) / 2).toFixed(2)} Rs`, valueX, y);
 
     y += 20;
 
-    doc.setFont("helvetica", "bold");
-    doc.text("Additional Charges:", labelX, y);
-    doc.setFont("helvetica", "normal");
-    doc.text(`+ ${Number(additionalcharges).toFixed(2)} Rs`, valueX, y);
-
-    y += 20;
+    normalisedCharges.forEach((row) => {
+      if (!row || !(Number(row.amount) > 0)) return;
+      if (y > doc.internal.pageSize.height - 80) {
+        doc.addPage();
+        y = 60;
+      }
+      doc.setFont("helvetica", "bold");
+      const chargeLabel = row.reason || "Additional Charges";
+      doc.text(chargeLabel, labelX, y);
+      doc.setFont("helvetica", "normal");
+      doc.text(`+ ${Number(row.amount).toFixed(2)} Rs`, valueX, y);
+      y += 20;
+    });
 
     if (discountCost > 0) {
       doc.setFont("helvetica", "bold");
       doc.text("Discount:", labelX, y);
       doc.setFont("helvetica", "normal");
+      doc.setTextColor(0, 128, 0);
       doc.text(`- ${Number(discountCost).toFixed(2)} Rs`, valueX, y);
+      doc.setTextColor(0, 0, 0);
       y += 20;
+    }
+
+    if (y > doc.internal.pageSize.height - 80) {
+      doc.addPage();
+      y = 60;
     }
 
     doc.line(labelX, y - 14, valueX + 60, y - 14);
@@ -189,63 +208,69 @@ Phone: 9159 688 688`;
     doc.setFont("helvetica", "normal");
     doc.text(`${nettotal.toFixed(2)} Rs`, valueX, y);
 
-    /* ---------------- Terms ---------------- */
+    /* ---------------- Terms (paginated) ---------------- */
 
-    const tcStart = y + 10;
+    const pageHeight = doc.internal.pageSize.height;
+    const footerReserve = 70;
+    const bodyLineHeight = 13;
+    const headingLineHeight = 20;
 
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("Terms & Conditions:", 40, tcStart);
+    let tcY = y + 30;
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
+    const ensureSpace = (needed) => {
+      if (tcY + needed > pageHeight - footerReserve) {
+        doc.addPage();
+        tcY = 50;
+      }
+    };
 
-    const terms = `
-* This invoice is only valid for ${actualWeight} KG.
-* All shipments are subject to customs clearance only.
-`;
+    const drawHeading = (text) => {
+      ensureSpace(headingLineHeight);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.setTextColor(0, 0, 0);
+      doc.text(text, 40, tcY);
+      tcY += headingLineHeight;
+    };
 
-    const policyText = `
-We strive to meet our commitments in terms of service and in case of failure to do so, we will work with customers on a case-to-case basis to sort the issue.
+    const drawParagraph = (text) => {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      const lines = doc.splitTextToSize(text, 500);
+      lines.forEach((line) => {
+        ensureSpace(bodyLineHeight);
+        doc.text(line, 40, tcY);
+        tcY += bodyLineHeight;
+      });
+    };
 
-Our Cancellation Policy:
-• Customers can cancel the order before shipment is handed over (typically before 8 PM same day after confirmation/payment).
-• Once handed over by end of day, cancellations cannot be entertained.
-
-Our Refund Policy:
-• Refunds are entertained only for damage or delays within our control.
-• Refunds apply only if packing was done by ShipHit without customer weight reduction request.
-• No refunds for fragile/delicate shipments sent via duty free/Self mode.
-• Damage must be reported within 48 hours of delivery.
-• No refunds for delay/abandonment due to customs clearance.
-• In case of loss, refund includes logistics cost and max product value $100 or declared invoice value (whichever is lower).
-• For important products, opt for insurance by declaring just 5% of the invoice value (available for Economy and Express services only) to receive full reimbursement.
-• For refund assessment within 3 business days submit damage pictures and packaging proof.
-• Maximum refund limited to declared damaged item value.
-• Refund processed via wallet credit note or bank transfer within 7 working days.
-`;
-
-    const combinedText = terms + "\n" + policyText;
-
-    const splitTC = doc.splitTextToSize(combinedText, 500);
-
-    doc.text(splitTC, 40, tcStart + 5);
-
-    /* ---------------- Footer ---------------- */
-
-    doc.setFontSize(10);
-
-    doc.text(
-      "Thank you for your business!",
-      40,
-      doc.internal.pageSize.height - 40,
+    drawHeading("Terms & Conditions");
+    drawParagraph(
+      `* This invoice is only valid for ${actualWeight} KG.\n* All shipments are subject to customs clearance only.`,
     );
 
-    doc.text(
-      "Contact: info@shiphit.com | +91 - 9159 688 688",
-      40,
-      doc.internal.pageSize.height - 28,
+    tcY += 8;
+    drawHeading("Cancellation & Refund Policy");
+    drawParagraph(
+      `We strive to meet our commitments in terms of service and in case of failure to do so, we will work with customers on a case-to-case basis to sort the issue.\n\nOur Cancellation Policy:\n• Customers can cancel the order before shipment is handed over (typically before 8 PM same day after confirmation/payment).\n• Once handed over by end of day, cancellations cannot be entertained.\n\nOur Refund Policy:\n• Refunds are entertained only for damage or delays within our control.\n• Refunds apply only if packing was done by ShipHit without customer weight reduction request.\n• No refunds for fragile/delicate shipments sent via duty free/Self mode.\n• Damage must be reported within 48 hours of delivery.\n• No refunds for delay/abandonment due to customs clearance.\n• In case of loss, refund includes logistics cost and max product value $100 or declared invoice value (whichever is lower).\n• For important products, opt for insurance by declaring just 5% of the invoice value (available for Economy and Express services only) to receive full reimbursement.\n• For refund assessment within 3 business days submit damage pictures and packaging proof.\n• Maximum refund limited to declared damaged item value.\n• Refund processed via wallet credit note or bank transfer within 7 working days.`,
     );
+
+    /* ---------------- Footer on every page ---------------- */
+
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let p = 1; p <= totalPages; p++) {
+      doc.setPage(p);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      doc.text("Thank you for your business!", 40, pageHeight - 40);
+      doc.text(
+        "Contact: info@shiphit.com | +91 - 9159 688 688",
+        40,
+        pageHeight - 28,
+      );
+    }
 
     /* ---------------- Save ---------------- */
 

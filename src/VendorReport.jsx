@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import Nav from "./Nav";
+import Nav from "./Nav.jsx";
 import {
   collection,
   query,
@@ -9,22 +9,22 @@ import {
   updateDoc,
   doc,
 } from "firebase/firestore";
-import { db } from "./firebase";
-import collectionName_BaseAwb from "./functions/collectionName";
-import utilityFunctions from "./Utility/utilityFunctions";
+import { db } from "./firebase.jsx";
+import collectionName_BaseAwb from "./functions/collectionName.js";
+import utilityFunctions from "./Utility/utilityFunctions.jsx";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import customParseFormat from "dayjs/plugin/customParseFormat";
-import BarChartCom from "./salesReportCharts/BarChartCom";
-import DB from "./DB/DB";
-import ShipmentDetails from "./ShipmentDetails";
+import BarChartCom from "./salesReportCharts/BarChartCom.jsx";
+import DB from "./DB/DB.js";
+import ShipmentDetails from "./ShipmentDetails.jsx";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
-import SalesReportBarChartSVendor from "./Charts/SalesReportBarChartSVendor";
-import EditShipmentModal from "./EditShipmentModal";
+import SalesReportBarChartSVendor from "./Charts/SalesReportBarChartSVendor.jsx";
+import EditShipmentModal from "./EditShipmentModal.jsx";
 import { FiCheck, FiClipboard } from "react-icons/fi";
-import formatFirestoreTimestamp from "./Utility/formatFirestoreTimestamp";
-import BarChartCityWise from "./Charts/BarChartCityWise";
+import formatFirestoreTimestamp from "./Utility/formatFirestoreTimestamp.js";
+import BarChartCityWise from "./Charts/BarChartCityWise.jsx";
 import vendorList from "./DB/vendorList.js";
 dayjs.extend(customParseFormat);
 dayjs.extend(isBetween);
@@ -35,7 +35,7 @@ function Accounts() {
   const [pickups, setPickups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [ImageUrl, setImageUrl] = useState("");
+  const [ImageUrl, setImageUrl] = useState([]);
   const [awbSearchTerm, setAwbSearchTerm] = useState("");
   const [consignorPhoneSearchTerm, setConsignorPhoneSearchTerm] = useState("");
   const [pickupPersonName, setPickupPersonName] = useState("");
@@ -320,6 +320,12 @@ function Accounts() {
     0,
   );
 
+  const totalInternalWeight = parseFloat(
+    filteredPickups
+      .reduce((sum, pickup) => sum + (Number(pickup.internalWeight) || 0), 0)
+      .toFixed(2),
+  );
+
   const salesData = Object.values(
     filteredPickups.reduce((acc, curr) => {
       const name = curr.pickupBookedBy;
@@ -368,17 +374,31 @@ function Accounts() {
           }
 
           octoberData.push({
-            PaymentComfirmedDate: rawDate,
-            status: item.status,
-            consignorname: item.consignorname || "",
             awbNumber: item.awbNumber || "",
-            vendorName: item.vendorName || "",
-            actualWeight: item.internalWeight || "",
-            pickuparea: item.pickuparea || "",
+            consignorname: item.consignorname || "",
+            consignorphonenumber: item.consignorphonenumber || "",
+            Source: item.Source || "",
             destination: item.destination || "",
-            logisticCost: item.logisticCost || "",
-            paymentMode: item.paymentMode || "",
+            pickuparea: item.pickuparea || "",
+            pickUpPersonNameStatus: item.pickUpPersonNameStatus || "NOT COMPLETED",
+            pickupDatetime: formatFirestoreTimestamp(item.pickupDatetime) || "",
+            pickupCompletedDatetime: formatFirestoreTimestamp(item.pickupCompletedDatetime) || "--",
+            pickupBookedBy: item.pickupBookedBy || "",
+            pickUpPersonName: item.pickUpPersonName || "",
+            gstInvoiceNumber: item.gstInvoiceNumber || "No Invoice",
+            PaymentComfirmedDate: rawDate,
+            payment_Invoice_URL: item.payment_Invoice_URL || "",
+            receiptNumber: item.receiptNumber || "",
             payment_Receipt_URL: item.payment_Receipt_URL || "",
+            actualWeight: item.actualWeight || "",
+            internalWeight: item.internalWeight || "",
+            vendorName: item.vendorName || "",
+            vendorAwbnumber: item.vendorAwbnumber || "",
+            vendorpayment: item.vendorpayment || "",
+            paymentMode: item.paymentMode || "",
+            logisticCost: item.logisticCost || "",
+            margin: item.margin || "",
+            status: item.status || "",
           });
         });
 
@@ -391,21 +411,31 @@ function Accounts() {
       const ws = workbook.addWorksheet("October Data");
 
       ws.columns = [
-        {
-          header: "Date",
-          key: "PaymentComfirmedDate",
-          width: 30,
-        },
-        { header: "status", key: "status", width: 25 },
-        { header: "Customer", key: "consignorname", width: 25 },
-        { header: "Receipt No", key: "awbNumber", width: 20 },
-        { header: "Vendor", key: "vendorName", width: 20 },
-        { header: "Weight", key: "actualWeight", width: 15 },
+        { header: "AWB Number", key: "awbNumber", width: 20 },
+        { header: "Consignor Name", key: "consignorname", width: 25 },
+        { header: "Phone Number", key: "consignorphonenumber", width: 20 },
+        { header: "Source", key: "Source", width: 15 },
+        { header: "Destination", key: "destination", width: 20 },
         { header: "Pickup Area", key: "pickuparea", width: 20 },
-        { header: "Country", key: "destination", width: 20 },
-        { header: "Sale price", key: "logisticCost", width: 15 },
+        { header: "Pickup Status", key: "pickUpPersonNameStatus", width: 20 },
+        { header: "Pickup Booked Date", key: "pickupDatetime", width: 25 },
+        { header: "Pickup Completed Date", key: "pickupCompletedDatetime", width: 25 },
+        { header: "Booked By", key: "pickupBookedBy", width: 20 },
+        { header: "Pickup Person", key: "pickUpPersonName", width: 20 },
+        { header: "Invoice Number", key: "gstInvoiceNumber", width: 20 },
+        { header: "Invoice Date", key: "PaymentComfirmedDate", width: 30 },
+        { header: "Invoice URL", key: "payment_Invoice_URL", width: 30 },
+        { header: "Receipt Number", key: "receiptNumber", width: 20 },
+        { header: "Receipt URL", key: "payment_Receipt_URL", width: 30 },
+        { header: "Final Weight", key: "actualWeight", width: 15 },
+        { header: "Internal Weight", key: "internalWeight", width: 15 },
+        { header: "Vendor", key: "vendorName", width: 20 },
+        { header: "Vendor AWB Number", key: "vendorAwbnumber", width: 20 },
+        { header: "Vendor Payment", key: "vendorpayment", width: 15 },
         { header: "Payment Mode", key: "paymentMode", width: 15 },
-        { header: "Invoice", key: "payment_Receipt_URL", width: 15 },
+        { header: "Sales Close", key: "logisticCost", width: 15 },
+        { header: "Margin", key: "margin", width: 15 },
+        { header: "Status", key: "status", width: 20 },
       ];
 
       octoberData.forEach((row) => ws.addRow(row));
@@ -646,33 +676,41 @@ function Accounts() {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8 mb-10 items-start justify-between">
-          {/* === LEFT SIDE: Metric Cards (Column) === */}
-          <div className="flex flex-col gap-6 w-full lg:w-1/4">
-            {/* Total Sales */}
-            <div className="bg-gradient-to-br from-purple-100 to-purple-200 border border-purple-300 rounded-2xl p-6 shadow-md hover:shadow-lg transition-transform hover:scale-[1.02] duration-300">
-              <h2 className="text-lg font-semibold text-purple-700 mb-1">
+          {/* === LEFT SIDE: Metric Cards (2x2 Grid) === */}
+          {/* === LEFT SIDE: Metric Cards === */}
+          <div className="flex flex-col gap-3 w-full lg:w-[280px] shrink-0">
+            {/* Row 1: Total Sales */}
+            <div className="bg-gradient-to-br from-purple-100 to-purple-200 border border-purple-300 rounded-2xl p-4 shadow-md">
+              <h2 className="text-sm font-semibold text-purple-700 mb-1">
                 Total Sales
               </h2>
-              <p className="text-3xl font-bold text-purple-900">{totalSales}</p>
+              <p className="text-2xl font-bold text-purple-900">{totalSales}</p>
             </div>
-
-            {/* Total Logistic Cost */}
-            <div className="bg-gradient-to-br from-green-100 to-green-200 border border-green-300 rounded-2xl p-6 shadow-md hover:shadow-lg transition-transform hover:scale-[1.02] duration-300">
-              <h2 className="text-lg font-semibold text-green-700 mb-1">
-                Total Logistic Cost
+            {/* Row 2: Total Weight */}
+            <div className="bg-gradient-to-br from-orange-100 to-orange-200 border border-orange-300 rounded-2xl p-4 shadow-md">
+              <h2 className="text-sm font-semibold text-orange-700 mb-1">
+                Total Weight
               </h2>
-              <p className="text-3xl font-bold text-green-900">
-                ₹ {totalLogisticsCost}
+              <p className="text-2xl font-bold text-orange-900">
+                {totalInternalWeight.toLocaleString("en-IN")} KG
               </p>
             </div>
-
-            {/* Total Margin */}
-            <div className="bg-gradient-to-br from-yellow-100 to-yellow-200 border border-yellow-300 rounded-2xl p-6 shadow-md hover:shadow-lg transition-transform hover:scale-[1.02] duration-300">
-              <h2 className="text-lg font-semibold text-yellow-700 mb-1">
+            {/* Row 2: Logistic Cost */}
+            <div className="bg-gradient-to-br from-green-100 to-green-200 border border-green-300 rounded-2xl p-4 shadow-md">
+              <h2 className="text-sm font-semibold text-green-700 mb-1">
+                Total Logistic Cost
+              </h2>
+              <p className="text-2xl font-bold text-green-900">
+                ₹ {totalLogisticsCost.toLocaleString("en-IN")}
+              </p>
+            </div>
+            {/* Row 3: Total Margin */}
+            <div className="bg-gradient-to-br from-yellow-100 to-yellow-200 border border-yellow-300 rounded-2xl p-4 shadow-md">
+              <h2 className="text-sm font-semibold text-yellow-700 mb-1">
                 Total Margin
               </h2>
-              <p className="text-3xl font-bold text-yellow-900">
-                ₹ {totalMargin}
+              <p className="text-2xl font-bold text-yellow-900">
+                ₹ {totalMargin.toLocaleString("en-IN")}
               </p>
             </div>
           </div>
@@ -720,31 +758,32 @@ function Accounts() {
                 {[
                   "AWB Number",
                   "Consignor Name",
-                  "Phone",
-                  "Destination",
+                  "Phone Number",
                   "Source",
+                  "Destination",
                   "Pickup Area",
                   "Pickup Status",
-                  "Invoice Date",
                   "Pickup Booked Date",
-                  "Receipt Number",
-                  "Receipt",
-                  "Invoice Number",
-                  "Invoice",
+                  "Pickup Completed Date",
                   "Booked By",
                   "Pickup Person",
-                  "Status",
+                  "Invoice Number",
+                  "Invoice Date",
+                  "Invoice",
+                  "Receipt Number",
+                  "Receipt",
                   "Final Weight",
                   "Internal Weight",
-                  "Sales Close",
-                  "Vendor Payment",
-                  "Margin",
-                  "Vendor AWB Number",
                   "Vendor",
+                  "Vendor AWB Number",
+                  "Vendor Payment",
                   "Payment Mode",
                   "Payment Proof",
+                  "Sales Close",
+                  "Margin",
+                  "Status",
                   "Edit Details",
-                  "Details",
+                  "View Details",
                 ].map((head, i) => (
                   <th
                     key={i}
@@ -771,47 +810,57 @@ function Accounts() {
                       key={pickup.id}
                       className={idx % 2 === 0 ? "bg-gray-50" : ""}
                     >
+                      {/* AWB Number */}
                       <td className="py-3 px-4 border sticky left-0 bg-white z-10 min-w-[140px]">
                         {pickup.awbNumber}
                       </td>
+                      {/* Consignor Name */}
                       <td className="py-3 px-4 border">
                         {pickup.consignorname}
                       </td>
+                      {/* Phone Number */}
                       <td className="py-3 px-4 border">
                         {pickup.consignorphonenumber}
                       </td>
-                      <td className="py-3 px-4 border">{pickup.destination}</td>
-
+                      {/* Source */}
                       <td className="py-3 px-4 border">{pickup.Source}</td>
+                      {/* Destination */}
+                      <td className="py-3 px-4 border">{pickup.destination}</td>
+                      {/* Pickup Area */}
                       <td className="py-3 px-4 border">{pickup.pickuparea}</td>
+                      {/* Pickup Status */}
                       <td className="py-3 px-4 border">
                         {pickup.pickUpPersonNameStatus || "NOT COMPLETED"}
                       </td>
-                      <td className="py-3 px-4 border text-nowrap">
-                        {pickup.PaymentComfirmedDate}
-                      </td>
+                      {/* Pickup Booked Date */}
                       <td className="py-3 px-4 border text-nowrap">
                         {formatFirestoreTimestamp(pickup.pickupDatetime)}
                       </td>
+                      {/* Pickup Completed Date */}
                       <td className="py-3 px-4 border text-nowrap">
-                        {pickup.receiptNumber}
+                        {formatFirestoreTimestamp(
+                          pickup.pickupCompletedDatetime,
+                        ) || "--"}
                       </td>
-                      <td className="py-3 px-4 border text-nowrap">
-                        <a
-                          href={pickup.payment_Receipt_URL}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-[#714DD9] text-white text-sm font-medium rounded-lg shadow-sm hover:bg-[#886dda] active:scale-95 transition-all duration-200"
-                        >
-                          📄 View Receipt
-                        </a>
+                      {/* Booked By */}
+                      <td className="py-3 px-4 border">
+                        {pickup.pickupBookedBy}
                       </td>
-
+                      {/* Pickup Person */}
+                      <td className="py-3 px-4 border">
+                        {pickup.pickUpPersonName}
+                      </td>
+                      {/* Invoice Number */}
                       <td className="py-3 px-4 border text-nowrap">
                         {pickup.gstInvoiceNumber
                           ? pickup.gstInvoiceNumber
                           : "No Invoice"}
                       </td>
+                      {/* Invoice Date */}
+                      <td className="py-3 px-4 border text-nowrap">
+                        {pickup.PaymentComfirmedDate}
+                      </td>
+                      {/* Invoice */}
                       <td className="py-3 px-4 border text-nowrap">
                         {pickup.payment_Invoice_URL ? (
                           <a
@@ -826,25 +875,59 @@ function Accounts() {
                           "No Invoice"
                         )}
                       </td>
-
-                      <td className="py-3 px-4 border">
-                        {pickup.pickupBookedBy}
+                      {/* Receipt Number */}
+                      <td className="py-3 px-4 border text-nowrap">
+                        {pickup.receiptNumber}
                       </td>
-                      <td className="py-3 px-4 border">
-                        {pickup.pickUpPersonName}
+                      {/* Receipt */}
+                      <td className="py-3 px-4 border text-nowrap">
+                        <a
+                          href={pickup.payment_Receipt_URL}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-[#714DD9] text-white text-sm font-medium rounded-lg shadow-sm hover:bg-[#886dda] active:scale-95 transition-all duration-200"
+                        >
+                          📄 View Receipt
+                        </a>
                       </td>
-                      <td className="py-3 px-4 border text-center">
-                        {pickup.status}
-                      </td>
+                      {/* Final Weight */}
                       <td className="py-3 px-4 border">
                         {pickup.actualWeight}
                       </td>
+                      {/* Internal Weight */}
                       <td className="py-3 px-4 border">
                         {pickup.internalWeight}
                       </td>
+                      {/* Vendor */}
                       <td className="py-3 px-4 border">
-                        {pickup.logisticCost || "--"}
+                        {pickup.vendorName ? pickup.vendorName : "--"}
                       </td>
+                      {/* Vendor AWB Number */}
+                      <td className="py-3 px-4 border">
+                        <div className="flex justify-between">
+                          {pickup.vendorAwbnumber || "--"}
+                          {pickup.vendorAwbnumber && (
+                            <button
+                              onClick={() => handleCopy(pickup.vendorAwbnumber)}
+                              className="text-purple-600 hover:text-purple-800 transition-colors duration-200"
+                              title="Copy AWB"
+                            >
+                              {copied === pickup.vendorAwbnumber ? (
+                                <FiCheck
+                                  size={20}
+                                  className="text-green-600 animate-bounce"
+                                />
+                              ) : (
+                                <FiClipboard
+                                  size={20}
+                                  className="hover:scale-110 transition-transform"
+                                />
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      {/* Vendor Payment */}
                       <td className="border w-[120px] h-full relative">
                         <textarea
                           readOnly={!pickup.logisticCost}
@@ -873,45 +956,20 @@ function Accounts() {
                           className="w-full h-full text-center resize-none bg-transparent p-2 focus:ring-1 focus:ring-purple-500 rounded-md"
                         />
                       </td>
-                      <td className="py-3 px-4 border">
-                        {pickup.margin || "--"}
-                      </td>
-                      <td className="py-3 px-4 border">
-                        <div className="flex justify-between">
-                          {pickup.vendorAwbnumber || "--"}
-                          {pickup.vendorAwbnumber && (
-                            <button
-                              onClick={() => handleCopy(pickup.vendorAwbnumber)}
-                              className="text-purple-600 hover:text-purple-800 transition-colors duration-200"
-                              title="Copy AWB"
-                            >
-                              {copied === pickup.vendorAwbnumber ? (
-                                <FiCheck
-                                  size={20}
-                                  className="text-green-600 animate-bounce"
-                                />
-                              ) : (
-                                <FiClipboard
-                                  size={20}
-                                  className="hover:scale-110 transition-transform"
-                                />
-                              )}
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 border">
-                        {pickup.vendorName ? pickup.vendorName : "--"}
-                      </td>
+                      {/* Payment Mode */}
                       <td className="py-3 px-4 border">
                         {pickup.paymentMode ? pickup.paymentMode : "--"}
                       </td>
+                      {/* Payment Proof */}
                       <td className="py-3 px-4 border">
                         {pickup.paymentProof ? (
                           <img
                             onClick={() => {
                               setShowModal(true);
-                              setImageUrl(pickup.paymentProof);
+                              const proof = pickup.paymentProof;
+                              setImageUrl(
+                                Array.isArray(proof) ? proof : [proof],
+                              );
                             }}
                             src="Vector.svg"
                             className="cursor-pointer w-5 ml-auto mr-auto"
@@ -921,18 +979,32 @@ function Accounts() {
                           <p className="w-5 ml-auto mr-auto">--</p>
                         )}
                       </td>
+                      {/* Sales Close */}
+                      <td className="py-3 px-4 border">
+                        {pickup.logisticCost || "--"}
+                      </td>
+                      {/* Margin */}
+                      <td className="py-3 px-4 border">
+                        {pickup.margin || "--"}
+                      </td>
+                      {/* Status */}
+                      <td className="py-3 px-4 border text-center">
+                        {pickup.status}
+                      </td>
+                      {/* Edit Details */}
                       <td className="px-4 py-2 text-center">
                         <button
-                          className="text-sm px-4 py-2 rounded-lg border border-purple-300 text-purple-700 
+                          className="text-sm px-4 py-2 rounded-lg border border-purple-300 text-purple-700
              hover:bg-purple-50 transition-all duration-200"
                           onClick={() => handleEditClick(pickup)}
                         >
                           Edit
                         </button>
                       </td>
+                      {/* View Details */}
                       <td className="px-4 py-2 text-center">
                         <button
-                          className="text-sm px-4 py-2 rounded-lg border border-purple-300 text-purple-700 
+                          className="text-sm px-4 py-2 rounded-lg border border-purple-300 text-purple-700
              hover:bg-purple-50 transition-all duration-200"
                           onClick={() => handleMoreIconClick(pickup)}
                         >
@@ -943,7 +1015,7 @@ function Accounts() {
                   ))
               ) : (
                 <tr>
-                  <td colSpan="15" className="text-center py-4 text-gray-600">
+                  <td colSpan="28" className="text-center py-4 text-gray-600">
                     No pickups found.
                   </td>
                 </tr>
@@ -985,12 +1057,15 @@ function Accounts() {
               Payment Proof
             </h2>
 
-            <div className="flex justify-center">
-              <img
-                src={ImageUrl}
-                alt="Payment Proof"
-                className="rounded-xl max-h-[400px] object-contain border border-gray-200 shadow-sm"
-              />
+            <div className="flex flex-col gap-3 items-center max-h-[70vh] overflow-y-auto">
+              {ImageUrl.map((url, idx) => (
+                <img
+                  key={idx}
+                  src={url}
+                  alt={`Payment Proof ${idx + 1}`}
+                  className="rounded-xl max-h-[400px] object-contain border border-gray-200 shadow-sm"
+                />
+              ))}
             </div>
           </div>
         </div>

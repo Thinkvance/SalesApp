@@ -46,9 +46,20 @@ const COUNTRY_NAME_MAP = {
 /* ------------------------------------------------------------------ */
 /* ⚖️  ACTUAL WEIGHT (kg number) → RATE CARD WEIGHT SLAB              */
 /* ------------------------------------------------------------------ */
-export function getWeightSlab(kg) {
+/* ------------------------------------------------------------------ */
+/* 🔧 SERVICE NAME NORMALISER                                         */
+/* ------------------------------------------------------------------ */
+export function normaliseService(service) {
+  if (!service) return service;
+  if (service.trim().toLowerCase() === "duty free") return "EcoDutyFree";
+  return service;
+}
+
+export function getWeightSlab(kg, service) {
   const w = parseFloat(kg);
   if (isNaN(w)) return null;
+  const isDutyFree = normaliseService(service) === "EcoDutyFree";
+  if (isDutyFree && w >= 1 && w <= 5) return "5.1 to 8 Kg";
   if (w <= 1)  return "1 Kg FLAT";
   if (w <= 2)  return "2 Kg FLAT";
   if (w <= 3)  return "3 Kg FLAT";
@@ -61,13 +72,20 @@ export function getWeightSlab(kg) {
   return "30+ Kg";
 }
 
-/* ------------------------------------------------------------------ */
-/* 🔧 SERVICE NAME NORMALISER                                         */
-/* ------------------------------------------------------------------ */
-export function normaliseService(service) {
-  if (!service) return service;
-  if (service.trim().toLowerCase() === "duty free") return "EcoDutyFree";
-  return service;
+/** Returns the actual weight slab WITHOUT duty-free upsell */
+export function getActualWeightSlab(kg) {
+  const w = parseFloat(kg);
+  if (isNaN(w)) return null;
+  if (w <= 1)  return "1 Kg FLAT";
+  if (w <= 2)  return "2 Kg FLAT";
+  if (w <= 3)  return "3 Kg FLAT";
+  if (w <= 4)  return "4 Kg FLAT";
+  if (w <= 5)  return "5 Kg FLAT";
+  if (w <= 8)  return "5.1 to 8 Kg";
+  if (w <= 10) return "8.1 to 10 Kg";
+  if (w <= 20) return "10.1 to 20 Kg";
+  if (w <= 30) return "20.1 to 30 Kg";
+  return "30+ Kg";
 }
 
 /* ------------------------------------------------------------------ */

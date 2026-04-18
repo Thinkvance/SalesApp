@@ -11,6 +11,7 @@ import customParseFormat from "dayjs/plugin/customParseFormat";
 import SalesReportBarChartCity from "./Charts/SalesReportBarChartCity";
 import DB from "./DB/DB";
 import ShipmentDetails from "./ShipmentDetails";
+
 import SalesReportBarChart from "./Charts/SalesReportBarChart";
 import Lottie from "lottie-react";
 import salesreport from "./Utility/salesreport";
@@ -27,7 +28,7 @@ function SalesReport() {
   const [pickups, setPickups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [ImageUrl, setImageUrl] = useState("");
+  const [ImageUrl, setImageUrl] = useState([]);
   const [awbSearchTerm, setAwbSearchTerm] = useState("");
   const [consignorPhoneSearchTerm, setConsignorPhoneSearchTerm] = useState("");
   const [pickupPersonName, setPickupPersonName] = useState("");
@@ -247,10 +248,11 @@ function SalesReport() {
     0,
   );
 
-  const totalDiscount = filteredPickups.reduce(
-    (sum, pickup) => sum + (pickup.discountCost || 0),
-    0,
-  );
+  const totalDiscount = filteredPickups.reduce((sum, pickup) => {
+    const discount = Math.max(0, Number(pickup.discountCost) || 0);
+    const recovered = Math.max(0, Number(pickup.recoverdCost) || 0);
+    return sum + discount - recovered;
+  }, 0);
 
   useEffect(() => {
     async function getData() {
@@ -408,7 +410,7 @@ function SalesReport() {
             <div className="flex flex-col gap-4 ">
               <div className="bg-purple-50 border w-fit border-purple-200 rounded-xl px-6 py-3  shadow-md transition-shadow duration-200 hover:shadow-2xl">
                 <h2 className="text-lg font-semibold text-purple-800 mb-2">
-                  Total Sales
+                  Sale
                 </h2>
                 <p className="text-2xl font-bold text-purple-900">
                   {totalSales}
@@ -416,20 +418,44 @@ function SalesReport() {
               </div>
               <div className="bg-green-50 border w-fit border-green-200 rounded-xl px-6 py-3 shadow-md transition-shadow duration-200 hover:shadow-2xl">
                 <h2 className="text-lg font-semibold text-green-800 mb-2">
-                  Total Logistic Cost
+                  Logistic Cost
                 </h2>
                 <p className="text-2xl font-bold text-green-900">
                   {totalLogisticsCost}
                 </p>
               </div>
-              <div className="bg-blue-50 border w-fit border-blue-200 rounded-xl px-6 py-3 shadow-md transition-shadow duration-200 hover:shadow-2xl">
-                <h2 className="text-lg font-semibold text-blue-800 mb-2">
-                  Discounts Applied
-                </h2>
-                <p className="text-2xl font-bold text-blue-900">
-                  {totalDiscount}
-                </p>
-              </div>
+              {(() => {
+                const isLoss = totalDiscount > 0;
+                const isProfit = totalDiscount < 0;
+                const bg = isLoss
+                  ? "bg-red-50 border-red-200"
+                  : isProfit
+                    ? "bg-green-50 border-green-200"
+                    : "bg-blue-50 border-blue-200";
+                const titleColor = isLoss
+                  ? "text-red-800"
+                  : isProfit
+                    ? "text-green-800"
+                    : "text-blue-800";
+                const valueColor = isLoss
+                  ? "text-red-700"
+                  : isProfit
+                    ? "text-green-700"
+                    : "text-blue-900";
+                const sign = isLoss ? "- " : isProfit ? "+ " : "";
+                return (
+                  <div
+                    className={`border w-fit rounded-xl px-6 py-3 shadow-md transition-shadow duration-200 hover:shadow-2xl ${bg}`}
+                  >
+                    <h2 className={`text-lg font-semibold mb-2 ${titleColor}`}>
+                      Profit / Loss
+                    </h2>
+                    <p className={`text-2xl font-bold ${valueColor}`}>
+                      {sign}₹{Math.abs(totalDiscount).toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* RIGHT COLUMN: full-height Growth card */}
@@ -552,6 +578,9 @@ function SalesReport() {
                   "Pickup Person",
                   "Status",
                   "Sales Close",
+                  "Cost Per Kg",
+                  "Discount Cost",
+                  "Recovered Cost",
                   "Payment Proof",
                   "Details",
                 ].map((head, i) => (
@@ -614,11 +643,21 @@ function SalesReport() {
                         {pickup.logisticCost || "--"}
                       </td>
                       <td className="py-3 px-4 border">
+                        {pickup.costKg || "--"}
+                      </td>
+                      <td className="py-3 px-4 border">
+                        {pickup.discountCost || "--"}
+                      </td>
+                      <td className="py-3 px-4 border">
+                        {pickup.recoverdCost || "--"}
+                      </td>
+                      <td className="py-3 px-4 border">
                         {pickup.paymentProof ? (
                           <img
                             onClick={() => {
                               setShowModal(true);
-                              setImageUrl(pickup.paymentProof);
+                              const proof = pickup.paymentProof;
+                              setImageUrl(Array.isArray(proof) ? proof : [proof]);
                             }}
                             src="Vector.svg"
                             className="cursor-pointer w-5 ml-auto mr-auto"
@@ -681,12 +720,15 @@ function SalesReport() {
               Payment Proof
             </h2>
 
-            <div className="flex justify-center">
-              <img
-                src={ImageUrl}
-                alt="Payment Proof"
-                className="rounded-xl max-h-[400px] object-contain border border-gray-200 shadow-sm"
-              />
+            <div className="flex flex-col gap-3 items-center max-h-[70vh] overflow-y-auto">
+              {ImageUrl.map((url, idx) => (
+                <img
+                  key={idx}
+                  src={url}
+                  alt={`Payment Proof ${idx + 1}`}
+                  className="rounded-xl max-h-[400px] object-contain border border-gray-200 shadow-sm"
+                />
+              ))}
             </div>
           </div>
         </div>

@@ -43,7 +43,7 @@ function PickupBooking() {
   const [awbLoading, setAwbLoading] = useState(true);
   const baseSourceOptions = useMemo(
     () => [
-      "B To C",
+      // "B To C",
       "FB Ad",
       "Google Ad",
       "Website Ad",
@@ -670,6 +670,11 @@ function PickupBooking() {
       setValue("Content", "");
       setFiles([]);
       setIsSourceFixed(false);
+      setSourceOptions((prev) => prev.filter((opt) => opt !== "B To C"));
+    } else {
+      setSourceOptions((prev) =>
+        prev.includes("B To C") ? prev : ["B To C", ...prev],
+      );
     }
   }, [isOnboarded]);
 

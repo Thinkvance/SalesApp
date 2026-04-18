@@ -235,6 +235,19 @@ const ShipmentDetails = React.memo(function ShipmentDetails({
             />
             <Field label="Cost Per KG" value={"₹ " + selectedPickup.costKg} />
           </div>
+          {selectedPickup.paymentProof && (
+            <div className="mt-4">
+              <span className="text-xs font-semibold text-purple-700">Payment Proof</span>
+              <div className="mt-2">
+                <ImageGrid
+                  images={Array.isArray(selectedPickup.paymentProof)
+                    ? selectedPickup.paymentProof
+                    : [selectedPickup.paymentProof]}
+                  setPreviewImage={setPreviewImage}
+                />
+              </div>
+            </div>
+          )}
         </Section>
 
         {/* KYC */}
