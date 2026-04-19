@@ -657,7 +657,9 @@ function SalesReport() {
                             onClick={() => {
                               setShowModal(true);
                               const proof = pickup.paymentProof;
-                              setImageUrl(Array.isArray(proof) ? proof : [proof]);
+                              setImageUrl(
+                                Array.isArray(proof) ? proof : [proof],
+                              );
                             }}
                             src="Vector.svg"
                             className="cursor-pointer w-5 ml-auto mr-auto"
