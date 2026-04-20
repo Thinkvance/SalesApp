@@ -15,6 +15,7 @@ import axios from "axios";
 import { getToken } from "firebase/messaging";
 import { revokeAccessToken } from "firebase/auth";
 import DB from "../DB/DB";
+import { formatPaymentConfirmedDate } from "./paymentConfirmedDate";
 
 function formateFirebaseTimestamp(isoString) {
   if (isoString) {
@@ -382,7 +383,11 @@ const downloadCSV = async (person, DateRange, startendrange) => {
       if (Array.isArray(entry[key]?.bookings)) {
         const groupRows = entry[key].bookings.map((booking, index) => {
           const row = headers.reduce((acc, header) => {
-            acc[header] = booking[header] || entry[header] || ""; // Use booking data, fallback to entry data, or blank
+            const raw = booking[header] || entry[header] || "";
+            acc[header] =
+              header === "PaymentComfirmedDate"
+                ? formatPaymentConfirmedDate(raw)
+                : raw;
             return acc;
           }, {});
 

@@ -1,28 +1,16 @@
 import { collection, getDocs, query, where } from "firebase/firestore";
 import DB from "../DB/DB";
 import { db } from "../firebase";
+import { parsePaymentConfirmedDate } from "./paymentConfirmedDate";
 
-function extractDate(dateString) {
-  const datePart = dateString.split(" ")[0];
-  return datePart;
-}
-
-function convertDateToTimestamp(dateString) {
-  try {
-    const result = extractDate(dateString);
-    const [day, month, year] = result.split("-").map(Number);
-    const date = new Date(year, month - 1, day);
-    const milliseconds = date.getTime();
-    const seconds = Math.floor(milliseconds / 1000);
-    const nanoseconds = (milliseconds % 1000) * 1e6;
-
-    return {
-      seconds,
-      nanoseconds,
-    };
-  } catch (error) {
-    // console.log(error);
-  }
+function convertDateToTimestamp(value) {
+  const date =
+    value instanceof Date ? value : parsePaymentConfirmedDate(value);
+  if (!date) return undefined;
+  const milliseconds = date.getTime();
+  const seconds = Math.floor(milliseconds / 1000);
+  const nanoseconds = (milliseconds % 1000) * 1e6;
+  return { seconds, nanoseconds };
 }
 
 async function fetchData(DateRange, startendrange, user, selectedBookedBy) {
@@ -140,16 +128,22 @@ async function growth(user, selectedBookedBy) {
     previousEndDate.setDate(0); // This sets it to the last day of the *previous* month
   }
 
-  const formatDate = (date) =>
-    `${String(date.getDate()).padStart(2, "0")}-${String(
-      date.getMonth() + 1
-    ).padStart(2, "0")}-${date.getFullYear()}`;
+  const startOfDay = (date) => {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
+  const endOfDay = (date) => {
+    const d = new Date(date);
+    d.setHours(23, 59, 59, 999);
+    return d;
+  };
 
   const currentMonthSales = await getRevenue(
     "Select range",
     {
-      start: convertDateToTimestamp(formatDate(currentStartDate)),
-      end: convertDateToTimestamp(formatDate(currentEndDate)),
+      start: convertDateToTimestamp(startOfDay(currentStartDate)),
+      end: convertDateToTimestamp(endOfDay(currentEndDate)),
     },
     user,
     "currentMonthSales",
@@ -159,8 +153,8 @@ async function growth(user, selectedBookedBy) {
   const previousMonthSales = await getRevenue(
     "Select range",
     {
-      start: convertDateToTimestamp(formatDate(previousStartDate)),
-      end: convertDateToTimestamp(formatDate(previousEndDate)),
+      start: convertDateToTimestamp(startOfDay(previousStartDate)),
+      end: convertDateToTimestamp(endOfDay(previousEndDate)),
     },
     user,
     "previousMonthSales",

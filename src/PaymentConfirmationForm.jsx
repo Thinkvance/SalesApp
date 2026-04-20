@@ -423,9 +423,14 @@ function PaymentConfirmationForm() {
     const rightMargin = pageWidth - 40;
 
     doc.setFont("helvetica", "bold");
-    doc.text("Receipt Number: ", rightMargin - doc.getTextWidth(invoiceNumber), 40, {
-      align: "right",
-    });
+    doc.text(
+      "Receipt Number: ",
+      rightMargin - doc.getTextWidth(invoiceNumber),
+      40,
+      {
+        align: "right",
+      },
+    );
     doc.setFont("helvetica", "normal");
     doc.text(invoiceNumber, rightMargin, 40, {
       align: "right",
@@ -786,7 +791,6 @@ function PaymentConfirmationForm() {
           details.KycImage.startsWith("http")
             ? details.KycImage
             : await uploadFileToFirebase(KycImage, "KYC"),
-        // PaymentComfirmedDate: await getTodayDate(),
         consigneename: !data.consigneename1
           ? details.consigneename
           : data.consigneename1,

@@ -1,3 +1,5 @@
+import { formatPaymentConfirmedDate } from "./Utility/paymentConfirmedDate";
+
 async function generate_Invoice_PDF() {
     const doc = new jsPDF("p", "pt");
     const subtotal = item.costKg * item.actualWeight;
@@ -45,7 +47,7 @@ async function generate_Invoice_PDF() {
     doc.text(`Receipt Number: RCPT-${item.awbNumber}`, rightMargin, 40, {
       align: "right",
     });
-    doc.text(`Date: ${item.PaymentComfirmedDate}`, rightMargin, 61, {
+    doc.text(`Date: ${formatPaymentConfirmedDate(item.PaymentComfirmedDate)}`, rightMargin, 61, {
       align: "right",
     });
     doc.setFont("helvetica", "bold");

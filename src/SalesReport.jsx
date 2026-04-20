@@ -17,6 +17,11 @@ import Lottie from "lottie-react";
 import salesreport from "./Utility/salesreport";
 import SalesReportBarChartSource from "./Charts/SalesReportBarChartSource";
 import loadingAnimation from "./assets/loadingLottie.json";
+import {
+  parsePaymentConfirmedDate,
+  paymentConfirmedDateMs,
+  formatPaymentConfirmedDate,
+} from "./Utility/paymentConfirmedDate";
 
 dayjs.extend(customParseFormat);
 dayjs.extend(isBetween);
@@ -90,24 +95,7 @@ function SalesReport() {
     setRole(storedUser?.role || "");
   }, []);
 
-  const parseDate = (datetime) => {
-    if (!datetime) return 0;
-
-    const parts = datetime.trim().split(" ");
-    if (parts.length < 3) return 0;
-
-    const [datePart, timePart, period] = parts;
-    const [day, month, year] = datePart.split("-").map(Number);
-    let [hour, minute, second] = timePart.split(":").map(Number);
-
-    if (isNaN(day) || isNaN(hour)) return 0;
-
-    // Convert to 24-hour time
-    if (period === "PM" && hour !== 12) hour += 12;
-    if (period === "AM" && hour === 12) hour = 0;
-
-    return new Date(year, month - 1, day, hour, minute, second).getTime();
-  };
+  const parseDate = (datetime) => paymentConfirmedDateMs(datetime);
   const fetchPickups = () => {
     try {
       const collectionNames =
@@ -202,15 +190,10 @@ function SalesReport() {
   };
   const { from, to } = getFilterRange();
   const filteredPickups = pickups.filter((pickup) => {
-    const dateStr = pickup.PaymentComfirmedDate;
-    if (!dateStr) return false;
+    const parsedDate = parsePaymentConfirmedDate(pickup.PaymentComfirmedDate);
+    if (!parsedDate) return false;
 
-    const dayjsDate = dayjs(dateStr, "DD-MM-YYYY h:mm:ss A");
-    if (!dayjsDate.isValid()) {
-      return false;
-    }
-
-    const withinDateRange = dayjsDate.isBetween(from, to, "day", "[]");
+    const withinDateRange = dayjs(parsedDate).isBetween(from, to, "day", "[]");
     const matchesAwb = String(pickup.awbNumber || "")
       .toLowerCase()
       .includes(awbSearchTerm.toLowerCase());
@@ -628,7 +611,9 @@ function SalesReport() {
                         {pickup.pickUpPersonNameStatus || "NOT COMPLETED"}
                       </td>
                       <td className="py-3 px-4 border text-nowrap">
-                        {pickup.PaymentComfirmedDate}
+                        {formatPaymentConfirmedDate(
+                          pickup.PaymentComfirmedDate,
+                        )}
                       </td>
                       <td className="py-3 px-4 border">
                         {pickup.pickupBookedBy}
