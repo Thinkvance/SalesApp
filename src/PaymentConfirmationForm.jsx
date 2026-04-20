@@ -132,7 +132,9 @@ function PaymentConfirmationForm() {
   const watchDiscount = watch("discountCost");
   const watchAdditional = totalAdditionalCharges;
 
-  // Keep logisticsCost form value in sync with the computed value
+  // Keep logisticsCost form value in sync with the computed value.
+  // Uses rate-card as the base when available so the combined discountCost
+  // (rate-card gap + further) subtracts cleanly to sales − further.
   useEffect(() => {
     if (!details) return;
     const weight = parseInt(details?.actualWeight) || 0;
@@ -140,11 +142,22 @@ function PaymentConfirmationForm() {
     const liveDiscount = parseInt(watchDiscount) || 0;
     const liveAdditional = parseInt(watchAdditional) || 0;
     const salesLogistics = weight * liveCostKg;
+    const baseLogistics =
+      rateCardAmount != null && rateCardAmount > salesLogistics
+        ? rateCardAmount
+        : salesLogistics;
     const finalLogistics = details?.logisticCost
       ? details.logisticCost
-      : salesLogistics + liveAdditional - liveDiscount;
+      : baseLogistics + liveAdditional - liveDiscount;
     setValue("logisticsCost", finalLogistics);
-  }, [details, costKg, watchDiscount, watchAdditional, setValue]);
+  }, [
+    details,
+    costKg,
+    watchDiscount,
+    watchAdditional,
+    rateCardAmount,
+    setValue,
+  ]);
 
   // For B To C, set default discount/recovered to 0 (no auto-fill from rate card)
   useEffect(() => {
@@ -157,7 +170,10 @@ function PaymentConfirmationForm() {
     }
   }, [details?.Source, details?.discountCost, details?.recoverdCost, setValue]);
 
-  // Auto-fill Discount Amount and Recovered Cost based on rate card vs sales price
+  // Auto-fill Discount Amount and Recovered Cost based on rate card vs sales price.
+  // discountCost = (rate-card − sales) + further. Downstream totals start from
+  // the rate-card base so subtracting this combined discount lands at
+  // sales − further (no double-discount).
   useEffect(() => {
     if (rateCardAmount == null || !costKg) return;
     if (details?.Source === "B To C") return;
@@ -363,9 +379,17 @@ function PaymentConfirmationForm() {
     chargesList,
     paymentRequestedDate,
     isPaymentDone = false,
+    baseLogistics = null,
+    baseCostPerKg = null,
   ) {
     const doc = new jsPDF("p", "pt");
-    const subtotal = parseInt(costKg) * details.actualWeight;
+    const salesSubtotal = parseInt(costKg) * details.actualWeight;
+    const subtotal =
+      baseLogistics != null && baseLogistics > salesSubtotal
+        ? baseLogistics
+        : salesSubtotal;
+    const displayCostKg =
+      baseCostPerKg != null && subtotal > salesSubtotal ? baseCostPerKg : costKg;
     const nettotal = subtotal - parseInt(discountCost) + additionalcharges;
     const normalisedCharges =
       Array.isArray(chargesList) && chargesList.length
@@ -476,7 +500,7 @@ function PaymentConfirmationForm() {
           details.destination,
           details.service + " Service",
           details.actualWeight + " KG",
-          `${costKg} Rs`,
+          `${displayCostKg} Rs`,
           `${subtotal}.00 Rs`,
         ],
       ],
@@ -753,6 +777,9 @@ function PaymentConfirmationForm() {
         receiptNumber.receiptNumber,
         chargesList,
         paymentRequestedDate,
+        false,
+        rateCardAmount,
+        rateCardCostPerKg,
       );
 
       const q = query(
@@ -765,7 +792,15 @@ function PaymentConfirmationForm() {
         where("awbNumber", "==", parseInt(awbnumber)),
       );
       const querySnapshot = await getDocs(q);
-      const logisticCost = parseInt(details?.actualWeight) * parseInt(costKg);
+      const salesLogistics =
+        parseInt(details?.actualWeight) * parseInt(costKg);
+      // Use rate-card as the base when available; discountCost already
+      // includes the rate-card gap, so subtracting it below nets to
+      // sales − further (the correct client-pay amount).
+      const logisticCost =
+        rateCardAmount != null && rateCardAmount > salesLogistics
+          ? rateCardAmount
+          : salesLogistics;
       let final_result = [];
       querySnapshot.forEach((doc) => {
         final_result.push({ id: doc.id, ...doc.data() });
@@ -860,6 +895,22 @@ function PaymentConfirmationForm() {
       const isInvoice = shouldSendInvoice(paymentMode);
       const now = Timestamp.now();
 
+      // Derive the rate-card base from stored fields so regenerated
+      // invoices/receipts match what the client originally received.
+      // logisticCost stored = base + additional − discount  ⇒  base = logisticCost + discount − additional
+      const storedAdditional = parseInt(details.additionalcharges) || 0;
+      const storedDiscount = parseInt(details.discountCost) || 0;
+      const storedTotal = parseInt(details.logisticCost) || 0;
+      const derivedBase = storedTotal + storedDiscount - storedAdditional;
+      const storedSales =
+        parseInt(details.actualWeight) * parseInt(details.costKg);
+      const regenBaseLogistics =
+        derivedBase > storedSales ? derivedBase : null;
+      const regenBaseCostPerKg =
+        regenBaseLogistics != null && parseInt(details.actualWeight) > 0
+          ? Math.round(regenBaseLogistics / parseInt(details.actualWeight))
+          : null;
+
       let Payment_gst_URL = null;
       let gstInvoiceNumber = null;
 
@@ -880,6 +931,7 @@ function PaymentConfirmationForm() {
           Array.isArray(details.additionalChargesList)
             ? details.additionalChargesList
             : [],
+          regenBaseCostPerKg,
         );
       }
 
@@ -895,6 +947,8 @@ function PaymentConfirmationForm() {
               : [],
             now,
             true,
+            regenBaseLogistics,
+            regenBaseCostPerKg,
           );
 
       const Payment_URL = isInvoice
@@ -1842,7 +1896,14 @@ function PaymentConfirmationForm() {
             );
             const liveCostKg =
               details.costKg != null ? parseInt(details.costKg) : costKg;
-            const liveLogistics = parseInt(details?.actualWeight) * liveCostKg;
+            const salesLogistics =
+              parseInt(details?.actualWeight) * liveCostKg;
+            // Headline Logistics Cost = rate-card list price when available,
+            // so the combined discount visibly subtracts down to sales − further.
+            const liveLogistics =
+              rateCardAmount != null && rateCardAmount > salesLogistics
+                ? rateCardAmount
+                : salesLogistics;
             const liveTotal = liveLogistics + liveAdditional - liveDiscount;
             return (
               <div className="mt-4 mb-2 rounded-xl border border-purple-100 bg-purple-50 p-4 text-sm">
@@ -2132,9 +2193,13 @@ function PaymentConfirmationForm() {
             </p>
 
             {(() => {
-              const popupLogistics =
+              const popupSales =
                 parseInt(details.actualWeight) *
                 parseInt(pendingFormData.costKg);
+              const popupLogistics =
+                rateCardAmount != null && rateCardAmount > popupSales
+                  ? rateCardAmount
+                  : popupSales;
               const popupDiscount = parseInt(pendingFormData.discountCost) || 0;
               const popupCharges = (
                 pendingFormData.additionalChargesList || []

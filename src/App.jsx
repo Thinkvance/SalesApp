@@ -51,6 +51,7 @@ import ExecutiveClientsScreen from "./ExecutiveClientsScreen";
 import ClientOnboarding from "./ClientOnboarding";
 import axios from "axios";
 // import { fetchLowestRate } from "./Utility/fetchLowestRate";
+import WebsiteLeads from "./WebsiteLeads";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -148,15 +149,6 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // useEffect(() => {
-  //   const testFetch = async () => {
-  //     const result = await fetchRate("USA", "Express", "1 Kg FLAT");
-  //     console.log("Rate:", result);
-  //   };
-
-  //   testFetch();
-  // }, []);
-
   // Optional: Timeout fallback
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -244,6 +236,22 @@ function App() {
                     allowed={["Manager"]}
                   >
                     <ClientApprovals />
+                  </RequireRole>
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/WebsiteLeads"
+              element={
+                <RequireAuth user={user}>
+                  <RequireRole
+                    role={
+                      JSON.parse(localStorage.getItem("LoginCredentials"))?.role
+                    }
+                    allowed={["Manager"]}
+                  >
+                    <WebsiteLeads />
                   </RequireRole>
                 </RequireAuth>
               }

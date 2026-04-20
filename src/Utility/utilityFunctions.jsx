@@ -468,6 +468,7 @@ function rolesPermissions() {
         "review-management",
         "user-management",
         "client-approvals",
+        "WebsiteLeads",
       ],
     };
   }

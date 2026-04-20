@@ -12,6 +12,7 @@ async function generate_GST_Invoice_PDF(
   pickupDatetime,
   gstInvoiceNumber,
   chargesList,
+  baseCostPerKg = null,
 ) {
   const normalisedCharges = Array.isArray(chargesList) ? chargesList : [];
   const additionalChargesTotal = normalisedCharges.reduce(
@@ -24,11 +25,19 @@ async function generate_GST_Invoice_PDF(
     const consignorlocation = item.consignorlocation;
     const consignorphonenumber = item.consignorphonenumber;
 
-    const GST_COST = (costKg * 0.18).toFixed(2);
+    // Use rate-card cost/kg as the list price when available so discount
+    // (which includes the rate-card gap) subtracts cleanly; else fall back
+    // to sales-side costKg.
+    const effectiveCostPerKg =
+      baseCostPerKg != null && Number(baseCostPerKg) > Number(costKg)
+        ? Number(baseCostPerKg)
+        : Number(costKg);
+
+    const GST_COST = (effectiveCostPerKg * 0.18).toFixed(2);
     const GST_COST_value = GST_COST * actualWeight;
 
     const subtotal =
-      Number(costKg) * Number(actualWeight) -
+      effectiveCostPerKg * Number(actualWeight) -
       Number(GST_COST) * Number(actualWeight);
 
     const nettotal =
@@ -131,7 +140,7 @@ Phone: 9159 688 688`;
           item.destination,
           item.service + " Service",
           actualWeight + " KG",
-          `${parseInt(costKg - costKg * 0.18)} Rs`,
+          `${parseInt(effectiveCostPerKg - effectiveCostPerKg * 0.18)} Rs`,
           // `${GST_COST_value.toFixed(2)} Rs`,
           `${subtotal.toFixed(2)} Rs`,
         ],
