@@ -31,6 +31,7 @@ import {
   fetchLowestRate,
   getWeightSlab,
   getActualWeightSlab,
+  getFlatSlabKg,
   normaliseService,
 } from "./Utility/fetchLowestRate.js";
 
@@ -1110,12 +1111,13 @@ function PaymentConfirmationForm() {
 
     const service = normaliseService(details.service);
     const weight = parseFloat(details.actualWeight);
-    const isDutyFree1to5 =
-      service === "EcoDutyFree" && weight >= 1 && weight <= 5;
+    if (!isFinite(weight) || weight <= 0) return;
+    const isDutyFree = service === "EcoDutyFree";
 
     const actualSlab = getActualWeightSlab(details.actualWeight);
-    const upsellSlab = getWeightSlab(details.actualWeight, details.service);
-    if (!upsellSlab) return;
+    if (!actualSlab) return;
+    // Flat-slab KG (1..5) when weight is in a "N Kg FLAT" slab, else null
+    const flatSlabKg = getFlatSlabKg(actualSlab);
 
     console.log("[RateCard lookup]", {
       destination: details.destination,
@@ -1123,36 +1125,56 @@ function PaymentConfirmationForm() {
       normalisedService: service,
       actualWeight: details.actualWeight,
       actualSlab,
-      upsellSlab,
-      isDutyFree1to5,
+      flatSlabKg,
+      isDutyFree,
     });
 
     (async () => {
       try {
-        // For Duty Free 1-5 KG: try actual slab first, upsell only if no rate
-        if (isDutyFree1to5) {
+        // 1–5 KG (any service): the rate card stores a flat ₹ for the slab.
+        // Divide by slab KG to derive per-KG, then multiply by actual weight.
+        if (flatSlabKg != null) {
           const actualResult = await fetchLowestRate(
             details.destination,
             service,
             actualSlab,
           );
           if (actualResult && actualResult.amount) {
-            setRateCardCostPerKg(actualResult.amount);
-            setRateCardAmount(details.actualWeight * actualResult.amount);
+            const perKg = actualResult.amount / flatSlabKg;
+            setRateCardCostPerKg(perKg);
+            setRateCardAmount(weight * perKg);
             setDutyFreeUpsold(false);
             return;
           }
+          // Duty Free 1–5 KG without a flat rate → upsell to the 5.1–8 KG slab
+          // (stored as a per-KG rate).
+          if (isDutyFree) {
+            const upsell = await fetchLowestRate(
+              details.destination,
+              service,
+              "5.1 to 8 Kg",
+            );
+            if (upsell && upsell.amount) {
+              setRateCardCostPerKg(upsell.amount);
+              setRateCardAmount(weight * upsell.amount);
+              setDutyFreeUpsold(true);
+            }
+          }
+          return;
         }
-        // Fallback: use the (possibly upsold) slab
+
+        // > 5 KG: standard per-KG slab.
+        const slab = getWeightSlab(details.actualWeight, details.service);
+        if (!slab) return;
         const result = await fetchLowestRate(
           details.destination,
           service,
-          upsellSlab,
+          slab,
         );
         if (result && result.amount) {
           setRateCardCostPerKg(result.amount);
-          setRateCardAmount(details.actualWeight * result.amount);
-          setDutyFreeUpsold(isDutyFree1to5);
+          setRateCardAmount(weight * result.amount);
+          setDutyFreeUpsold(false);
         }
       } catch (err) {
         console.log("Rate fetch failed:", err);
@@ -1792,7 +1814,7 @@ function PaymentConfirmationForm() {
                     (r) => r === currentReason || !usedReasons.includes(r),
                   );
                   return (
-                    <div key={field.id} className="flex gap-2 mb-2 items-start">
+                    <div key={field.id} className="flex flex-col sm:flex-row gap-2 mb-2 sm:items-start">
                       <div className="flex flex-col flex-1">
                         <input
                           type="text"
@@ -1862,7 +1884,7 @@ function PaymentConfirmationForm() {
                         <button
                           type="button"
                           onClick={() => removeCharge(index)}
-                          className="p-2.5 text-red-600 hover:bg-red-50 rounded-lg border border-red-200 text-sm"
+                          className="self-end sm:self-auto p-2.5 text-red-600 hover:bg-red-50 rounded-lg border border-red-200 text-sm"
                           title="Remove"
                         >
                           ✕

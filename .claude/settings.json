@@ -9,7 +9,12 @@
       "Bash(npx --no-install eslint src/Utility/GSTinvoice.js src/PaymentConfirmationForm.jsx)",
       "Bash(npx eslint:*)",
       "Bash(rm -rf node_modules package-lock.json)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(time npm *)",
+      "Bash(2>/dev/null)",
+      "Bash(wait)",
+      "Bash(kill 7021 7022 9021 9022 9519 9520)",
+      "Bash(kill 9519)"
     ]
   }
 }

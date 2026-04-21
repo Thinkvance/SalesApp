@@ -72,6 +72,17 @@ export function getWeightSlab(kg, service) {
   return "30+ Kg";
 }
 
+/**
+ * Returns the KG count encoded in a flat slab name ("3 Kg FLAT" → 3),
+ * or null for non-flat slabs. Used to convert a flat-slab amount into a
+ * per-KG rate for weights in the 1–5 KG range.
+ */
+export function getFlatSlabKg(slab) {
+  if (!slab) return null;
+  const m = /^\s*(\d+)\s*Kg\s*FLAT\s*$/i.exec(slab);
+  return m ? parseInt(m[1], 10) : null;
+}
+
 /** Returns the actual weight slab WITHOUT duty-free upsell */
 export function getActualWeightSlab(kg) {
   const w = parseFloat(kg);
