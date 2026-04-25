@@ -26,6 +26,11 @@ import { FiCheck, FiClipboard } from "react-icons/fi";
 import formatFirestoreTimestamp from "./Utility/formatFirestoreTimestamp.js";
 import BarChartCityWise from "./Charts/BarChartCityWise.jsx";
 import vendorList from "./DB/vendorList.js";
+import {
+  parsePaymentConfirmedDate,
+  paymentConfirmedDateMs,
+  formatPaymentConfirmedDate,
+} from "./Utility/paymentConfirmedDate";
 dayjs.extend(customParseFormat);
 dayjs.extend(isBetween);
 
@@ -146,24 +151,7 @@ function Accounts() {
     }
   };
 
-  const parseDate = (datetime) => {
-    if (!datetime) return 0;
-
-    const parts = datetime.trim().split(" ");
-    if (parts.length < 3) return 0;
-
-    const [datePart, timePart, period] = parts;
-    const [day, month, year] = datePart.split("-").map(Number);
-    let [hour, minute, second] = timePart.split(":").map(Number);
-
-    if (isNaN(day) || isNaN(hour)) return 0;
-
-    // Convert to 24-hour time
-    if (period === "PM" && hour !== 12) hour += 12;
-    if (period === "AM" && hour === 12) hour = 0;
-
-    return new Date(year, month - 1, day, hour, minute, second).getTime();
-  };
+  const parseDate = (datetime) => paymentConfirmedDateMs(datetime);
   const fetchPickups = () => {
     setLoading(true);
     try {
@@ -251,16 +239,10 @@ function Accounts() {
   };
   const { from, to } = getFilterRange();
   const filteredPickups = pickups.filter((pickup) => {
-    const dateStr = pickup.PaymentComfirmedDate;
-    if (!dateStr) return false;
+    const parsedDate = parsePaymentConfirmedDate(pickup.PaymentComfirmedDate);
+    if (!parsedDate) return false;
 
-    const dayjsDate = dayjs(dateStr, "DD-MM-YYYY h:mm:ss A");
-    if (!dayjsDate.isValid()) {
-      // console.warn("Invalid date format:", pickup.awbNumber);
-      return false;
-    }
-
-    const withinDateRange = dayjsDate.isBetween(from, to, "day", "[]");
+    const withinDateRange = dayjs(parsedDate).isBetween(from, to, "day", "[]");
     const matchesAwb = String(pickup.awbNumber || "")
       .toLowerCase()
       .includes(awbSearchTerm.toLowerCase());
@@ -351,27 +333,8 @@ function Accounts() {
             parseDate(a.PaymentComfirmedDate),
         )
         .map((item) => {
-          const rawDate = item.PaymentComfirmedDate;
-          if (!rawDate) return;
-
-          let dateObj;
-
-          if (rawDate.toDate) {
-            dateObj = rawDate.toDate();
-          } else if (typeof rawDate === "string") {
-            const [datePart, timePart, modifier] = rawDate.split(" ");
-            if (!datePart || !timePart || !modifier) return;
-
-            const [day, month, year] = datePart.split("-").map(Number);
-            let [hours, minutes, seconds] = timePart.split(":").map(Number);
-
-            if (modifier === "PM" && hours !== 12) hours += 12;
-            if (modifier === "AM" && hours === 12) hours = 0;
-
-            dateObj = new Date(year, month - 1, day, hours, minutes, seconds);
-          } else {
-            return;
-          }
+          const dateObj = parsePaymentConfirmedDate(item.PaymentComfirmedDate);
+          if (!dateObj) return;
 
           octoberData.push({
             awbNumber: item.awbNumber || "",
@@ -386,7 +349,8 @@ function Accounts() {
             pickupBookedBy: item.pickupBookedBy || "",
             pickUpPersonName: item.pickUpPersonName || "",
             gstInvoiceNumber: item.gstInvoiceNumber || "No Invoice",
-            PaymentComfirmedDate: rawDate,
+            PaymentComfirmedDate:
+              formatPaymentConfirmedDate(item.PaymentComfirmedDate) || "",
             payment_Invoice_URL: item.payment_Invoice_URL || "",
             receiptNumber: item.receiptNumber || "",
             payment_Receipt_URL: item.payment_Receipt_URL || "",
@@ -858,7 +822,9 @@ function Accounts() {
                       </td>
                       {/* Invoice Date */}
                       <td className="py-3 px-4 border text-nowrap">
-                        {pickup.PaymentComfirmedDate}
+                        {formatPaymentConfirmedDate(
+                          pickup.PaymentComfirmedDate,
+                        )}
                       </td>
                       {/* Invoice */}
                       <td className="py-3 px-4 border text-nowrap">
