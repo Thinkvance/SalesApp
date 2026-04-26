@@ -754,9 +754,26 @@ const UploadCard = React.forwardRef(
     const selectedFile = file?.[0];
 
     return (
-      <label className="block border-2 border-dashed rounded-xl p-6 bg-gray-50 cursor-pointer hover:border-[#bf81fd] transition">
+      <label
+        className={`relative block border-2 border-dashed rounded-xl p-6 cursor-pointer transition-all duration-200 ${
+          error
+            ? "border-red-500 bg-red-50 hover:border-red-600 ring-4 ring-red-200 shadow-md shadow-red-200 animate-shake"
+            : "border-gray-300 bg-gray-50 hover:border-[#bf81fd]"
+        }`}
+      >
+        {error && (
+          <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-md">
+            REQUIRED
+          </span>
+        )}
         <div className="flex flex-col items-center text-center gap-2">
-          <div className="w-12 h-12 rounded-full bg-[#bf81fd]/20 flex items-center justify-center text-[#bf81fd] font-bold">
+          <div
+            className={`w-12 h-12 rounded-full flex items-center justify-center font-bold ${
+              error
+                ? "bg-red-100 text-red-500"
+                : "bg-[#bf81fd]/20 text-[#bf81fd]"
+            }`}
+          >
             ⬆
           </div>
 
@@ -772,7 +789,11 @@ const UploadCard = React.forwardRef(
           />
 
           {!selectedFile && (
-            <span className="text-xs text-[#714DD9] font-medium">
+            <span
+              className={`text-xs font-medium ${
+                error ? "text-red-600" : "text-[#714DD9]"
+              }`}
+            >
               Click to upload
             </span>
           )}
@@ -788,8 +809,8 @@ const UploadCard = React.forwardRef(
         </div>
 
         {error && (
-          <p className="text-red-500 text-xs mt-3 text-center">
-            {error.message}
+          <p className="text-red-600 text-xs font-bold mt-3 text-center">
+            ⚠ {error.message}
           </p>
         )}
       </label>

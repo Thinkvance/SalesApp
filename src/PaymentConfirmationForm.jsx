@@ -301,8 +301,7 @@ function PaymentConfirmationForm() {
 
     const financialYear = `${String(startYear).slice(2)}-${String(endYear).slice(2)}`;
 
-    // Franchise code
-    const franchiseCode = franchise.slice(0, 3).toUpperCase();
+    const franchiseCode = "REC";
 
     // Document ID
     const docId = `${franchise}_${financialYear.replace("-", "_")}`;
@@ -342,8 +341,7 @@ function PaymentConfirmationForm() {
 
     const financialYear = `${String(startYear).slice(2)}-${String(endYear).slice(2)}`;
 
-    // Franchise short code
-    const franchiseCode = franchise.slice(0, 3).toUpperCase();
+    const franchiseCode = "INV";
 
     // Document name
     const docId = `${franchise}_${financialYear.replace("-", "_")}`;
