@@ -385,7 +385,7 @@ function SalesReport() {
         </div>
         <div className="flex flex-col gap-6 mb-6 sm:flex-row sm:flex-wrap sm:gap-10 sm:items-start">
           {/* Card Grid Section */}
-          <div className="grid grid-cols-1 sm:grid-cols-2  w-full sm:max-w-[500px]">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch sm:w-fit">
             {/* LEFT COLUMN: stack the first 3 cards */}
             <div className="flex flex-col gap-4 ">
               <div className="bg-purple-50 border w-fit border-purple-200 rounded-xl px-6 py-3  shadow-md transition-shadow duration-200 hover:shadow-2xl">
@@ -439,7 +439,7 @@ function SalesReport() {
             </div>
 
             {/* RIGHT COLUMN: full-height Growth card */}
-            <div className="bg-[#f7fafc] border border-slate-200 rounded-xl px-6 py-3 shadow-lg transition-shadow duration-200 hover:shadow-2xl flex flex-col justify-between">
+            <div className="bg-[#f7fafc] border border-slate-200 rounded-xl px-6 py-3 shadow-lg transition-shadow duration-200 hover:shadow-2xl flex flex-col justify-between sm:max-w-xs">
               {loading ? (
                 <div className="h-full  flex justify-center items-center">
                   <Lottie

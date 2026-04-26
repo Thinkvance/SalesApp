@@ -31,8 +31,8 @@ function CancelCard({ item, index }) {
     consignorname,
     consignorphonenumber,
   ) => {
-    if (cancelReason.length < 10 || cancelReason.length > 100) {
-      seterror("Reason must be between 10 to 100 characters long.");
+    if (cancelReason.length < 10 || cancelReason.length > 50) {
+      seterror("Reason must be between 10 to 50 characters long.");
       return;
     }
     seterror("");
