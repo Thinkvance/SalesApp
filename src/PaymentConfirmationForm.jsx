@@ -483,9 +483,14 @@ function PaymentConfirmationForm() {
       align: "right",
     });
 
-    doc.setFont("helvetica", "bold");
     const totalLabel = isPaymentDone ? "Total" : "Total To Pay";
-    doc.text(`${totalLabel}: ${nettotal}.00 Rs`, rightMargin, 100, {
+    const totalStr = `${nettotal}.00 Rs`;
+    doc.setFont("helvetica", "bold");
+    doc.text(`${totalLabel}: `, rightMargin - doc.getTextWidth(totalStr), 100, {
+      align: "right",
+    });
+    doc.setFont("helvetica", "normal");
+    doc.text(totalStr, rightMargin, 100, {
       align: "right",
     });
 

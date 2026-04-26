@@ -105,16 +105,43 @@ Phone: 9159 688 688`;
 
     const rightX = pageWidth - 40;
 
-    doc.text(`Invoice Number: ${gstInvoiceNumber}`, rightX, 40, {
-      align: "right",
-    });
-
-    doc.text(`Date: ${formatFirebaseTimestamp(now)}`, rightX, 60, {
-      align: "right",
-    });
-
+    const invoiceNumStr = String(gstInvoiceNumber || "");
     doc.setFont("helvetica", "bold");
-    doc.text(`Total: ${nettotal.toFixed(2)} Rs`, rightX, 80, {
+    doc.text("Invoice Number: ", rightX - doc.getTextWidth(invoiceNumStr), 40, {
+      align: "right",
+    });
+    doc.setFont("helvetica", "normal");
+    doc.text(invoiceNumStr, rightX, 40, {
+      align: "right",
+    });
+
+    const dateStr = formatFirebaseTimestamp(now);
+    doc.setFont("helvetica", "bold");
+    doc.text("Date: ", rightX - doc.getTextWidth(dateStr), 60, {
+      align: "right",
+    });
+    doc.setFont("helvetica", "normal");
+    doc.text(dateStr, rightX, 60, {
+      align: "right",
+    });
+
+    const awbStr = String(item.awbNumber || awbNumber || "");
+    doc.setFont("helvetica", "bold");
+    doc.text("AWB Number: ", rightX - doc.getTextWidth(awbStr), 80, {
+      align: "right",
+    });
+    doc.setFont("helvetica", "normal");
+    doc.text(awbStr, rightX, 80, {
+      align: "right",
+    });
+
+    const totalStr = `${nettotal.toFixed(2)} Rs`;
+    doc.setFont("helvetica", "bold");
+    doc.text("Total: ", rightX - doc.getTextWidth(totalStr), 100, {
+      align: "right",
+    });
+    doc.setFont("helvetica", "normal");
+    doc.text(totalStr, rightX, 100, {
       align: "right",
     });
 
