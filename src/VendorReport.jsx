@@ -342,10 +342,11 @@ function Accounts() {
             consignorphonenumber: item.consignorphonenumber || "",
             Source: item.Source || "",
             destination: item.destination || "",
-            pickuparea: item.pickuparea || "",
-            pickUpPersonNameStatus: item.pickUpPersonNameStatus || "NOT COMPLETED",
+            pickUpPersonNameStatus:
+              item.pickUpPersonNameStatus || "NOT COMPLETED",
             pickupDatetime: formatFirestoreTimestamp(item.pickupDatetime) || "",
-            pickupCompletedDatetime: formatFirestoreTimestamp(item.pickupCompletedDatetime) || "--",
+            pickupCompletedDatetime:
+              formatFirestoreTimestamp(item.pickupCompletedDatetime) || "--",
             pickupBookedBy: item.pickupBookedBy || "",
             pickUpPersonName: item.pickUpPersonName || "",
             gstInvoiceNumber: item.gstInvoiceNumber || "No Invoice",
@@ -353,6 +354,8 @@ function Accounts() {
               formatPaymentConfirmedDate(item.PaymentComfirmedDate) || "",
             payment_Invoice_URL: item.payment_Invoice_URL || "",
             receiptNumber: item.receiptNumber || "",
+            paymentRequestedDate:
+              formatFirestoreTimestamp(item.paymentRequestedDate) || "",
             payment_Receipt_URL: item.payment_Receipt_URL || "",
             actualWeight: item.actualWeight || "",
             internalWeight: item.internalWeight || "",
@@ -380,16 +383,19 @@ function Accounts() {
         { header: "Phone Number", key: "consignorphonenumber", width: 20 },
         { header: "Source", key: "Source", width: 15 },
         { header: "Destination", key: "destination", width: 20 },
-        { header: "Pickup Area", key: "pickuparea", width: 20 },
         { header: "Pickup Status", key: "pickUpPersonNameStatus", width: 20 },
         { header: "Pickup Booked Date", key: "pickupDatetime", width: 25 },
-        { header: "Pickup Completed Date", key: "pickupCompletedDatetime", width: 25 },
+        {
+          header: "Pickup Completed Date",
+          key: "pickupCompletedDatetime",
+          width: 25,
+        },
         { header: "Booked By", key: "pickupBookedBy", width: 20 },
-        { header: "Pickup Person", key: "pickUpPersonName", width: 20 },
         { header: "Invoice Number", key: "gstInvoiceNumber", width: 20 },
         { header: "Invoice Date", key: "PaymentComfirmedDate", width: 30 },
         { header: "Invoice URL", key: "payment_Invoice_URL", width: 30 },
         { header: "Receipt Number", key: "receiptNumber", width: 20 },
+        { header: "Receipt Date", key: "paymentRequestedDate", width: 20 },
         { header: "Receipt URL", key: "payment_Receipt_URL", width: 30 },
         { header: "Final Weight", key: "actualWeight", width: 15 },
         { header: "Internal Weight", key: "internalWeight", width: 15 },
@@ -722,20 +728,18 @@ function Accounts() {
                 {[
                   "AWB Number",
                   "Consignor Name",
-                  "Phone Number",
+                  "Consignor Phone Number",
                   "Source",
                   "Destination",
-                  "Pickup Area",
-                  "Pickup Status",
                   "Pickup Booked Date",
-                  "Pickup Completed Date",
                   "Booked By",
-                  "Pickup Person",
+
+                  "Receipt Number",
+                  "Receipt Date",
+                  "Receipt",
                   "Invoice Number",
                   "Invoice Date",
                   "Invoice",
-                  "Receipt Number",
-                  "Receipt",
                   "Final Weight",
                   "Internal Weight",
                   "Vendor",
@@ -790,29 +794,33 @@ function Accounts() {
                       <td className="py-3 px-4 border">{pickup.Source}</td>
                       {/* Destination */}
                       <td className="py-3 px-4 border">{pickup.destination}</td>
-                      {/* Pickup Area */}
-                      <td className="py-3 px-4 border">{pickup.pickuparea}</td>
-                      {/* Pickup Status */}
-                      <td className="py-3 px-4 border">
-                        {pickup.pickUpPersonNameStatus || "NOT COMPLETED"}
-                      </td>
                       {/* Pickup Booked Date */}
                       <td className="py-3 px-4 border text-nowrap">
                         {formatFirestoreTimestamp(pickup.pickupDatetime)}
-                      </td>
-                      {/* Pickup Completed Date */}
-                      <td className="py-3 px-4 border text-nowrap">
-                        {formatFirestoreTimestamp(
-                          pickup.pickupCompletedDatetime,
-                        ) || "--"}
                       </td>
                       {/* Booked By */}
                       <td className="py-3 px-4 border">
                         {pickup.pickupBookedBy}
                       </td>
-                      {/* Pickup Person */}
-                      <td className="py-3 px-4 border">
-                        {pickup.pickUpPersonName}
+                      {/* Receipt Number */}
+                      <td className="py-3 px-4 border text-nowrap">
+                        {pickup.receiptNumber}
+                      </td>
+                      <td className="py-3 px-4 border text-nowrap">
+                        {formatPaymentConfirmedDate(
+                          pickup.paymentRequestedDate,
+                        )}
+                      </td>
+                      {/* Receipt */}
+                      <td className="py-3 px-4 border text-nowrap">
+                        <a
+                          href={pickup.payment_Receipt_URL}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-[#714DD9] text-white text-sm font-medium rounded-lg shadow-sm hover:bg-[#886dda] active:scale-95 transition-all duration-200"
+                        >
+                          📄 View Receipt
+                        </a>
                       </td>
                       {/* Invoice Number */}
                       <td className="py-3 px-4 border text-nowrap">
@@ -841,21 +849,7 @@ function Accounts() {
                           "No Invoice"
                         )}
                       </td>
-                      {/* Receipt Number */}
-                      <td className="py-3 px-4 border text-nowrap">
-                        {pickup.receiptNumber}
-                      </td>
-                      {/* Receipt */}
-                      <td className="py-3 px-4 border text-nowrap">
-                        <a
-                          href={pickup.payment_Receipt_URL}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-[#714DD9] text-white text-sm font-medium rounded-lg shadow-sm hover:bg-[#886dda] active:scale-95 transition-all duration-200"
-                        >
-                          📄 View Receipt
-                        </a>
-                      </td>
+
                       {/* Final Weight */}
                       <td className="py-3 px-4 border">
                         {pickup.actualWeight}

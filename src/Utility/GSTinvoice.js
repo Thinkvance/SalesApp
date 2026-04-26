@@ -9,7 +9,7 @@ async function generate_GST_Invoice_PDF(
   costKg,
   discountCost,
   gst,
-  pickupDatetime,
+  now,
   gstInvoiceNumber,
   chargesList,
   baseCostPerKg = null,
@@ -109,12 +109,9 @@ Phone: 9159 688 688`;
       align: "right",
     });
 
-    doc.text(
-      `Date: ${formatFirebaseTimestamp(pickupDatetime)}`,
-      rightX,
-      60,
-      { align: "right" },
-    );
+    doc.text(`Date: ${formatFirebaseTimestamp(now)}`, rightX, 60, {
+      align: "right",
+    });
 
     doc.setFont("helvetica", "bold");
     doc.text(`Total: ${nettotal.toFixed(2)} Rs`, rightX, 80, {
