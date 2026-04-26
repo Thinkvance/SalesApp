@@ -390,7 +390,9 @@ function PaymentConfirmationForm() {
         ? baseLogistics
         : salesSubtotal;
     const displayCostKg =
-      baseCostPerKg != null && subtotal > salesSubtotal ? baseCostPerKg : costKg;
+      baseCostPerKg != null && subtotal > salesSubtotal
+        ? baseCostPerKg
+        : costKg;
     const nettotal = subtotal - parseInt(discountCost) + additionalcharges;
     const normalisedCharges =
       Array.isArray(chargesList) && chargesList.length
@@ -793,8 +795,7 @@ function PaymentConfirmationForm() {
         where("awbNumber", "==", parseInt(awbnumber)),
       );
       const querySnapshot = await getDocs(q);
-      const salesLogistics =
-        parseInt(details?.actualWeight) * parseInt(costKg);
+      const salesLogistics = parseInt(details?.actualWeight) * parseInt(costKg);
       // Use rate-card as the base when available; discountCost already
       // includes the rate-card gap, so subtracting it below nets to
       // sales − further (the correct client-pay amount).
@@ -905,8 +906,7 @@ function PaymentConfirmationForm() {
       const derivedBase = storedTotal + storedDiscount - storedAdditional;
       const storedSales =
         parseInt(details.actualWeight) * parseInt(details.costKg);
-      const regenBaseLogistics =
-        derivedBase > storedSales ? derivedBase : null;
+      const regenBaseLogistics = derivedBase > storedSales ? derivedBase : null;
       const regenBaseCostPerKg =
         regenBaseLogistics != null && parseInt(details.actualWeight) > 0
           ? Math.round(regenBaseLogistics / parseInt(details.actualWeight))
@@ -1796,6 +1796,9 @@ function PaymentConfirmationForm() {
               "Pickup charges",
               "Packing charges",
               "Customise Special box charges",
+              "Documentation Charges",
+              "Insurance Fees",
+              "Customs Clearance Charges",
             ];
             const isLocked =
               details.additionalcharges != undefined ||
@@ -1814,7 +1817,10 @@ function PaymentConfirmationForm() {
                     (r) => r === currentReason || !usedReasons.includes(r),
                   );
                   return (
-                    <div key={field.id} className="flex flex-col sm:flex-row gap-2 mb-2 sm:items-start">
+                    <div
+                      key={field.id}
+                      className="flex flex-col sm:flex-row gap-2 mb-2 sm:items-start"
+                    >
                       <div className="flex flex-col flex-1">
                         <input
                           type="text"
@@ -1918,8 +1924,7 @@ function PaymentConfirmationForm() {
             );
             const liveCostKg =
               details.costKg != null ? parseInt(details.costKg) : costKg;
-            const salesLogistics =
-              parseInt(details?.actualWeight) * liveCostKg;
+            const salesLogistics = parseInt(details?.actualWeight) * liveCostKg;
             // Headline Logistics Cost = rate-card list price when available,
             // so the combined discount visibly subtracts down to sales − further.
             const liveLogistics =
