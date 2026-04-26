@@ -107,54 +107,51 @@ function SalesReport() {
               ),
             ];
 
+      const dataByCollection = {};
       const unsubscribes = [];
 
-      Promise.all(
-        collectionNames.map((name) => {
-          let q;
-          if (["sales associate"].includes(user.role)) {
-            q = query(
+      collectionNames.forEach((name) => {
+        const q = ["sales associate"].includes(user.role)
+          ? query(
               collection(db, name),
               where("status", "in", ["SHIPMENT CONNECTED", "PAYMENT DONE"]),
               where("pickupBookedBy", "==", user.name),
-            );
-          } else {
-            q = query(
+            )
+          : query(
               collection(db, name),
               where("status", "in", ["SHIPMENT CONNECTED", "PAYMENT DONE"]),
             );
-          }
-          return new Promise((resolve) => {
-            const unsubscribe = onSnapshot(q, (snapshot) => {
-              const data = snapshot.docs.map((doc) => ({
-                ...doc.data(),
-                id: doc.id,
-              }));
-              resolve(data);
-            });
-            unsubscribes.push(unsubscribe);
-          });
-        }),
-      )
-        .then((results) => {
-          const combinedData = results.flat();
-          setPickups(combinedData);
-          setLoading(false);
-        })
-        .catch(() => {
-          salesreport.ErrorNotify("Unable to retrieve data.");
-          setLoading(false);
-        });
+
+        const unsubscribe = onSnapshot(
+          q,
+          (snapshot) => {
+            dataByCollection[name] = snapshot.docs.map((doc) => ({
+              ...doc.data(),
+              id: doc.id,
+            }));
+            setPickups(Object.values(dataByCollection).flat());
+            setLoading(false);
+          },
+          () => {
+            salesreport.ErrorNotify("Unable to retrieve data.");
+            setLoading(false);
+          },
+        );
+        unsubscribes.push(unsubscribe);
+      });
 
       return () => unsubscribes.forEach((u) => u());
     } catch {
       salesreport.ErrorNotify("Error fetching pickups.");
       setLoading(false);
+      return () => {};
     }
   };
 
   useEffect(() => {
-    if (username) fetchPickups();
+    if (!username) return;
+    const cleanup = fetchPickups();
+    return cleanup;
   }, [username, location]);
 
   const getFilterRange = () => {
