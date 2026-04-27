@@ -5,12 +5,12 @@ import { getFirestore } from "firebase/firestore";
 import { getMessaging } from "firebase/messaging";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyA-9aTFjb0DWeouH72awQqQvg55LsDduBg",
-  authDomain: "shiphitmobileapppickup-fb7e2.firebaseapp.com",
-  projectId: "shiphitmobileapppickup-fb7e2",
-  storageBucket: "shiphitmobileapppickup-fb7e2.firebasestorage.app",
-  messagingSenderId: "119835219554",
-  appId: "1:119835219554:web:d2d3de90ae318b1c92633b",
+  apiKey: "AIzaSyCJ-uGdjFO1kRT9DrRvbnpbEXQ5QXoKpeo",
+  authDomain: "shiphit-salesapp-test-env.firebaseapp.com",
+  projectId: "shiphit-salesapp-test-env",
+  storageBucket: "shiphit-salesapp-test-env.firebasestorage.app",
+  messagingSenderId: "866319555778",
+  appId: "1:866319555778:web:60cb04c99e04580170af5b",
 };
 
 // Initialize Firebase
